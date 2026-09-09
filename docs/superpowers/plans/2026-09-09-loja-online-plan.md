@@ -175,21 +175,21 @@ git commit -m "feat: add Loja Online database schema and shared helpers"
 
 - [ ] **Step 1: Update the stock-debit loop in `finalizarVenda()`**
 
-Open `includes/caixa.php`. Find the loop that debits stock — it currently looks like this:
+Open `includes/caixa.php`. Find the loop that debits stock — it currently looks like this (the loop variable is `$id_pv`, not `$id` — match it exactly):
 
 ```php
-foreach ($quantidadePorVariacao as $id => $quantidadeTotal) {
+foreach ($quantidadePorVariacao as $id_pv => $quantidadeTotal) {
     $pdo->prepare('UPDATE produto_variacoes SET estoque = estoque - :qtd WHERE id_produto_variacao = :id')
-        ->execute([':qtd' => $quantidadeTotal, ':id' => $id]);
+        ->execute([':qtd' => $quantidadeTotal, ':id' => $id_pv]);
 }
 ```
 
 Change the `UPDATE` to also release the reservation, guarded by `GREATEST(0, ...)` so it's safe for PDV sales (which never touch `estoque_reservado`, so it stays `0` and the `GREATEST` is a no-op):
 
 ```php
-foreach ($quantidadePorVariacao as $id => $quantidadeTotal) {
+foreach ($quantidadePorVariacao as $id_pv => $quantidadeTotal) {
     $pdo->prepare('UPDATE produto_variacoes SET estoque = estoque - :qtd, estoque_reservado = GREATEST(0, estoque_reservado - :qtd) WHERE id_produto_variacao = :id')
-        ->execute([':qtd' => $quantidadeTotal, ':id' => $id]);
+        ->execute([':qtd' => $quantidadeTotal, ':id' => $id_pv]);
 }
 ```
 
