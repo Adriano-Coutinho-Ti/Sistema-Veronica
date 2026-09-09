@@ -4,7 +4,7 @@ require_once __DIR__ . '/../includes/auth.php';
 exigirLogin();
 
 $id_venda = (int) ($_GET['id_venda'] ?? 0);
-$stmt = $pdo->prepare('SELECT * FROM vendas WHERE id_venda = :id');
+$stmt = $pdo->prepare("SELECT * FROM vendas WHERE id_venda = :id AND status = 'Pago'");
 $stmt->execute([':id' => $id_venda]);
 $venda = $stmt->fetch();
 
