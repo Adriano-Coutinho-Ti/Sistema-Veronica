@@ -84,24 +84,27 @@ function finalizarVenda(PDO $pdo, int $id_venda, array $pagamentos, ?string $id_
             throw new Exception('Não é possível finalizar uma venda sem itens.');
         }
 
+        $quantidadePorVariacao = [];
         foreach ($listaItens as $item) {
             if ($item['id_produto_variacao'] === null) {
                 continue;
             }
+            $id_pv = (int) $item['id_produto_variacao'];
+            $quantidadePorVariacao[$id_pv] = ($quantidadePorVariacao[$id_pv] ?? 0) + (int) $item['quantidade'];
+        }
+
+        foreach ($quantidadePorVariacao as $id_pv => $quantidadeTotal) {
             $stmtPv = $pdo->prepare('SELECT estoque FROM produto_variacoes WHERE id_produto_variacao = :id FOR UPDATE');
-            $stmtPv->execute([':id' => $item['id_produto_variacao']]);
+            $stmtPv->execute([':id' => $id_pv]);
             $pv = $stmtPv->fetch();
-            if (!$pv || $pv['estoque'] < $item['quantidade']) {
+            if (!$pv || $pv['estoque'] < $quantidadeTotal) {
                 throw new Exception('Estoque insuficiente para um dos itens da venda.');
             }
         }
 
-        foreach ($listaItens as $item) {
-            if ($item['id_produto_variacao'] === null) {
-                continue;
-            }
+        foreach ($quantidadePorVariacao as $id_pv => $quantidadeTotal) {
             $pdo->prepare('UPDATE produto_variacoes SET estoque = estoque - :qtd WHERE id_produto_variacao = :id')
-                ->execute([':qtd' => $item['quantidade'], ':id' => $item['id_produto_variacao']]);
+                ->execute([':qtd' => $quantidadeTotal, ':id' => $id_pv]);
         }
 
         $formas = [];
