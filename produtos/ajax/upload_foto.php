@@ -30,7 +30,7 @@ $targetWidth = 473;
 $targetHeight = 400;
 $targetDir = __DIR__ . '/../../assets/img/produtos/' . $id_produto . '/';
 if (!is_dir($targetDir)) {
-    mkdir($targetDir, 0777, true);
+    mkdir($targetDir, 0755, true);
 }
 
 $novaOrdem = $maiorOrdem + 1;

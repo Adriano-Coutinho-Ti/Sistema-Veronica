@@ -27,7 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($origem !== null && $origem !== false) {
                 $dir = __DIR__ . '/../assets/img/loja/';
                 if (!is_dir($dir)) {
-                    mkdir($dir, 0777, true);
+                    mkdir($dir, 0755, true);
                 }
                 imagepng($origem, $dir . 'logo.png', 9);
                 imagedestroy($origem);
