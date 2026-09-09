@@ -3,8 +3,14 @@ require_once __DIR__ . '/../../conecta_bd.php';
 require_once __DIR__ . '/../../includes/auth_cliente.php';
 require_once __DIR__ . '/../../includes/loja.php';
 require_once __DIR__ . '/../../includes/caixa.php';
-exigirClienteLogado();
+exigirClienteLogado(true);
 header('Content-Type: application/json');
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
+    echo json_encode(['success' => false, 'message' => 'Método não permitido.']);
+    exit;
+}
 
 liberarReservasExpiradas($pdo);
 
@@ -33,11 +39,17 @@ try {
          JOIN produtos p ON p.id_produto = pv.id_produto
          LEFT JOIN produto_variacao_valores pvv ON pvv.id_produto_variacao = pv.id_produto_variacao
          LEFT JOIN variacao_valores vv ON vv.id_valor = pvv.id_valor
-         WHERE pv.id_produto_variacao = :id
+         WHERE pv.id_produto_variacao = :id AND p.ativo = 1
          GROUP BY p.nome, pv.preco, p.preco_base'
     );
     $stmtProduto->execute([':id' => $id_produto_variacao]);
     $produto = $stmtProduto->fetch();
+
+    if (!$produto) {
+        $pdo->rollBack();
+        echo json_encode(['success' => false, 'message' => 'Produto não encontrado.']);
+        exit;
+    }
 
     $id_venda = buscarCarrinhoDoCliente($pdo, $id_cliente);
     if (!$id_venda) {

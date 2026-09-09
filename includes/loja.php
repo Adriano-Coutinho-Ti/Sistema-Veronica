@@ -20,9 +20,11 @@ function liberarReservasExpiradas(PDO $pdo): void
     $vendasExpiradas = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
     foreach ($vendasExpiradas as $id_venda) {
-        devolverReservaDaVenda($pdo, (int) $id_venda);
-        $pdo->prepare("UPDATE vendas SET status = 'Cancelado' WHERE id_venda = :id")
-            ->execute([':id' => $id_venda]);
+        $cancelou = $pdo->prepare("UPDATE vendas SET status = 'Cancelado' WHERE id_venda = :id AND status = 'Reservado'");
+        $cancelou->execute([':id' => $id_venda]);
+        if ($cancelou->rowCount() > 0) {
+            devolverReservaDaVenda($pdo, (int) $id_venda);
+        }
     }
 }
 
