@@ -12,19 +12,29 @@ $id_venda = buscarCarrinhoDoCliente($pdo, $id_cliente);
 $itens = [];
 $total = 0;
 $dataVenda = null;
+$segundosRestantes = 0;
 if ($id_venda) {
     $stmt = $pdo->prepare('SELECT id_item, nome_produto, descricao_combinacao, quantidade, preco_unit, subtotal FROM itens_venda WHERE id_venda = :id ORDER BY id_item');
     $stmt->execute([':id' => $id_venda]);
     $itens = $stmt->fetchAll();
 
-    $stmtV = $pdo->prepare('SELECT valor_total, data_venda FROM vendas WHERE id_venda = :id');
+    // Os segundos restantes são calculados no próprio MySQL, não em PHP: se o timezone do PHP
+    // e o do MySQL divergirem (comum num WAMP padrão), comparar data_venda do banco com a hora
+    // do PHP/navegador dá uma contagem errada — podendo zerar na hora e deixar a página num
+    // laço infinito de reload.
+    $stmtV = $pdo->prepare(
+        "SELECT v.valor_total, v.data_venda,
+                GREATEST(0, TIMESTAMPDIFF(SECOND, NOW(), DATE_ADD(v.data_venda, INTERVAL cl.prazo_reserva_minutos MINUTE))) AS segundos_restantes
+         FROM vendas v
+         JOIN config_loja cl ON cl.id_config = 1
+         WHERE v.id_venda = :id"
+    );
     $stmtV->execute([':id' => $id_venda]);
     $venda = $stmtV->fetch();
     $total = (float) $venda['valor_total'];
     $dataVenda = $venda['data_venda'];
+    $segundosRestantes = (int) $venda['segundos_restantes'];
 }
-
-$config = $pdo->query('SELECT prazo_reserva_minutos FROM config_loja WHERE id_config = 1')->fetch();
 ?>
 <!DOCTYPE html>
 <html lang="pt-br">
@@ -39,15 +49,16 @@ $config = $pdo->query('SELECT prazo_reserva_minutos FROM config_loja WHERE id_co
     <?php if ($dataVenda): ?>
     <p id="contagem"></p>
     <script>
-    const expiraEm = new Date('<?= date('c', strtotime($dataVenda) + ((int) $config['prazo_reserva_minutos'] * 60)) ?>').getTime();
+    let restante = <?= $segundosRestantes ?>;
     function atualizarContagem() {
-        const restante = Math.max(0, Math.floor((expiraEm - Date.now()) / 1000));
         const min = Math.floor(restante / 60);
         const seg = restante % 60;
         document.getElementById('contagem').textContent = 'Tempo pra pagar: ' + min + ':' + String(seg).padStart(2, '0');
         if (restante <= 0) {
             window.location.reload();
+            return;
         }
+        restante--;
     }
     atualizarContagem();
     setInterval(atualizarContagem, 1000);
@@ -75,6 +86,8 @@ $config = $pdo->query('SELECT prazo_reserva_minutos FROM config_loja WHERE id_co
                 body: 'id_item=' + btn.dataset.idItem
             }).then(r => r.json()).then(data => {
                 if (data.success) { window.location.reload(); } else { alert(data.message); }
+            }).catch(err => {
+                alert('Erro de conexão. Tente novamente.');
             });
         });
     });
