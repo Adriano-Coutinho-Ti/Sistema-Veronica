@@ -19,11 +19,29 @@ function liberarReservasExpiradas(PDO $pdo): void
     $stmt->execute();
     $vendasExpiradas = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
+    // Cancelar e devolver a reserva têm que acontecer juntos: se o processo morresse entre os
+    // dois, a reserva ficaria presa pra sempre (nenhuma varredura posterior pega a venda de
+    // novo, porque ela já não está mais 'Reservado'). Cada venda vai na sua própria transação;
+    // o guard do inTransaction() mantém a função segura se algum chamador já tiver aberto uma.
     foreach ($vendasExpiradas as $id_venda) {
-        $cancelou = $pdo->prepare("UPDATE vendas SET status = 'Cancelado' WHERE id_venda = :id AND status = 'Reservado'");
-        $cancelou->execute([':id' => $id_venda]);
-        if ($cancelou->rowCount() > 0) {
-            devolverReservaDaVenda($pdo, (int) $id_venda);
+        $jaEmTransacao = $pdo->inTransaction();
+        if (!$jaEmTransacao) {
+            $pdo->beginTransaction();
+        }
+        try {
+            $cancelou = $pdo->prepare("UPDATE vendas SET status = 'Cancelado' WHERE id_venda = :id AND status = 'Reservado'");
+            $cancelou->execute([':id' => $id_venda]);
+            if ($cancelou->rowCount() > 0) {
+                devolverReservaDaVenda($pdo, (int) $id_venda);
+            }
+            if (!$jaEmTransacao) {
+                $pdo->commit();
+            }
+        } catch (Throwable $e) {
+            if (!$jaEmTransacao && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            throw $e;
         }
     }
 }

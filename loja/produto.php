@@ -84,6 +84,8 @@ $listaCombinacoes = $combinacoes->fetchAll();
             } else {
                 document.getElementById('mensagem-adicionar').textContent = data.message;
             }
+        }).catch(err => {
+            document.getElementById('mensagem-adicionar').textContent = 'Erro de conexão. Tente novamente.';
         });
     });
     </script>

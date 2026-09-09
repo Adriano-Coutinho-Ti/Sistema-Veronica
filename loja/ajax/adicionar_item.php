@@ -12,7 +12,15 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-liberarReservasExpiradas($pdo);
+// Fora do try/catch principal (que só começa depois do beginTransaction()) — sem isso uma
+// exceção aqui sairia como corpo vazio e o fetch() do front-end quebraria no r.json().
+try {
+    liberarReservasExpiradas($pdo);
+} catch (Throwable $e) {
+    error_log('adicionar_item: erro ao liberar reservas expiradas: ' . $e->getMessage());
+    echo json_encode(['success' => false, 'message' => 'Erro ao processar. Tente novamente.']);
+    exit;
+}
 
 $id_produto_variacao = (int) ($_POST['id_produto_variacao'] ?? 0);
 $quantidade = max(1, (int) ($_POST['quantidade'] ?? 1));
