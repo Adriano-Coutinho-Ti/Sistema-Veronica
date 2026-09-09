@@ -108,7 +108,7 @@ function finalizarVenda(PDO $pdo, int $id_venda, array $pagamentos, ?string $id_
         }
 
         foreach ($quantidadePorVariacao as $id_pv => $quantidadeTotal) {
-            $pdo->prepare('UPDATE produto_variacoes SET estoque = estoque - :qtd WHERE id_produto_variacao = :id')
+            $pdo->prepare('UPDATE produto_variacoes SET estoque = estoque - :qtd, estoque_reservado = GREATEST(0, estoque_reservado - :qtd) WHERE id_produto_variacao = :id')
                 ->execute([':qtd' => $quantidadeTotal, ':id' => $id_pv]);
         }
 
