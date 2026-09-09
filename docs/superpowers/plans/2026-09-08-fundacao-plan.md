@@ -1328,7 +1328,9 @@ $origem = match ($mime) {
     default => null,
 };
 
-if ($origem === null) {
+// imagecreatefrom*() returns false (not null) on a decode failure, even when
+// getimagesize() already confirmed the mime type — must catch both.
+if ($origem === null || $origem === false) {
     header('Location: /produtos/editar.php?id=' . $id_produto . '&upload_status=error&msg=formato_invalido');
     exit;
 }
@@ -1520,7 +1522,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'image/png' => imagecreatefrompng($_FILES['logo']['tmp_name']),
                 default => null,
             };
-            if ($origem !== null) {
+            // imagecreatefrom*() returns false (not null) on a decode failure, even when
+            // getimagesize() already confirmed the mime type — must catch both.
+            if ($origem !== null && $origem !== false) {
                 $dir = __DIR__ . '/../assets/img/loja/';
                 if (!is_dir($dir)) {
                     mkdir($dir, 0777, true);
