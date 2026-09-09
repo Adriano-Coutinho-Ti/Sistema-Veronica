@@ -1,0 +1,30 @@
+name: Deploy via FTP
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: FTP Deploy (envia só o que mudou)
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.HOST }}
+          username: ${{ secrets.USER }}
+          password: ${{ secrets.PASSWORD }}
+          protocol: ftp
+          port: 21
+          local-dir: ./
+          server-dir: /public_html/brechodaveve/
+          exclude: |
+            **/.git*
+            **/.git*/**
