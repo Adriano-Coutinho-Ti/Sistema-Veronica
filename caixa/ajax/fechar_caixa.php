@@ -4,6 +4,11 @@ require_once __DIR__ . '/../../includes/auth.php';
 require_once __DIR__ . '/../../includes/caixa.php';
 exigirLogin();
 
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
+    exit;
+}
+
 $caixa = exigirCaixaAberto($pdo);
 
 $valor_final = (float) str_replace(',', '.', $_POST['valor_final_informado'] ?? '0');
@@ -23,7 +28,7 @@ $diferenca = $valor_final - $valor_esperado;
 $pdo->prepare(
     "UPDATE caixa_sessoes SET status = 'fechado', fechado_por = :fp, data_fechamento = NOW(),
             valor_final_informado = :vf, valor_esperado = :ve, diferenca = :dif, observacao_fechamento = :obs
-     WHERE id_caixa = :ic"
+     WHERE id_caixa = :ic AND status = 'aberto'"
 )->execute([
     ':fp' => $_SESSION['id_usuario'],
     ':vf' => $valor_final,
