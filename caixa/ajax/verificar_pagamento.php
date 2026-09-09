@@ -48,7 +48,10 @@ try {
         // pago de verdade (o check de suficiência dela usa o total atual da venda).
         $valorPago = (float) ($resposta['dados']['transaction_amount'] ?? 0);
         $resultado = finalizarVenda($pdo, $id_venda, [['forma' => 'Pix', 'valor' => $valorPago]], (string) $venda['id_pagamento_mp']);
-        echo json_encode(['success' => true, 'aprovado' => $resultado['success'], 'redirect' => $resultado['redirect'], 'message' => $resultado['message']]);
+        if (!$resultado['success']) {
+            error_log('Verificar pagamento MP: falha ao finalizar venda ' . $id_venda . ': ' . $resultado['message']);
+        }
+        echo json_encode(['success' => $resultado['success'], 'aprovado' => $resultado['success'], 'redirect' => $resultado['redirect'], 'message' => $resultado['message']]);
     } else {
         echo json_encode(['success' => true, 'aprovado' => false]);
     }
