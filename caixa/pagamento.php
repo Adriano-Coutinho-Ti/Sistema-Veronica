@@ -124,6 +124,10 @@ function iniciarPolling() {
             if (data.aprovado) {
                 clearInterval(pollingInterval);
                 window.location.href = data.redirect;
+            } else if (!data.success) {
+                clearInterval(pollingInterval);
+                pollingInterval = null;
+                alert(data.message);
             }
         });
     }, 4000);
