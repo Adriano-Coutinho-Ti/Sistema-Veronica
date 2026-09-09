@@ -114,7 +114,12 @@ function carregarVariacoes() {
             data.variacoes.forEach(v => {
                 const label = document.createElement('label');
                 label.style.display = 'block';
-                label.innerHTML = '<input type="checkbox" class="chk-variacao" value="' + v.id_variacao + '"> ' + v.nome;
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.className = 'chk-variacao';
+                checkbox.value = v.id_variacao;
+                label.appendChild(checkbox);
+                label.appendChild(document.createTextNode(' ' + v.nome));
                 container.appendChild(label);
             });
             container.querySelectorAll('.chk-variacao').forEach(chk => {
@@ -140,9 +145,10 @@ function atualizarCombinacoes() {
             data.combinacoes.forEach((combinacao, index) => {
                 const nomeCombinacao = combinacao.map(v => v.valor).join(' / ') || 'Padrão (sem variação)';
                 const div = document.createElement('div');
-                div.innerHTML = '<strong>' + nomeCombinacao + '</strong> — ' +
-                    'Estoque: <input type="number" min="0" class="input-estoque" value="0"> ' +
-                    'Preço (deixe em branco para usar o preço base): <input type="text" class="input-preco">';
+                const strong = document.createElement('strong');
+                strong.textContent = nomeCombinacao;
+                div.appendChild(strong);
+                div.insertAdjacentHTML('beforeend', ' — Estoque: <input type="number" min="0" class="input-estoque" value="0"> Preço (deixe em branco para usar o preço base): <input type="text" class="input-preco">');
                 div.dataset.valores = JSON.stringify(combinacao.map(v => v.id_valor));
                 container.appendChild(div);
             });
