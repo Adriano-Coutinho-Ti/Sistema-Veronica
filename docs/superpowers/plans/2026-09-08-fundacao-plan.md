@@ -16,7 +16,7 @@
 - No automated tests (PHPUnit etc.) — every task's verification step is a manual procedure to run and observe.
 - Money fields are `DECIMAL(10,2)`.
 - Passwords hashed with `password_hash(..., PASSWORD_DEFAULT)` / verified with `password_verify`.
-- DB credentials live in `config_credenciais.php` **one level above the repo root** (matches `sys01`'s `require_once __DIR__ . '/../config_credenciais.php'` pattern) — this file is never committed.
+- DB credentials live in `brechodaveve_config_credenciais.php` **one level above the repo root** (matches `sys01`'s `require_once __DIR__ . '/../brechodaveve_config_credenciais.php'` pattern) — this file is never committed.
 - Sale records (built in the next sub-project) will **not** hold a foreign key to `produtos`/`produto_variacoes` — noted here because it affects how `produtos` deletion is allowed to behave (always physically deletable).
 - Photos are always stored on disk under `assets/img/produtos/{id_produto}/`, never in the database — only their path is stored.
 - All PDO connections use `PDO::ATTR_ERRMODE_EXCEPTION`; page code must not swallow `PDOException` and echo raw DB error text to the browser (an information-leak pattern present in `sys01`'s `conecta_bd.php` that we deliberately do not copy) — let exceptions propagate to PHP's own error log.
@@ -26,7 +26,7 @@
 ## File Structure
 
 ```
-config_credenciais.php          (OUTSIDE the repo — D:\Projetos clientes - CODERNEX\config_credenciais.php)
+brechodaveve_config_credenciais.php          (OUTSIDE the repo — D:\Projetos clientes - CODERNEX\brechodaveve_config_credenciais.php)
 conecta_bd.php
 .gitignore
 sql/schema.sql
@@ -69,7 +69,7 @@ assets/img/produtos/.gitkeep
 
 - [ ] **Step 1: Create the credentials file outside the repo**
 
-Create `D:\Projetos clientes - CODERNEX\config_credenciais.php` (note: **outside** `Sistema-Veronica`, one level up) with your local MySQL credentials:
+Create `D:\Projetos clientes - CODERNEX\brechodaveve_config_credenciais.php` (note: **outside** `Sistema-Veronica`, one level up) with your local MySQL credentials:
 
 ```php
 <?php
@@ -203,7 +203,7 @@ Expected: no errors. Verify with `mysql -u root sistema_veronica -e "SHOW TABLES
 
 ```php
 <?php
-require_once __DIR__ . '/../config_credenciais.php';
+require_once __DIR__ . '/../brechodaveve_config_credenciais.php';
 
 $dsn = "mysql:host=$host;dbname=$dbname;charset=utf8mb4";
 

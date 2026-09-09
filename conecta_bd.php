@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../../config_credenciais.php';
+require_once __DIR__ . '/../../brechodaveve_config_credenciais.php';
 
 $dsn = "mysql:host=$host;dbname=$dbname;charset=utf8mb4";
 

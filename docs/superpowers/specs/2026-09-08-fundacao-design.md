@@ -25,7 +25,7 @@ O projeto `D:\Projetos clientes - CODERNEX\sys01` é usado como modelo de
 código, padrão de conexão com banco e integração com Mercado Pago. Módulos e
 arquivos relevantes já auditados:
 
-- `conecta_bd.php` — conexão PDO, credenciais em `config_credenciais.php` um
+- `conecta_bd.php` — conexão PDO, credenciais em `brechodaveve_config_credenciais.php` um
   nível acima da pasta pública
 - `produtos/processa_upload_foto.php` — recorte/redimensionamento de foto via
   **GD nativo do PHP** (sem lib externa), salvando em `assets/img/produtos/`
@@ -57,7 +57,7 @@ Mercado Pago, linha de crédito.
 ## Estrutura de pastas
 
 ```
-/config_credenciais.php        (fora da pasta pública, no nível acima)
+/brechodaveve_config_credenciais.php  (fora da pasta pública, no nível acima)
 /conecta_bd.php
 /login.php
 /sair.php
