@@ -45,7 +45,6 @@ curl_setopt_array($ch, [
 ]);
 $resposta = curl_exec($ch);
 $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-curl_close($ch);
 
 if ($resposta === false || $http_code < 200 || $http_code >= 300) {
     header('Location: /integracoes/mercado_pago/conectar.php?erro=' . urlencode('Erro ao trocar código por token no Mercado Pago.'));
