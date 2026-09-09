@@ -10,12 +10,17 @@ if (!isset($_GET['code']) || !isset($_GET['state'])) {
 $code = $_GET['code'];
 $nonceRecebido = $_GET['state'];
 
-$config = mpConfig($pdo);
-if (!$config || empty($config['mp_oauth_nonce']) || !hash_equals((string) $config['mp_oauth_nonce'], (string) $nonceRecebido)) {
+$stmtNonce = $pdo->prepare(
+    "SELECT mp_oauth_nonce, (mp_oauth_nonce_expira IS NOT NULL AND mp_oauth_nonce_expira > NOW()) AS nonce_valido FROM config_pagamento WHERE id_config = 1"
+);
+$stmtNonce->execute();
+$nonceInfo = $stmtNonce->fetch();
+
+if (!$nonceInfo || empty($nonceInfo['mp_oauth_nonce']) || !hash_equals((string) $nonceInfo['mp_oauth_nonce'], (string) $nonceRecebido)) {
     header('Location: /integracoes/mercado_pago/conectar.php?erro=' . urlencode('Falha de segurança (state inválido). Tente conectar novamente.'));
     exit;
 }
-if (empty($config['mp_oauth_nonce_expira']) || new DateTime($config['mp_oauth_nonce_expira']) < new DateTime()) {
+if (!$nonceInfo['nonce_valido']) {
     header('Location: /integracoes/mercado_pago/conectar.php?erro=' . urlencode('O link de conexão expirou. Tente novamente.'));
     exit;
 }
