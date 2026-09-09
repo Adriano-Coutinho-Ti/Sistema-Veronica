@@ -9,7 +9,11 @@ $id_venda = (int) ($_POST['id_venda'] ?? 0);
 $id_produto_variacao = (int) ($_POST['id_produto_variacao'] ?? 0);
 $quantidade = max(1, (int) ($_POST['quantidade'] ?? 1));
 
-$stmtV = $pdo->prepare("SELECT id_venda FROM vendas WHERE id_venda = :id AND id_usuario = :iu AND status = 'Reservado'");
+$stmtV = $pdo->prepare(
+    "SELECT v.id_venda FROM vendas v
+     JOIN caixa_sessoes cs ON cs.id_caixa = v.id_caixa
+     WHERE v.id_venda = :id AND v.id_usuario = :iu AND v.status = 'Reservado' AND cs.status = 'aberto'"
+);
 $stmtV->execute([':id' => $id_venda, ':iu' => $_SESSION['id_usuario']]);
 if (!$stmtV->fetch()) {
     echo json_encode(['success' => false, 'message' => 'Venda não encontrada ou já finalizada.']);
