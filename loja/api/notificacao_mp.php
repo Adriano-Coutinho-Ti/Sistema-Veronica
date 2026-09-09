@@ -48,13 +48,18 @@ try {
 
                 if (!$resultado['success']) {
                     error_log('Webhook loja MP: falha ao finalizar venda ' . $id_venda . ': ' . $resultado['message']);
-                    // A reserva ainda está segurando o estoque (finalizarVenda() não
-                    // debita nada quando rejeita) — precisa devolver antes de cancelar,
-                    // senão o item fica preso, reservado pra sempre, sem ninguém poder
-                    // comprá-lo de novo.
-                    devolverReservaDaVenda($pdo, $id_venda);
-                    $pdo->prepare("UPDATE vendas SET status = 'Cancelado' WHERE id_venda = :id AND status = 'Reservado'")
-                        ->execute([':id' => $id_venda]);
+                    // O Mercado Pago pode entregar a mesma notificação mais de uma vez.
+                    // Se duas chamadas concorrentes chegarem aqui, o FOR UPDATE dentro de
+                    // finalizarVenda() garante que só uma finalize a venda — a outra recebe
+                    // success:false só porque perdeu a corrida. Por isso o UPDATE guardado
+                    // roda primeiro: só quem realmente transiciona Reservado -> Cancelado
+                    // (rowCount() > 0) é que devolve a reserva. Isso evita devolver estoque
+                    // que já foi legitimamente consumido pela chamada vencedora.
+                    $cancelou = $pdo->prepare("UPDATE vendas SET status = 'Cancelado' WHERE id_venda = :id AND status = 'Reservado'");
+                    $cancelou->execute([':id' => $id_venda]);
+                    if ($cancelou->rowCount() > 0) {
+                        devolverReservaDaVenda($pdo, $id_venda);
+                    }
                 }
             }
         }
