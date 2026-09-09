@@ -37,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             foreach ($combinacoes as $combinacao) {
                 $precoCombinacao = isset($combinacao['preco']) && $combinacao['preco'] !== ''
-                    ? (float) $combinacao['preco']
+                    ? (float) str_replace(',', '.', $combinacao['preco'])
                     : null;
                 $estoque = (int) ($combinacao['estoque'] ?? 0);
 
