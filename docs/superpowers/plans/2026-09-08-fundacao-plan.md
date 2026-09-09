@@ -47,6 +47,7 @@ produtos/ajax/upload_foto.php
 produtos/ajax/deletar_foto.php
 produtos/ajax/deletar_produto.php
 produtos/ajax/gerar_combinacoes.php
+produtos/ajax/listar_variacoes_categoria.php
 config_sistema/aparencia.php
 config_sistema/entrega.php
 assets/img/produtos/.gitkeep
@@ -843,6 +844,7 @@ git commit -m "feat: add configurable variacoes CRUD per categoria"
 **Files:**
 - Create: `produtos/novo.php`
 - Create: `produtos/ajax/gerar_combinacoes.php`
+- Create: `produtos/ajax/listar_variacoes_categoria.php`
 
 **Interfaces:**
 - Consumes: `exigirLogin()`, `$pdo`, `categorias`/`variacoes`/`variacao_valores`/`categoria_variacoes` (Tasks 5-6)
@@ -1022,6 +1024,10 @@ function carregarVariacoes() {
             container.querySelectorAll('.chk-variacao').forEach(chk => {
                 chk.addEventListener('change', atualizarCombinacoes);
             });
+            // Renderiza a combinação "Padrão" imediatamente, mesmo sem nenhuma
+            // variação marcada — sem isso não haveria campo de estoque/preço
+            // nenhum pra um produto sem variação, e ele seria salvo com estoque 0.
+            atualizarCombinacoes();
         });
 }
 
@@ -1054,10 +1060,6 @@ document.getElementById('form-produto').addEventListener('submit', function (e) 
         estoque: div.querySelector('.input-estoque').value,
         preco: div.querySelector('.input-preco').value,
     }));
-    if (combinacoes.length === 0) {
-        // Nenhuma variação ativada: 1 combinação padrão sem valores.
-        combinacoes.push({ valores: [], estoque: document.querySelector('[name="estoque_padrao"]')?.value || 0, preco: '' });
-    }
     document.getElementById('combinacoes-input').value = JSON.stringify(combinacoes);
 });
 </script>
