@@ -1,0 +1,133 @@
+<?php
+require_once __DIR__ . '/../conecta_bd.php';
+require_once __DIR__ . '/../includes/auth.php';
+exigirLogin();
+
+$id_venda = (int) ($_GET['id_venda'] ?? 0);
+$stmt = $pdo->prepare("SELECT * FROM vendas WHERE id_venda = :id AND id_usuario = :iu AND status = 'Reservado'");
+$stmt->execute([':id' => $id_venda, ':iu' => $_SESSION['id_usuario']]);
+$venda = $stmt->fetch();
+
+if (!$venda) {
+    header('Location: /caixa/index.php');
+    exit;
+}
+?>
+<!DOCTYPE html>
+<html lang="pt-br">
+<head><meta charset="UTF-8"><title>Pagamento</title></head>
+<body>
+    <h1>Pagamento — Venda #<?= $id_venda ?></h1>
+    <p>Total: R$ <span id="total-venda"><?= number_format($venda['valor_total'], 2, ',', '.') ?></span></p>
+
+    <div id="pagamentos-lancados"></div>
+
+    <label>Forma de pagamento
+        <select id="forma-pagamento">
+            <option value="Dinheiro">Dinheiro</option>
+            <option value="Débito">Débito</option>
+            <option value="Crédito">Crédito</option>
+            <option value="Pix">Pix (QR Code)</option>
+        </select>
+    </label>
+
+    <div id="campos-manual">
+        <input type="text" id="valor-pagamento" placeholder="Valor recebido">
+        <button id="btn-adicionar-pagamento">Adicionar pagamento</button>
+    </div>
+
+    <div id="campos-pix" style="display:none;">
+        <button id="btn-gerar-pix">Gerar QR Code Pix</button>
+        <div id="pix-resultado"></div>
+    </div>
+
+    <p>Pago: R$ <span id="total-pago">0,00</span> / Restante: R$ <span id="total-restante"><?= number_format($venda['valor_total'], 2, ',', '.') ?></span></p>
+
+    <button id="btn-finalizar" style="display:none;">Finalizar venda</button>
+
+<script>
+const idVenda = <?= $id_venda ?>;
+const totalVenda = <?= (float) $venda['valor_total'] ?>;
+let pagamentos = [];
+let pollingInterval = null;
+
+document.getElementById('forma-pagamento').addEventListener('change', function () {
+    const ehPix = this.value === 'Pix';
+    document.getElementById('campos-manual').style.display = ehPix ? 'none' : '';
+    document.getElementById('campos-pix').style.display = ehPix ? '' : 'none';
+});
+
+document.getElementById('btn-adicionar-pagamento').addEventListener('click', function () {
+    const forma = document.getElementById('forma-pagamento').value;
+    const valor = parseFloat(document.getElementById('valor-pagamento').value.replace(',', '.'));
+    if (!valor || valor <= 0) { alert('Valor inválido'); return; }
+    pagamentos.push({ forma: forma, valor: valor });
+    atualizarResumo();
+});
+
+function atualizarResumo() {
+    const totalPago = pagamentos.reduce((acc, p) => acc + p.valor, 0);
+    document.getElementById('total-pago').textContent = totalPago.toFixed(2).replace('.', ',');
+    document.getElementById('total-restante').textContent = Math.max(0, totalVenda - totalPago).toFixed(2).replace('.', ',');
+    document.getElementById('pagamentos-lancados').textContent = pagamentos.map(p => p.forma + ': R$ ' + p.valor.toFixed(2).replace('.', ',')).join(' | ');
+    document.getElementById('btn-finalizar').style.display = totalPago >= totalVenda - 0.001 ? '' : 'none';
+}
+
+document.getElementById('btn-finalizar').addEventListener('click', function () {
+    fetch('/caixa/ajax/finalizar_venda.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'id_venda=' + idVenda + '&pagamentos=' + encodeURIComponent(JSON.stringify(pagamentos))
+    }).then(r => r.json()).then(data => {
+        if (data.success) {
+            window.location.href = data.redirect;
+        } else {
+            alert(data.message);
+        }
+    });
+});
+
+document.getElementById('btn-gerar-pix').addEventListener('click', function () {
+    this.disabled = true;
+    fetch('/caixa/ajax/gerar_pix.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'id_venda=' + idVenda
+    }).then(r => r.json()).then(data => {
+        if (!data.success) { alert(data.message); document.getElementById('btn-gerar-pix').disabled = false; return; }
+        const div = document.getElementById('pix-resultado');
+        div.innerHTML = '';
+        const img = document.createElement('img');
+        img.src = 'data:image/png;base64,' + data.qr_code_base64;
+        img.width = 200;
+        div.appendChild(img);
+        const textarea = document.createElement('textarea');
+        textarea.readOnly = true;
+        textarea.style.width = '300px';
+        textarea.value = data.qr_code;
+        div.appendChild(textarea);
+        const p = document.createElement('p');
+        p.textContent = 'Aguardando pagamento...';
+        div.appendChild(p);
+        iniciarPolling();
+    });
+});
+
+function iniciarPolling() {
+    if (pollingInterval) return;
+    pollingInterval = setInterval(function () {
+        fetch('/caixa/ajax/verificar_pagamento.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: 'id_venda=' + idVenda
+        }).then(r => r.json()).then(data => {
+            if (data.aprovado) {
+                clearInterval(pollingInterval);
+                window.location.href = data.redirect;
+            }
+        });
+    }, 4000);
+}
+</script>
+</body>
+</html>
