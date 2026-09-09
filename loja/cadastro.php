@@ -51,10 +51,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->execute([':nome' => $nome, ':whatsapp' => $whatsappNormalizado, ':senha' => $hash]);
                 $_SESSION['id_cliente'] = (int) $pdo->lastInsertId();
                 $_SESSION['nome_cliente'] = $nome;
+                session_regenerate_id(true);
                 header('Location: /loja/index.php');
                 exit;
             } catch (PDOException $e) {
-                $erro = 'Esse WhatsApp já tem cadastro. Tente entrar em vez de se cadastrar.';
+                // Check if error is specifically duplicate-key (MySQL 1062 / SQLSTATE 23000)
+                if ($e->errorInfo[1] === 1062 || $e->getCode() === '23000') {
+                    $erro = 'Esse WhatsApp já tem cadastro. Tente entrar em vez de se cadastrar.';
+                } else {
+                    error_log('PDOException in cadastro: ' . $e->getMessage());
+                    $erro = 'Erro ao cadastrar. Tente novamente.';
+                }
                 $etapa = 'whatsapp';
             }
         }
@@ -67,17 +74,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $etapa = 'ativar';
         } else {
             $hash = password_hash($senha, PASSWORD_DEFAULT);
-            $pdo->prepare('UPDATE clientes SET senha_hash = :senha WHERE whatsapp = :whatsapp')
-                ->execute([':senha' => $hash, ':whatsapp' => $whatsappNormalizado]);
+            $stmt = $pdo->prepare('UPDATE clientes SET senha_hash = :senha WHERE whatsapp = :whatsapp AND senha_hash IS NULL');
+            $stmt->execute([':senha' => $hash, ':whatsapp' => $whatsappNormalizado]);
 
-            $stmtC = $pdo->prepare('SELECT id_cliente, nome FROM clientes WHERE whatsapp = :whatsapp');
-            $stmtC->execute([':whatsapp' => $whatsappNormalizado]);
-            $cliente = $stmtC->fetch();
+            // Only proceed if the update actually affected a row (passwordless account)
+            if ($stmt->rowCount() > 0) {
+                $stmtC = $pdo->prepare('SELECT id_cliente, nome FROM clientes WHERE whatsapp = :whatsapp');
+                $stmtC->execute([':whatsapp' => $whatsappNormalizado]);
+                $cliente = $stmtC->fetch();
 
-            $_SESSION['id_cliente'] = (int) $cliente['id_cliente'];
-            $_SESSION['nome_cliente'] = $cliente['nome'];
-            header('Location: /loja/index.php');
-            exit;
+                $_SESSION['id_cliente'] = (int) $cliente['id_cliente'];
+                $_SESSION['nome_cliente'] = $cliente['nome'];
+                session_regenerate_id(true);
+                header('Location: /loja/index.php');
+                exit;
+            } else {
+                // Account either doesn't exist or already has a password
+                $erro = 'Não foi possível ativar a conta. Verifique se o WhatsApp está correto.';
+                $etapa = 'whatsapp';
+            }
         }
     } elseif ($acao === 'login') {
         $whatsappNormalizado = $_POST['whatsapp'] ?? '';
@@ -90,6 +105,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($cliente && password_verify($senha, $cliente['senha_hash'])) {
             $_SESSION['id_cliente'] = (int) $cliente['id_cliente'];
             $_SESSION['nome_cliente'] = $cliente['nome'];
+            session_regenerate_id(true);
             header('Location: /loja/index.php');
             exit;
         }
