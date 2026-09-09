@@ -46,7 +46,7 @@ $origem = match ($mime) {
     default => null,
 };
 
-if ($origem === null) {
+if ($origem === null || $origem === false) {
     header('Location: /produtos/editar.php?id=' . $id_produto . '&upload_status=error&msg=formato_invalido');
     exit;
 }
