@@ -85,6 +85,35 @@ $listaCombinacoes = $combinacoes->fetchAll();
         <button type="submit">Salvar alterações</button>
     </form>
 
+    <?php
+    $fotos = $pdo->prepare('SELECT id_foto, ordem, caminho_arquivo FROM produto_fotos WHERE id_produto = :ip ORDER BY ordem');
+    $fotos->execute([':ip' => $id_produto]);
+    $listaFotos = $fotos->fetchAll();
+    ?>
+    <h3>Fotos (<?= count($listaFotos) ?>/5)</h3>
+    <?php if (isset($_GET['upload_status']) && $_GET['upload_status'] === 'error'): ?>
+        <p style="color:red;">Falha ao enviar a foto (<?= htmlspecialchars($_GET['msg'] ?? 'erro desconhecido') ?>).</p>
+    <?php endif; ?>
+    <div style="display:flex; gap:10px;">
+        <?php foreach ($listaFotos as $f): ?>
+        <div>
+            <img src="/<?= htmlspecialchars($f['caminho_arquivo']) ?>" width="120" alt="Foto do produto">
+            <form method="post" action="/produtos/ajax/deletar_foto.php" onsubmit="return confirm('Remover esta foto?');">
+                <input type="hidden" name="id_foto" value="<?= $f['id_foto'] ?>">
+                <input type="hidden" name="id_produto" value="<?= $id_produto ?>">
+                <button type="submit">remover</button>
+            </form>
+        </div>
+        <?php endforeach; ?>
+    </div>
+    <?php if (count($listaFotos) < 5): ?>
+    <form method="post" action="/produtos/ajax/upload_foto.php" enctype="multipart/form-data">
+        <input type="hidden" name="id_produto" value="<?= $id_produto ?>">
+        <input type="file" name="foto" accept="image/png,image/jpeg,image/gif" required>
+        <button type="submit">Enviar foto</button>
+    </form>
+    <?php endif; ?>
+
     <form method="post" action="/produtos/ajax/deletar_produto.php" onsubmit="return confirm('Excluir este produto e suas fotos definitivamente?');">
         <input type="hidden" name="id_produto" value="<?= $id_produto ?>">
         <button type="submit">Excluir produto</button>
