@@ -78,27 +78,70 @@ totalmente separada da sessão de funcionário/admin
 ## Catálogo e carrinho
 
 - Catálogo público: lista produtos `ativo = 1` com pelo menos uma
-  combinação com estoque disponível (ver cálculo de disponibilidade
-  abaixo), filtro por categoria, página de produto com seletor de variação
-  (mesmo padrão de combinação do Fundação/PDV) e galeria das até 5 fotos.
-- Adicionar ao carrinho exige login (`exigirClienteLogado()`). Cada clique
-  em "adicionar" cria ou reaproveita a `venda` "Reservado"/`origem='loja'`
-  **deste cliente** (mesmo padrão de "uma venda em andamento por
-  operador" do PDV, mas aqui por cliente) e insere um `itens_venda` com
-  retrato (nome, descrição da combinação, preço) — snapshot, sem FK,
-  idêntico ao PDV.
-- **Estoque nunca é debitado no carrinho** — só é debitado de verdade
-  dentro de `finalizarVenda()`, no momento da confirmação de pagamento
-  (mesma trava `FOR UPDATE` do PDV, reaproveitada sem alteração). Isso já
-  garante, por si só, que o estoque real nunca fica negativo, não importa
-  quantos carrinhos concorrentes existam.
-- Para reduzir (não eliminar — ver "Tratamento de erros") o caso chato de
-  "paguei mas não consegui" quando dois clientes disputam a última unidade,
-  a quantidade **disponível pra novo cliente adicionar** é calculada na
-  hora, subtraindo do estoque real a soma das reservas "Reservado" ainda
-  válidas (não expiradas) de **outros** clientes para aquela combinação —
-  sem precisar de uma coluna separada de "estoque reservado" pra manter
-  sincronizada.
+  combinação com estoque **disponível** (`estoque - estoque_reservado > 0`
+  — ver reserva atômica abaixo), filtro por categoria, página de produto
+  com seletor de variação (mesmo padrão de combinação do Fundação/PDV) e
+  galeria das até 5 fotos.
+- Adicionar ao carrinho exige login (`exigirClienteLogado()`).
+
+**Regra fundamental (confirmada com o dono do produto): nunca duas pessoas
+podem estar com o mesmo item — a mesma unidade de estoque — reservado ao
+mesmo tempo, nem entre clientes online, nem entre um cliente online e uma
+venda presencial no PDV.** Isso exige uma reserva atômica de verdade, não
+só um cálculo "na hora" (que teria uma janela de corrida entre duas pessoas
+lendo a disponibilidade ao mesmo tempo).
+
+`produto_variacoes` (Fundação) ganha uma coluna nova:
+
+```sql
+ALTER TABLE produto_variacoes ADD COLUMN estoque_reservado INT NOT NULL DEFAULT 0;
+```
+
+**Adicionar ao carrinho** (loja online) faz uma reserva atômica antes de
+inserir qualquer coisa — um `UPDATE` com guarda na própria cláusula
+`WHERE`, que só afeta a linha se ainda houver disponibilidade suficiente:
+
+```sql
+UPDATE produto_variacoes
+SET estoque_reservado = estoque_reservado + :qtd
+WHERE id_produto_variacao = :id AND (estoque - estoque_reservado) >= :qtd
+```
+
+Se `0` linhas forem afetadas, não havia disponibilidade — a adição ao
+carrinho falha imediatamente, sem inserir nada em `itens_venda` e sem criar
+brecha de tempo entre "checar" e "reservar" (a trava é a própria condição
+do `UPDATE`, resolvida atomicamente pelo MySQL). Só se a reserva for bem
+sucedida o `itens_venda` é inserido.
+
+**Remover do carrinho** (explícito, pelo cliente) devolve a reserva:
+`estoque_reservado = estoque_reservado - :qtd` pra cada item removido,
+antes de apagar a linha de `itens_venda`.
+
+**Estoque real (`estoque`) só é debitado dentro de `finalizarVenda()`**, no
+momento da confirmação de pagamento — mantém a trava `FOR UPDATE` já
+existente do PDV. A única mudança necessária nessa função compartilhada é
+o próprio `UPDATE` de baixa de estoque passar a também liberar a reserva
+correspondente (a venda virou pagamento de verdade, então some tanto do
+estoque quanto do "reservado"):
+
+```sql
+UPDATE produto_variacoes
+SET estoque = estoque - :qtd,
+    estoque_reservado = GREATEST(0, estoque_reservado - :qtd)
+WHERE id_produto_variacao = :id
+```
+
+O `GREATEST(0, ...)` é o que torna essa mudança seguríssima pro PDV, que
+**não** usa reserva nenhuma (vendas presenciais são feitas com o item na
+mão, sem risco de concorrência remota) — pra uma venda do PDV,
+`estoque_reservado` já é `0`, então o `GREATEST` simplesmente não faz nada,
+sem quebrar o comportamento já em produção.
+
+**Para valer a regra também no PDV** (item reservado online não pode ser
+vendido presencialmente): `caixa/ajax/adicionar_item.php` (sub-projeto 2,
+já em produção) precisa trocar sua checagem de `pv.estoque < :quantidade`
+por `(pv.estoque - pv.estoque_reservado) < :quantidade` — um ajuste de uma
+linha nesse arquivo já existente, incluído no plano deste sub-projeto.
 
 ## Expiração do carrinho (sem CRON)
 
@@ -110,20 +153,13 @@ ALTER TABLE config_loja ADD COLUMN prazo_reserva_minutos INT NOT NULL DEFAULT 15
 
 Uma função `liberarReservasExpiradas($pdo)` (novo `includes/loja.php`) é
 chamada no início de toda página/endpoint da loja que lê estoque ou
-carrinho (catálogo, produto, carrinho, checkout). Ela só faz:
-
-```sql
-UPDATE vendas SET status = 'Cancelado'
-WHERE status = 'Reservado' AND origem = 'loja'
-  AND data_venda < DATE_SUB(NOW(), INTERVAL :prazo MINUTE)
-```
-
-Como o estoque nunca foi debitado pra uma venda "Reservado", cancelar não
-precisa devolver nada — só libera a linha pra parar de contar no cálculo de
-disponibilidade acima, e libera o cliente pra começar um carrinho novo. O
-cliente vê uma contagem regressiva no carrinho, calculada no navegador a
-partir de `data_venda + prazo_reserva_minutos` (sem depender de nenhum
-relógio de servidor em tempo real).
+carrinho (catálogo, produto, carrinho, checkout). Pra cada venda "Reservado"
+de `origem='loja'` mais velha que `prazo_reserva_minutos`, ela devolve a
+reserva de cada item (`estoque_reservado = estoque_reservado - quantidade`,
+mesmo cálculo do "remover do carrinho") e só então marca a venda como
+`'Cancelado'`. O cliente vê uma contagem regressiva no carrinho, calculada
+no navegador a partir de `data_venda + prazo_reserva_minutos` (sem depender
+de nenhum relógio de servidor em tempo real).
 
 ## Checkout
 
@@ -149,24 +185,33 @@ relógio de servidor em tempo real).
 
 ## Tratamento de erros
 
-- Estoque insuficiente ao tentar adicionar ao carrinho → mensagem clara,
-  nada é adicionado.
+- **Item sem disponibilidade ao tentar adicionar ao carrinho** (o `UPDATE`
+  atômico de reserva afetou `0` linhas) → mensagem clara, nada é
+  adicionado. Com a reserva atômica, isso cobre tanto "esgotado de
+  verdade" quanto "outra pessoa reservou primeiro", sem distinção
+  necessária pro cliente.
 - Carrinho vencido (expirado) ao tentar prosseguir pro checkout → aviso,
-  itens somem do carrinho, cliente precisa adicionar de novo (e a
-  disponibilidade já reflete a liberação, já que
-  `liberarReservasExpiradas()` roda antes de qualquer leitura de estoque).
-- **Caso raro que continua possível mesmo com a checagem de disponibilidade**:
-  dois clientes conseguem, quase ao mesmo tempo, colocar no carrinho a
-  última unidade de uma combinação (a checagem de disponibilidade não é
-  atômica) e os dois pagam. `finalizarVenda()` (reaproveitada do PDV) só
-  deixa o primeiro pagamento confirmado passar — o segundo cliente pagou de
-  verdade no Mercado Pago mas a venda não finaliza (estoque insuficiente).
-  Como esse caso não tem, ainda, um fluxo de estorno automático, a página
-  de erro do checkout deve deixar claro que, se isso acontecer, a loja
-  entrará em contato pra reembolsar ou repor — tratado manualmente por
-  enquanto (é raro, e automatizar estorno é escopo pra outro momento).
+  itens somem do carrinho (reserva já devolvida por
+  `liberarReservasExpiradas()`), cliente precisa adicionar de novo.
+- **Rede de segurança final, na confirmação de pagamento**: mesmo com a
+  reserva atômica cobrindo o caso normal, a checagem de estoque dentro de
+  `finalizarVenda()` (trava `FOR UPDATE`, já existente do PDV) continua
+  sendo a autoridade final antes de qualquer baixa de verdade — cobre
+  qualquer cenário residual (ex: reserva expirou bem no meio do checkout,
+  ou uma falha manual direta no banco). Se essa checagem falhar, o sistema
+  **para e não finaliza a venda** — a página de status do pedido mostra
+  exatamente: **"Item não liberado. Demora no pagamento."** O dinheiro já
+  pode ter sido efetivamente cobrado pelo Mercado Pago nesse momento (o
+  pagamento acontece no Mercado Pago, fora do nosso controle, antes do
+  webhook chegar) — como não existe fluxo de estorno automático ainda, a
+  mesma tela informa que a loja entrará em contato pra resolver
+  (reembolso ou reposição). Com a reserva atômica em vigor, esse cenário
+  fica extremamente raro (só aconteceria por um vencimento de prazo bem no
+  limite ou uma falha fora do fluxo normal) — automatizar o estorno em si
+  é escopo pra outro momento.
 - Falha na geração da preferência do Mercado Pago (loja não conectada,
-  erro de rede) → mensagem amigável, carrinho continua intacto.
+  erro de rede) → mensagem amigável, carrinho continua intacto (reserva
+  não é afetada).
 - Nonce/assinatura de webhook inválidos → mesmo tratamento do PDV (loga e
   responde 200, nunca deixa o Mercado Pago re-tentar indefinidamente).
 
