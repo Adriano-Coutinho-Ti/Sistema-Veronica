@@ -38,3 +38,30 @@ function mpChamarApi(string $metodo, string $url, ?array $payload, string $acces
 
     return ['http_code' => $http_code, 'dados' => json_decode($resposta, true)];
 }
+
+/**
+ * Valida a assinatura X-Signature do webhook do Mercado Pago.
+ * Formato do header: "ts=<timestamp>,v1=<hash>"
+ * Manifesto: "id:{dataId};request-id:{xRequestId};ts:{ts};" (dataId em minúsculas)
+ */
+function mpValidarAssinaturaWebhook(string $xSignature, string $xRequestId, string $dataId, string $secret): bool
+{
+    $partes = [];
+    foreach (explode(',', $xSignature) as $par) {
+        $dividido = explode('=', trim($par), 2);
+        if (count($dividido) === 2) {
+            $partes[trim($dividido[0])] = trim($dividido[1]);
+        }
+    }
+
+    $ts = $partes['ts'] ?? null;
+    $v1 = $partes['v1'] ?? null;
+    if (!$ts || !$v1) {
+        return false;
+    }
+
+    $manifesto = "id:{$dataId};request-id:{$xRequestId};ts:{$ts};";
+    $hash = hash_hmac('sha256', $manifesto, $secret);
+
+    return hash_equals($hash, $v1);
+}
