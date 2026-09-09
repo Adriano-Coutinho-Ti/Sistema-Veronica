@@ -16,6 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['id_usuario'] = $usuario['id_usuario'];
         $_SESSION['nome'] = $usuario['nome'];
         $_SESSION['perfil'] = $usuario['perfil'];
+        session_regenerate_id(true);
         header('Location: /produtos/lista.php');
         exit;
     }
