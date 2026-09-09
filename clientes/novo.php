@@ -8,6 +8,9 @@ $erro = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nome = trim($_POST['nome'] ?? '');
     $whatsapp = preg_replace('/\D/', '', $_POST['whatsapp'] ?? '');
+    if (strlen($whatsapp) === 10 || strlen($whatsapp) === 11) {
+        $whatsapp = '55' . $whatsapp;
+    }
     $email = trim($_POST['email'] ?? '') ?: null;
     $endereco = trim($_POST['endereco'] ?? '') ?: null;
 
