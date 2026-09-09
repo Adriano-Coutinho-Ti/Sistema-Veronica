@@ -29,10 +29,25 @@ if (empty($venda['id_pagamento_mp'])) {
 try {
     $config = mpConfig($pdo);
     $resposta = mpChamarApi('GET', 'https://api.mercadopago.com/v1/payments/' . $venda['id_pagamento_mp'], null, $config['mp_access_token']);
+
+    if ($resposta['http_code'] >= 400) {
+        echo json_encode([
+            'success' => false,
+            'aprovado' => false,
+            'message' => 'Erro ao consultar o Mercado Pago. Se o problema persistir, reconecte a loja em /integracoes/mercado_pago/conectar.php',
+        ]);
+        exit;
+    }
+
     $statusMp = $resposta['dados']['status'] ?? null;
 
     if ($statusMp === 'approved') {
-        $resultado = finalizarVenda($pdo, $id_venda, [['forma' => 'Pix', 'valor' => (float) $venda['valor_total']]], (string) $venda['id_pagamento_mp']);
+        // Usa o valor que o Mercado Pago confirma ter recebido, não uma releitura do
+        // total atual da venda — se o carrinho mudou depois do QR gerado, o cliente só
+        // pagou o valor antigo, e finalizarVenda() precisa comparar contra o valor
+        // pago de verdade (o check de suficiência dela usa o total atual da venda).
+        $valorPago = (float) ($resposta['dados']['transaction_amount'] ?? 0);
+        $resultado = finalizarVenda($pdo, $id_venda, [['forma' => 'Pix', 'valor' => $valorPago]], (string) $venda['id_pagamento_mp']);
         echo json_encode(['success' => true, 'aprovado' => $resultado['success'], 'redirect' => $resultado['redirect'], 'message' => $resultado['message']]);
     } else {
         echo json_encode(['success' => true, 'aprovado' => false]);

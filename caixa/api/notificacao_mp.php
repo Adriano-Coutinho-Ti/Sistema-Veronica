@@ -47,7 +47,14 @@ try {
             $stmt->execute([':id' => $id_venda]);
             $venda = $stmt->fetch();
             if ($venda && $venda['status'] === 'Reservado') {
-                finalizarVenda($pdo, $id_venda, [['forma' => 'Pix', 'valor' => (float) $venda['valor_total']]], (string) $dataId);
+                // Usa o valor que o Mercado Pago confirma ter recebido (transaction_amount),
+                // não uma releitura do total atual da venda — ver mesma nota em
+                // verificar_pagamento.php.
+                $valorPago = (float) ($pagamento['transaction_amount'] ?? 0);
+                $resultado = finalizarVenda($pdo, $id_venda, [['forma' => 'Pix', 'valor' => $valorPago]], (string) $dataId);
+                if (!$resultado['success']) {
+                    error_log('Webhook MP: falha ao finalizar venda ' . $id_venda . ': ' . $resultado['message']);
+                }
             }
         }
     }
