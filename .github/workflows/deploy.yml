@@ -28,3 +28,7 @@ jobs:
           exclude: |
             **/.git*
             **/.git*/**
+            sql/**
+            docs/**
+            .claude/**
+            .superpowers/**
