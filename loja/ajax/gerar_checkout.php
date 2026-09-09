@@ -3,7 +3,13 @@ require_once __DIR__ . '/../../conecta_bd.php';
 require_once __DIR__ . '/../../includes/auth_cliente.php';
 require_once __DIR__ . '/../../includes/loja.php';
 require_once __DIR__ . '/../../includes/mp_client.php';
+require_once __DIR__ . '/../../includes/caixa.php';
 exigirClienteLogado();
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    header('Location: /loja/checkout.php');
+    exit;
+}
 
 $id_cliente = (int) $_SESSION['id_cliente'];
 $id_venda = buscarCarrinhoDoCliente($pdo, $id_cliente);
@@ -30,7 +36,14 @@ if ($entrega['tipo'] !== 'retirada' && $endereco !== '') {
         ->execute([':endereco' => $endereco, ':id' => $id_cliente]);
 }
 
-$itens = $pdo->prepare('SELECT nome_produto, descricao_combinacao, quantidade, preco_unit, subtotal FROM itens_venda WHERE id_venda = :id');
+// A linha de entrega é gravada como um item da venda (ver abaixo), então ela precisa ficar
+// fora desta lista: aqui só entram os produtos de verdade, que alimentam as linhas da
+// preferência do Mercado Pago e a checagem de carrinho vazio.
+$itens = $pdo->prepare(
+    "SELECT nome_produto, descricao_combinacao, quantidade, preco_unit, subtotal
+     FROM itens_venda
+     WHERE id_venda = :id AND NOT (id_produto_variacao IS NULL AND nome_produto = 'Entrega')"
+);
 $itens->execute([':id' => $id_venda]);
 $listaItens = $itens->fetchAll();
 
@@ -39,11 +52,29 @@ if (empty($listaItens)) {
     exit;
 }
 
-$subtotalItens = array_sum(array_column($listaItens, 'subtotal'));
-$valorTotalComEntrega = $subtotalItens + (float) $entrega['custo'];
+// Remove qualquer linha de entrega anterior (cliente pode ter voltado e trocado a forma de
+// entrega antes de tentar pagar de novo) e insere a atual como um item sem produto vinculado
+// — id_produto_variacao NULL, que finalizarVenda()/devolverReservaDaVenda() já ignoram.
+$pdo->prepare("DELETE FROM itens_venda WHERE id_venda = :iv AND id_produto_variacao IS NULL AND nome_produto = 'Entrega'")
+    ->execute([':iv' => $id_venda]);
 
-$pdo->prepare('UPDATE vendas SET id_entrega = :ie, valor_total = :total WHERE id_venda = :iv')
-    ->execute([':ie' => $id_entrega, ':total' => $valorTotalComEntrega, ':iv' => $id_venda]);
+if ((float) $entrega['custo'] > 0) {
+    $pdo->prepare(
+        'INSERT INTO itens_venda (id_venda, nome_produto, descricao_combinacao, id_produto_variacao, quantidade, preco_unit, subtotal)
+         VALUES (:iv, :nome, :desc, NULL, 1, :preco, :subtotal)'
+    )->execute([
+        ':iv' => $id_venda,
+        ':nome' => 'Entrega',
+        ':desc' => $entrega['nome'],
+        ':preco' => (float) $entrega['custo'],
+        ':subtotal' => (float) $entrega['custo'],
+    ]);
+}
+
+$pdo->prepare('UPDATE vendas SET id_entrega = :ie WHERE id_venda = :iv')
+    ->execute([':ie' => $id_entrega, ':iv' => $id_venda]);
+
+$valorTotalComEntrega = recalcularTotalVenda($pdo, $id_venda);
 
 $config = mpConfig($pdo);
 if (!$config || empty($config['mp_access_token'])) {
@@ -78,6 +109,11 @@ $preference = [
     'auto_return' => 'approved',
     'marketplace_fee' => $application_fee,
     'sponsor_id' => 194420711,
+    // A loja online aceita só Pix e cartão. Boleto ('ticket') fica de fora porque leva de 1 a 3
+    // dias pra compensar, incompatível com o prazo de reserva do carrinho (15 minutos).
+    'excluded_payment_types' => [
+        ['id' => 'ticket'],
+    ],
 ];
 
 try {

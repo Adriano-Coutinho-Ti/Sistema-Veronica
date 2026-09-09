@@ -48,6 +48,10 @@ try {
 
                 if (!$resultado['success']) {
                     error_log('Webhook loja MP: falha ao finalizar venda ' . $id_venda . ': ' . $resultado['message']);
+
+                    // Só falta de estoque real cancela a venda automaticamente — nesse caso não
+                    // tem como entregar o pedido, então liberar a reserva é o certo.
+                    //
                     // O Mercado Pago pode entregar a mesma notificação mais de uma vez.
                     // Se duas chamadas concorrentes chegarem aqui, o FOR UPDATE dentro de
                     // finalizarVenda() garante que só uma finalize a venda — a outra recebe
@@ -55,11 +59,18 @@ try {
                     // roda primeiro: só quem realmente transiciona Reservado -> Cancelado
                     // (rowCount() > 0) é que devolve a reserva. Isso evita devolver estoque
                     // que já foi legitimamente consumido pela chamada vencedora.
-                    $cancelou = $pdo->prepare("UPDATE vendas SET status = 'Cancelado' WHERE id_venda = :id AND status = 'Reservado'");
-                    $cancelou->execute([':id' => $id_venda]);
-                    if ($cancelou->rowCount() > 0) {
-                        devolverReservaDaVenda($pdo, $id_venda);
+                    if (str_contains($resultado['message'], 'Estoque insuficiente')) {
+                        $cancelou = $pdo->prepare("UPDATE vendas SET status = 'Cancelado' WHERE id_venda = :id AND status = 'Reservado'");
+                        $cancelou->execute([':id' => $id_venda]);
+                        if ($cancelou->rowCount() > 0) {
+                            devolverReservaDaVenda($pdo, $id_venda);
+                        }
                     }
+                    // Outros motivos de falha (pagamento parcial/insuficiente, venda já finalizada por uma
+                    // notificação concorrente, erro transitório de lock) NÃO cancelam a venda automaticamente —
+                    // ficam só registrados no log acima. A venda continua 'Reservado', podendo ainda ser
+                    // finalizada por uma notificação subsequente (ex.: segunda parte de um pagamento dividido)
+                    // ou expirar normalmente pelo prazo de reserva se for realmente abandonada.
                 }
             }
         }
