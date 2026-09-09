@@ -8,14 +8,12 @@ require_once __DIR__ . '/../../includes/mp_client.php';
 http_response_code(200);
 header('Content-Type: application/json');
 
-$dataId = null;
-if (isset($_GET['data']) && is_array($_GET['data']) && isset($_GET['data']['id'])) {
-    $dataId = $_GET['data']['id'];
-} elseif (isset($_GET['data.id'])) {
-    $dataId = $_GET['data.id'];
-} elseif (isset($_GET['id'])) {
-    $dataId = $_GET['id'];
-}
+// PHP reescreve pontos em nomes de parâmetro GET/POST para underscore — a URL de
+// notificação do Mercado Pago manda "?data.id=<id>", que o PHP entrega como
+// $_GET['data_id'], nunca como $_GET['data']['id'] (sintaxe de array, o MP não manda
+// assim) nem como $_GET['data.id'] (ponto literal, impossível de receber). O formato
+// mais antigo (IPN) manda só "?id=<id>", por isso o fallback.
+$dataId = $_GET['data_id'] ?? $_GET['id'] ?? null;
 
 $xSignature = $_SERVER['HTTP_X_SIGNATURE'] ?? '';
 $xRequestId = $_SERVER['HTTP_X_REQUEST_ID'] ?? '';
