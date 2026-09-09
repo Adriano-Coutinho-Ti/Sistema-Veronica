@@ -37,7 +37,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     } elseif ($acao === 'cadastro') {
-        $whatsappNormalizado = $_POST['whatsapp'] ?? '';
+        // O whatsapp chega de um campo hidden que esta própria página renderizou já
+        // normalizado, mas um POST direto (sem passar por verificar_whatsapp) poderia trazer
+        // outro formato e criar um cliente duplicado. Normaliza de novo, igual ao
+        // verificar_whatsapp e ao clientes/novo.php.
+        $whatsappNormalizado = preg_replace('/\D/', '', $_POST['whatsapp'] ?? '');
+        if (strlen($whatsappNormalizado) === 10 || strlen($whatsappNormalizado) === 11) {
+            $whatsappNormalizado = '55' . $whatsappNormalizado;
+        }
+
         $nome = trim($_POST['nome'] ?? '');
         $senha = $_POST['senha'] ?? '';
 
@@ -66,7 +74,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     } elseif ($acao === 'ativar') {
-        $whatsappNormalizado = $_POST['whatsapp'] ?? '';
+        $whatsappNormalizado = preg_replace('/\D/', '', $_POST['whatsapp'] ?? '');
+        if (strlen($whatsappNormalizado) === 10 || strlen($whatsappNormalizado) === 11) {
+            $whatsappNormalizado = '55' . $whatsappNormalizado;
+        }
+
         $senha = $_POST['senha'] ?? '';
 
         if (strlen($senha) < 6) {
@@ -95,14 +107,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     } elseif ($acao === 'login') {
-        $whatsappNormalizado = $_POST['whatsapp'] ?? '';
+        $whatsappNormalizado = preg_replace('/\D/', '', $_POST['whatsapp'] ?? '');
+        if (strlen($whatsappNormalizado) === 10 || strlen($whatsappNormalizado) === 11) {
+            $whatsappNormalizado = '55' . $whatsappNormalizado;
+        }
+
         $senha = $_POST['senha'] ?? '';
 
         $stmt = $pdo->prepare('SELECT id_cliente, nome, senha_hash FROM clientes WHERE whatsapp = :whatsapp');
         $stmt->execute([':whatsapp' => $whatsappNormalizado]);
         $cliente = $stmt->fetch();
 
-        if ($cliente && password_verify($senha, $cliente['senha_hash'])) {
+        // senha_hash pode ser NULL (cliente criado pelo PDV em clientes/novo.php e nunca
+        // ativado na loja) — password_verify() com NULL dispara deprecation/warning.
+        if ($cliente && $cliente['senha_hash'] !== null && password_verify($senha, $cliente['senha_hash'])) {
             $_SESSION['id_cliente'] = (int) $cliente['id_cliente'];
             $_SESSION['nome_cliente'] = $cliente['nome'];
             session_regenerate_id(true);
