@@ -93,6 +93,11 @@ function finalizarVenda(PDO $pdo, int $id_venda, array $pagamentos, ?string $id_
             $quantidadePorVariacao[$id_pv] = ($quantidadePorVariacao[$id_pv] ?? 0) + (int) $item['quantidade'];
         }
 
+        // Ordem determinística de aquisição dos locks FOR UPDATE — evita deadlock entre
+        // duas finalizarVenda() concorrentes que travem o mesmo conjunto de variações
+        // em ordens diferentes.
+        ksort($quantidadePorVariacao);
+
         foreach ($quantidadePorVariacao as $id_pv => $quantidadeTotal) {
             $stmtPv = $pdo->prepare('SELECT estoque FROM produto_variacoes WHERE id_produto_variacao = :id FOR UPDATE');
             $stmtPv->execute([':id' => $id_pv]);
