@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../conecta_bd.php';
 require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/caixa.php';
 exigirLogin();
 
 $id = (int) ($_GET['id'] ?? 0);
@@ -37,9 +38,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'atualiz
     $valor = (float) str_replace(',', '.', $_POST['valor'] ?? '0');
     $forma = trim($_POST['forma_pagamento'] ?? '');
     $formasValidas = ['Dinheiro', 'Débito', 'Crédito', 'Pix'];
+    // Pagamento de dívida recebido no balcão entra na conferência do caixa do dia, então
+    // exige um caixa aberto e registra em qual sessão o dinheiro entrou.
+    $caixaAberto = caixaAbertoAtual($pdo);
 
     if ($valor <= 0 || !in_array($forma, $formasValidas, true)) {
         $erro = 'Dados de pagamento inválidos.';
+    } elseif (!$caixaAberto) {
+        $erro = 'Abra um caixa antes de registrar pagamentos de dívida.';
     } else {
         try {
             $pdo->beginTransaction();
@@ -55,13 +61,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'atualiz
             }
 
             $pdo->prepare(
-                "INSERT INTO movimentos_credito (id_cliente, tipo, status, valor, forma_pagamento, criado_por)
-                 VALUES (:ic, 'pagamento', 'Confirmado', :valor, :forma, :criado_por)"
+                "INSERT INTO movimentos_credito (id_cliente, tipo, status, valor, forma_pagamento, criado_por, id_caixa)
+                 VALUES (:ic, 'pagamento', 'Confirmado', :valor, :forma, :criado_por, :id_caixa)"
             )->execute([
                 ':ic' => $id,
                 ':valor' => $valor,
                 ':forma' => $forma,
                 ':criado_por' => $_SESSION['id_usuario'],
+                ':id_caixa' => $caixaAberto['id_caixa'],
             ]);
 
             $pdo->commit();

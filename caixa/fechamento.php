@@ -13,7 +13,18 @@ $stmt = $pdo->prepare(
      WHERE v.id_caixa = :ic AND vp.forma_pagamento = 'Dinheiro'"
 );
 $stmt->execute([':ic' => $caixa['id_caixa']]);
-$total_dinheiro = (float) $stmt->fetchColumn();
+$total_dinheiro_vendas = (float) $stmt->fetchColumn();
+
+// Pagamentos de dívida recebidos em dinheiro nesta sessão também estão na gaveta.
+$stmtDivida = $pdo->prepare(
+    "SELECT COALESCE(SUM(valor), 0) AS total
+     FROM movimentos_credito
+     WHERE id_caixa = :ic AND tipo = 'pagamento' AND forma_pagamento = 'Dinheiro'"
+);
+$stmtDivida->execute([':ic' => $caixa['id_caixa']]);
+$total_dinheiro_divida = (float) $stmtDivida->fetchColumn();
+
+$total_dinheiro = $total_dinheiro_vendas + $total_dinheiro_divida;
 $valor_esperado = (float) $caixa['valor_inicial'] + $total_dinheiro;
 
 $resumo = $pdo->prepare(
@@ -33,7 +44,8 @@ $resumoOperadores = $resumo->fetchAll();
 <body>
     <h1>Fechar caixa</h1>
     <p>Valor inicial: R$ <?= number_format($caixa['valor_inicial'], 2, ',', '.') ?></p>
-    <p>Vendas em dinheiro: R$ <?= number_format($total_dinheiro, 2, ',', '.') ?></p>
+    <p>Vendas em dinheiro: R$ <?= number_format($total_dinheiro_vendas, 2, ',', '.') ?></p>
+    <p>Pagamentos de dívida em dinheiro: R$ <?= number_format($total_dinheiro_divida, 2, ',', '.') ?></p>
     <p>Esperado no caixa: R$ <?= number_format($valor_esperado, 2, ',', '.') ?></p>
 
     <h3>Resumo por operador</h3>

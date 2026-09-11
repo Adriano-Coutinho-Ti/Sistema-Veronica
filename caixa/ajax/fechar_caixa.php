@@ -21,7 +21,18 @@ $stmt = $pdo->prepare(
      WHERE v.id_caixa = :ic AND vp.forma_pagamento = 'Dinheiro'"
 );
 $stmt->execute([':ic' => $caixa['id_caixa']]);
-$total_dinheiro = (float) $stmt->fetchColumn();
+$total_dinheiro_vendas = (float) $stmt->fetchColumn();
+
+// Pagamentos de dívida recebidos em dinheiro nesta sessão também estão na gaveta.
+$stmtDivida = $pdo->prepare(
+    "SELECT COALESCE(SUM(valor), 0) AS total
+     FROM movimentos_credito
+     WHERE id_caixa = :ic AND tipo = 'pagamento' AND forma_pagamento = 'Dinheiro'"
+);
+$stmtDivida->execute([':ic' => $caixa['id_caixa']]);
+$total_dinheiro_divida = (float) $stmtDivida->fetchColumn();
+
+$total_dinheiro = $total_dinheiro_vendas + $total_dinheiro_divida;
 $valor_esperado = (float) $caixa['valor_inicial'] + $total_dinheiro;
 $diferenca = $valor_final - $valor_esperado;
 
