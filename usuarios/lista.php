@@ -7,8 +7,9 @@ $usuarios = $pdo->query('SELECT id_usuario, nome, email, perfil, ativo FROM usua
 ?>
 <!DOCTYPE html>
 <html lang="pt-br">
-<head><meta charset="UTF-8"><title>Usuários</title></head>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Usuários</title></head>
 <body>
+<?php require __DIR__ . '/../includes/admin_header.php'; ?>
     <h1>Usuários</h1>
     <?php if (isset($_GET['criado'])): ?><p style="color:green;">Usuário criado com sucesso.</p><?php endif; ?>
     <p><a href="/usuarios/novo.php">+ Novo usuário</a></p>
@@ -23,5 +24,6 @@ $usuarios = $pdo->query('SELECT id_usuario, nome, email, perfil, ativo FROM usua
         </tr>
         <?php endforeach; ?>
     </table>
+</main>
 </body>
 </html>

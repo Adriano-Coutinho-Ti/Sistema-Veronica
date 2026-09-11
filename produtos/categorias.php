@@ -35,8 +35,9 @@ $categorias = $pdo->query('SELECT id_categoria, nome FROM categorias ORDER BY no
 ?>
 <!DOCTYPE html>
 <html lang="pt-br">
-<head><meta charset="UTF-8"><title>Categorias</title></head>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Categorias</title></head>
 <body>
+<?php require __DIR__ . '/../includes/admin_header.php'; ?>
     <h1>Categorias</h1>
     <?php if ($erro): ?><p style="color:red;"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
     <form method="post">
@@ -59,5 +60,6 @@ $categorias = $pdo->query('SELECT id_categoria, nome FROM categorias ORDER BY no
         </tr>
         <?php endforeach; ?>
     </table>
+</main>
 </body>
 </html>

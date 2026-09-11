@@ -88,8 +88,9 @@ $variacoes = $variacoesAtivas->fetchAll();
 ?>
 <!DOCTYPE html>
 <html lang="pt-br">
-<head><meta charset="UTF-8"><title>Variações — <?= htmlspecialchars($categoria['nome']) ?></title></head>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Variações — <?= htmlspecialchars($categoria['nome']) ?></title></head>
 <body>
+<?php require __DIR__ . '/../includes/admin_header.php'; ?>
     <h1>Variações de "<?= htmlspecialchars($categoria['nome']) ?>"</h1>
     <?php if ($erro): ?><p style="color:red;"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
     <form method="post">
@@ -115,5 +116,6 @@ $variacoes = $variacoesAtivas->fetchAll();
         <?php endforeach; ?>
     </table>
     <p><a href="/produtos/categorias.php">Voltar para categorias</a></p>
+</main>
 </body>
 </html>

@@ -66,8 +66,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 ?>
 <!DOCTYPE html>
 <html lang="pt-br">
-<head><meta charset="UTF-8"><title>Novo produto</title></head>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Novo produto</title></head>
 <body>
+<?php require __DIR__ . '/../includes/admin_header.php'; ?>
     <h1>Novo produto</h1>
     <?php if ($erro): ?><p style="color:red;"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
     <form method="post" id="form-produto">
@@ -165,5 +166,6 @@ document.getElementById('form-produto').addEventListener('submit', function (e) 
     document.getElementById('combinacoes-input').value = JSON.stringify(combinacoes);
 });
 </script>
+</main>
 </body>
 </html>

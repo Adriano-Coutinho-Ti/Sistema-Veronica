@@ -57,8 +57,9 @@ $listaCombinacoes = $combinacoes->fetchAll();
 ?>
 <!DOCTYPE html>
 <html lang="pt-br">
-<head><meta charset="UTF-8"><title>Editar produto</title></head>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Editar produto</title></head>
 <body>
+<?php require __DIR__ . '/../includes/admin_header.php'; ?>
     <h1>Editar produto</h1>
     <?php if (isset($_GET['atualizado'])): ?><p style="color:green;">Produto atualizado.</p><?php endif; ?>
     <?php if (isset($_GET['criado'])): ?><p style="color:green;">Produto criado com sucesso.</p><?php endif; ?>
@@ -120,5 +121,6 @@ $listaCombinacoes = $combinacoes->fetchAll();
     </form>
 
     <p><a href="/produtos/lista.php">Voltar</a></p>
+</main>
 </body>
 </html>

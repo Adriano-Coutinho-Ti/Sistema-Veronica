@@ -39,8 +39,9 @@ $entregas = array_values(array_filter($formas, fn($f) => (int) $f['fixa'] === 0)
 ?>
 <!DOCTYPE html>
 <html lang="pt-br">
-<head><meta charset="UTF-8"><title>Formas de entrega</title></head>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Formas de entrega</title></head>
 <body>
+<?php require __DIR__ . '/../includes/admin_header.php'; ?>
     <h1>Formas de entrega</h1>
     <?php if ($erro): ?><p style="color:red;"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
 
@@ -86,5 +87,6 @@ $entregas = array_values(array_filter($formas, fn($f) => (int) $f['fixa'] === 0)
         </tr>
         <?php endforeach; ?>
     </table>
+</main>
 </body>
 </html>
