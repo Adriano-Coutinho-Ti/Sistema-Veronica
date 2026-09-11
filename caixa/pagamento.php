@@ -51,6 +51,7 @@ if ($venda['id_cliente']) {
     <div id="campos-manual">
         <input type="text" id="valor-pagamento" placeholder="Valor recebido">
         <button id="btn-adicionar-pagamento">Adicionar pagamento</button>
+        <p id="troco-aviso" style="display:none;"></p>
     </div>
 
     <div id="campos-pix" style="display:none;">
@@ -76,9 +77,27 @@ document.getElementById('forma-pagamento').addEventListener('change', function (
 
 document.getElementById('btn-adicionar-pagamento').addEventListener('click', function () {
     const forma = document.getElementById('forma-pagamento').value;
-    const valor = parseFloat(document.getElementById('valor-pagamento').value.replace(',', '.'));
-    if (!valor || valor <= 0) { alert('Valor inválido'); return; }
-    pagamentos.push({ forma: forma, valor: valor });
+    const valorRecebido = parseFloat(document.getElementById('valor-pagamento').value.replace(',', '.'));
+    if (!valorRecebido || valorRecebido <= 0) { alert('Valor inválido'); return; }
+
+    const totalPagoAtual = pagamentos.reduce((acc, p) => acc + p.valor, 0);
+    const restante = Math.max(0, totalVenda - totalPagoAtual);
+    const trocoAviso = document.getElementById('troco-aviso');
+
+    if (forma === 'Dinheiro' && valorRecebido > restante) {
+        // Só o que ainda falta da venda vira pagamento registrado — o excedente é
+        // troco de verdade devolvido ao cliente, nunca dinheiro que fica no caixa.
+        const valorAplicado = Math.round(restante * 100) / 100;
+        const troco = Math.round((valorRecebido - restante) * 100) / 100;
+        pagamentos.push({ forma: forma, valor: valorAplicado });
+        trocoAviso.textContent = 'Troco a devolver: R$ ' + troco.toFixed(2).replace('.', ',');
+        trocoAviso.style.display = '';
+    } else {
+        pagamentos.push({ forma: forma, valor: valorRecebido });
+        trocoAviso.style.display = 'none';
+    }
+
+    document.getElementById('valor-pagamento').value = '';
     atualizarResumo();
 });
 

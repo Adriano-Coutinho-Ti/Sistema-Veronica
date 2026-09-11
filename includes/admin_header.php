@@ -17,7 +17,9 @@
             <a href="/produtos/categorias.php">Categorias</a>
             <a href="/clientes/lista.php">Clientes</a>
             <a href="/caixa/index.php">Caixa</a>
+            <a href="/pedidos/lista.php">Pedidos</a>
             <?php if (($_SESSION['perfil'] ?? '') === 'Admin'): ?>
+                <a href="/caixa/historico.php">Histórico de Caixas</a>
                 <a href="/usuarios/lista.php">Usuários</a>
                 <a href="/config_sistema/aparencia.php">Aparência</a>
                 <a href="/config_sistema/entrega.php">Entrega</a>

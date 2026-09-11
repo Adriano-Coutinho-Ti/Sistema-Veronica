@@ -60,7 +60,7 @@ function finalizarVenda(PDO $pdo, int $id_venda, array $pagamentos, ?string $id_
     try {
         $pdo->beginTransaction();
 
-        $stmt = $pdo->prepare('SELECT valor_total, status, id_cliente, id_usuario FROM vendas WHERE id_venda = :id FOR UPDATE');
+        $stmt = $pdo->prepare('SELECT valor_total, status, id_cliente, id_usuario, origem FROM vendas WHERE id_venda = :id FOR UPDATE');
         $stmt->execute([':id' => $id_venda]);
         $venda = $stmt->fetch();
 
@@ -74,6 +74,14 @@ function finalizarVenda(PDO $pdo, int $id_venda, array $pagamentos, ?string $id_
         }
         if ($total_pago < (float) $venda['valor_total'] - 0.01) {
             throw new Exception('Valor pago insuficiente.');
+        }
+        // Pagamento não pode registrar mais do que a venda vale — troco (Dinheiro) tem
+        // que ser calculado e descontado ANTES de chegar aqui (feito em caixa/pagamento.php).
+        // Sem esta trava, um valor "recebido" maior que o total vira receita fantasma no
+        // caixa (foi exatamente o bug: cliente pagou R$5 numa venda de R$2, os R$3 de troco
+        // nunca saíram do valor registrado, e o fechamento esperava R$5 a mais no caixa).
+        if ($total_pago > (float) $venda['valor_total'] + 0.01) {
+            throw new Exception('Valor pago maior que o total da venda — calcule o troco antes de finalizar.');
         }
 
         $itens = $pdo->prepare('SELECT id_produto_variacao, quantidade FROM itens_venda WHERE id_venda = :id');
@@ -161,8 +169,11 @@ function finalizarVenda(PDO $pdo, int $id_venda, array $pagamentos, ?string $id_
         }
         $forma_pagamento = count(array_unique($formas)) > 1 ? 'Mista' : $formas[0];
 
-        $pdo->prepare('UPDATE vendas SET status = "Pago", forma_pagamento = :forma, id_pagamento_mp = :idmp WHERE id_venda = :id')
-            ->execute([':forma' => $forma_pagamento, ':idmp' => $id_pagamento_mp, ':id' => $id_venda]);
+        // status_entrega só existe pra pedidos da loja online (pra acompanhar preparo/envio) —
+        // venda de balcão no PDV já sai pronta, não tem etapa de preparo pra rastrear.
+        $statusEntrega = $venda['origem'] === 'loja' ? 'Aguardando preparo' : null;
+        $pdo->prepare('UPDATE vendas SET status = "Pago", forma_pagamento = :forma, id_pagamento_mp = :idmp, status_entrega = :se WHERE id_venda = :id')
+            ->execute([':forma' => $forma_pagamento, ':idmp' => $id_pagamento_mp, ':se' => $statusEntrega, ':id' => $id_venda]);
 
         $pdo->commit();
 
