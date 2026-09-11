@@ -18,9 +18,12 @@ $stmtV = $pdo->prepare('SELECT valor_total FROM vendas WHERE id_venda = :id');
 $stmtV->execute([':id' => $id_venda]);
 $venda = $stmtV->fetch();
 
-$stmtCliente = $pdo->prepare('SELECT endereco FROM clientes WHERE id_cliente = :id');
+$stmtCliente = $pdo->prepare('SELECT endereco, limite_credito, saldo_devedor FROM clientes WHERE id_cliente = :id');
 $stmtCliente->execute([':id' => $id_cliente]);
 $cliente = $stmtCliente->fetch();
+
+$creditoDisponivel = (float) $cliente['limite_credito'] - (float) $cliente['saldo_devedor'];
+$temLimiteCredito = (float) $cliente['limite_credito'] > 0;
 
 $formasEntrega = $pdo->query('SELECT id_entrega, nome, tipo, prazo_dias, custo FROM formas_entrega WHERE ativo = 1 ORDER BY fixa DESC, nome')->fetchAll();
 
@@ -51,7 +54,16 @@ $erro = $_GET['erro'] ?? '';
                 <textarea name="endereco"><?= htmlspecialchars($cliente['endereco'] ?? '') ?></textarea>
             </label>
         </div>
-        <button type="submit">Ir para pagamento</button>
+        <button type="submit" formaction="/loja/ajax/gerar_checkout.php">Pagar com Mercado Pago</button>
+
+        <?php if ($temLimiteCredito): ?>
+        <button type="submit" formaction="/loja/ajax/finalizar_credito.php" <?= $creditoDisponivel < (float) $venda['valor_total'] ? 'disabled' : '' ?>>
+            Pagar com minha Linha de Crédito
+            <?= $creditoDisponivel < (float) $venda['valor_total']
+                ? ' (crédito insuficiente: disponível R$ ' . number_format($creditoDisponivel, 2, ',', '.') . ')'
+                : ' (disponível: R$ ' . number_format($creditoDisponivel, 2, ',', '.') . ')' ?>
+        </button>
+        <?php endif; ?>
     </form>
 
 <script>
