@@ -27,7 +27,7 @@ $produtos = $stmt->fetchAll();
 ?>
 <!DOCTYPE html>
 <html lang="pt-br">
-<head><meta charset="UTF-8"><title>Loja</title></head>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Loja</title></head>
 <body>
 <?php require __DIR__ . '/../includes/loja_header.php'; ?>
     <h1>Loja</h1>
