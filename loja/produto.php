@@ -41,6 +41,7 @@ $listaCombinacoes = $combinacoes->fetchAll();
 <html lang="pt-br">
 <head><meta charset="UTF-8"><title><?= htmlspecialchars($produto['nome']) ?></title></head>
 <body>
+<?php require __DIR__ . '/../includes/loja_header.php'; ?>
     <p><a href="/loja/index.php">Voltar</a></p>
     <h1><?= htmlspecialchars($produto['nome']) ?></h1>
     <p><?= htmlspecialchars($produto['descricao'] ?? '') ?></p>
@@ -90,5 +91,6 @@ $listaCombinacoes = $combinacoes->fetchAll();
     });
     </script>
     <?php endif; ?>
+</main>
 </body>
 </html>

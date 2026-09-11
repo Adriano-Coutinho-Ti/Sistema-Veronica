@@ -137,6 +137,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="pt-br">
 <head><meta charset="UTF-8"><title>Entrar</title></head>
 <body>
+<?php require __DIR__ . '/../includes/loja_header.php'; ?>
     <?php if ($erro): ?><p style="color:red;"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
 
     <?php if ($etapa === 'whatsapp'): ?>
@@ -172,5 +173,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <button type="submit">Entrar</button>
     </form>
     <?php endif; ?>
+</main>
 </body>
 </html>

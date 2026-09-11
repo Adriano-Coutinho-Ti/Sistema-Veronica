@@ -20,6 +20,7 @@ if (!$venda) {
 <html lang="pt-br">
 <head><meta charset="UTF-8"><title>Status do pedido</title></head>
 <body>
+<?php require __DIR__ . '/../includes/loja_header.php'; ?>
     <h1>Pedido #<?= $id_venda ?></h1>
     <?php if ($venda['status'] === 'Pago'): ?>
         <p style="color:green;">Pagamento confirmado! Seu pedido já está sendo preparado.</p>
@@ -31,5 +32,6 @@ if (!$venda) {
         <script>setTimeout(function () { window.location.reload(); }, 5000);</script>
     <?php endif; ?>
     <p><a href="/loja/index.php">Voltar pra loja</a></p>
+</main>
 </body>
 </html>

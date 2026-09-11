@@ -29,6 +29,7 @@ $produtos = $stmt->fetchAll();
 <html lang="pt-br">
 <head><meta charset="UTF-8"><title>Loja</title></head>
 <body>
+<?php require __DIR__ . '/../includes/loja_header.php'; ?>
     <h1>Loja</h1>
     <p>
         <?php if (!empty($_SESSION['id_cliente'])): ?>
@@ -57,5 +58,6 @@ $produtos = $stmt->fetchAll();
         </div>
         <?php endforeach; ?>
     </div>
+</main>
 </body>
 </html>

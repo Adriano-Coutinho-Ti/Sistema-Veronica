@@ -40,6 +40,7 @@ if ($id_venda) {
 <html lang="pt-br">
 <head><meta charset="UTF-8"><title>Carrinho</title></head>
 <body>
+<?php require __DIR__ . '/../includes/loja_header.php'; ?>
     <p><a href="/loja/index.php">Continuar comprando</a></p>
     <h1>Carrinho</h1>
 
@@ -93,5 +94,6 @@ if ($id_venda) {
     });
     </script>
     <?php endif; ?>
+</main>
 </body>
 </html>

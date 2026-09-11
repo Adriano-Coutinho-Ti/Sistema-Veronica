@@ -26,6 +26,7 @@ $erro = $_GET['erro'] ?? '';
 <html lang="pt-br">
 <head><meta charset="UTF-8"><title>Meus débitos</title></head>
 <body>
+<?php require __DIR__ . '/../includes/loja_header.php'; ?>
     <p><a href="/loja/index.php">Voltar pra loja</a></p>
     <h1>Meus débitos</h1>
     <?php if ($erro): ?><p style="color:red;"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
@@ -62,5 +63,6 @@ $erro = $_GET['erro'] ?? '';
         <?php endforeach; ?>
     </ul>
     <?php endif; ?>
+</main>
 </body>
 </html>

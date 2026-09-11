@@ -33,6 +33,7 @@ $erro = $_GET['erro'] ?? '';
 <html lang="pt-br">
 <head><meta charset="UTF-8"><title>Checkout</title></head>
 <body>
+<?php require __DIR__ . '/../includes/loja_header.php'; ?>
     <h1>Checkout</h1>
     <?php if ($erro): ?><p style="color:red;"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
     <p>Total dos itens: R$ <?= number_format($venda['valor_total'], 2, ',', '.') ?></p>
@@ -76,5 +77,6 @@ function atualizarCampoEndereco() {
 document.getElementById('id_entrega').addEventListener('change', atualizarCampoEndereco);
 atualizarCampoEndereco();
 </script>
+</main>
 </body>
 </html>
