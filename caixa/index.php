@@ -10,8 +10,9 @@ $id_venda = buscarVendaReservadaDoOperador($pdo, (int) $caixa['id_caixa'], (int)
 ?>
 <!DOCTYPE html>
 <html lang="pt-br">
-<head><meta charset="UTF-8"><title>PDV</title></head>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>PDV</title></head>
 <body>
+<?php require __DIR__ . '/../includes/admin_header.php'; ?>
     <h1>PDV — Caixa aberto</h1>
     <p><a href="/caixa/fechamento.php">Fechar caixa</a></p>
 
@@ -149,5 +150,6 @@ function vincularCliente(idCliente, nome) {
 carregarCarrinho();
 </script>
     <?php endif; ?>
+</main>
 </body>
 </html>

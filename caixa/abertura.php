@@ -25,8 +25,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 ?>
 <!DOCTYPE html>
 <html lang="pt-br">
-<head><meta charset="UTF-8"><title>Abrir caixa</title></head>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Abrir caixa</title></head>
 <body>
+<?php require __DIR__ . '/../includes/admin_header.php'; ?>
     <h1>Abrir caixa</h1>
     <?php if (isset($_GET['fechado'])): ?><p style="color:green;">Caixa fechado com sucesso.</p><?php endif; ?>
     <?php if ($erro): ?><p style="color:red;"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
@@ -34,5 +35,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <label>Valor inicial em dinheiro (R$)<br><input type="text" name="valor_inicial" value="0,00" required></label><br>
         <button type="submit">Abrir caixa</button>
     </form>
+</main>
 </body>
 </html>

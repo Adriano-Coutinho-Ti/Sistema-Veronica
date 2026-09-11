@@ -28,9 +28,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Entrar — Sistema Veronica</title>
+    <link rel="stylesheet" href="/assets/css/admin.css">
 </head>
 <body>
+<main class="container">
     <h1>Entrar</h1>
     <?php if ($erro): ?>
         <p style="color:red;"><?= htmlspecialchars($erro) ?></p>
@@ -40,5 +43,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <label>Senha<br><input type="password" name="senha" required></label><br>
         <button type="submit">Entrar</button>
     </form>
+</main>
 </body>
 </html>

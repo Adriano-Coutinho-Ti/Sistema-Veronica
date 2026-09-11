@@ -105,8 +105,9 @@ $creditoDisponivel = (float) $cliente['limite_credito'] - (float) $cliente['sald
 ?>
 <!DOCTYPE html>
 <html lang="pt-br">
-<head><meta charset="UTF-8"><title><?= htmlspecialchars($cliente['nome']) ?></title></head>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title><?= htmlspecialchars($cliente['nome']) ?></title></head>
 <body>
+<?php require __DIR__ . '/../includes/admin_header.php'; ?>
     <h1><?= htmlspecialchars($cliente['nome']) ?></h1>
     <p>WhatsApp: <?= htmlspecialchars($cliente['whatsapp']) ?></p>
     <p>E-mail: <?= htmlspecialchars($cliente['email'] ?? '—') ?></p>
@@ -168,5 +169,6 @@ $creditoDisponivel = (float) $cliente['limite_credito'] - (float) $cliente['sald
     <?php endif; ?>
 
     <p><a href="/clientes/lista.php">Voltar</a></p>
+</main>
 </body>
 </html>

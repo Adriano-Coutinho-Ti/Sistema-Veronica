@@ -32,8 +32,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 ?>
 <!DOCTYPE html>
 <html lang="pt-br">
-<head><meta charset="UTF-8"><title>Novo cliente</title></head>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Novo cliente</title></head>
 <body>
+<?php require __DIR__ . '/../includes/admin_header.php'; ?>
     <h1>Novo cliente</h1>
     <?php if ($erro): ?><p style="color:red;"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
     <form method="post">
@@ -44,5 +45,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <button type="submit">Salvar</button>
     </form>
     <p><a href="/clientes/lista.php">Ver clientes</a></p>
+</main>
 </body>
 </html>

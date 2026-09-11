@@ -26,8 +26,9 @@ if ($venda['id_cliente']) {
 ?>
 <!DOCTYPE html>
 <html lang="pt-br">
-<head><meta charset="UTF-8"><title>Pagamento</title></head>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Pagamento</title></head>
 <body>
+<?php require __DIR__ . '/../includes/admin_header.php'; ?>
     <h1>Pagamento — Venda #<?= $id_venda ?></h1>
     <p>Total: R$ <span id="total-venda"><?= number_format($venda['valor_total'], 2, ',', '.') ?></span></p>
 
@@ -149,5 +150,6 @@ function iniciarPolling() {
     }, 4000);
 }
 </script>
+</main>
 </body>
 </html>

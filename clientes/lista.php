@@ -7,8 +7,9 @@ $clientes = $pdo->query('SELECT id_cliente, nome, whatsapp, email FROM clientes 
 ?>
 <!DOCTYPE html>
 <html lang="pt-br">
-<head><meta charset="UTF-8"><title>Clientes</title></head>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Clientes</title></head>
 <body>
+<?php require __DIR__ . '/../includes/admin_header.php'; ?>
     <h1>Clientes</h1>
     <?php if (isset($_GET['criado'])): ?><p style="color:green;">Cliente cadastrado com sucesso.</p><?php endif; ?>
     <p><a href="/clientes/novo.php">+ Novo cliente</a></p>
@@ -23,5 +24,6 @@ $clientes = $pdo->query('SELECT id_cliente, nome, whatsapp, email FROM clientes 
         </tr>
         <?php endforeach; ?>
     </table>
+</main>
 </body>
 </html>

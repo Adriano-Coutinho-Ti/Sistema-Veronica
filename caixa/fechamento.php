@@ -40,8 +40,9 @@ $resumoOperadores = $resumo->fetchAll();
 ?>
 <!DOCTYPE html>
 <html lang="pt-br">
-<head><meta charset="UTF-8"><title>Fechar caixa</title></head>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Fechar caixa</title></head>
 <body>
+<?php require __DIR__ . '/../includes/admin_header.php'; ?>
     <h1>Fechar caixa</h1>
     <p>Valor inicial: R$ <?= number_format($caixa['valor_inicial'], 2, ',', '.') ?></p>
     <p>Vendas em dinheiro: R$ <?= number_format($total_dinheiro_vendas, 2, ',', '.') ?></p>
@@ -65,5 +66,6 @@ $resumoOperadores = $resumo->fetchAll();
         <label>Observação<br><textarea name="observacao_fechamento"></textarea></label><br>
         <button type="submit">Fechar caixa</button>
     </form>
+</main>
 </body>
 </html>
