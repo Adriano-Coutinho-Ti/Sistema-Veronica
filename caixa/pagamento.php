@@ -12,6 +12,17 @@ if (!$venda) {
     header('Location: /caixa/index.php');
     exit;
 }
+
+$clienteVinculado = null;
+$creditoDisponivel = 0.0;
+if ($venda['id_cliente']) {
+    $stmtCli = $pdo->prepare('SELECT nome, limite_credito, saldo_devedor FROM clientes WHERE id_cliente = :id');
+    $stmtCli->execute([':id' => $venda['id_cliente']]);
+    $clienteVinculado = $stmtCli->fetch();
+    if ($clienteVinculado) {
+        $creditoDisponivel = (float) $clienteVinculado['limite_credito'] - (float) $clienteVinculado['saldo_devedor'];
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="pt-br">
@@ -28,6 +39,11 @@ if (!$venda) {
             <option value="Débito">Débito</option>
             <option value="Crédito">Crédito</option>
             <option value="Pix">Pix (QR Code)</option>
+            <option value="Linha de Crédito" <?= !$clienteVinculado ? 'disabled' : '' ?>>
+                Linha de Crédito<?= $clienteVinculado
+                    ? ' (disponível: R$ ' . number_format($creditoDisponivel, 2, ',', '.') . ')'
+                    : ' (vincule um cliente primeiro)' ?>
+            </option>
         </select>
     </label>
 
