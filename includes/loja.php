@@ -1,4 +1,6 @@
 <?php
+// definirEntregaDaVenda() usa recalcularTotalVenda(), definida em caixa.php.
+require_once __DIR__ . '/caixa.php';
 
 /**
  * Libera reservas de carrinho da loja online que passaram do prazo — devolve
