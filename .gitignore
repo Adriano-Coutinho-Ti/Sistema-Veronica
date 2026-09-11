@@ -1,3 +1,5 @@
 /assets/img/produtos/*
 !/assets/img/produtos/.gitkeep
+/assets/img/logo/*
+!/assets/img/logo/.gitkeep
 /.claude/

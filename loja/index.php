@@ -31,14 +31,6 @@ $produtos = $stmt->fetchAll();
 <body>
 <?php require __DIR__ . '/../includes/loja_header.php'; ?>
     <h1>Loja</h1>
-    <p>
-        <?php if (!empty($_SESSION['id_cliente'])): ?>
-            Olá, <?= htmlspecialchars($_SESSION['nome_cliente']) ?> —
-            <a href="/loja/carrinho.php">Carrinho</a> | <a href="/loja/minha_divida.php">Meus débitos</a> | <a href="/loja/logout.php">Sair</a>
-        <?php else: ?>
-            <a href="/loja/cadastro.php">Entrar / Cadastrar</a>
-        <?php endif; ?>
-    </p>
 
     <nav>
         <a href="/loja/index.php">Todas as categorias</a>
@@ -47,15 +39,13 @@ $produtos = $stmt->fetchAll();
         <?php endforeach; ?>
     </nav>
 
-    <div>
+    <div class="product-grid">
         <?php foreach ($produtos as $p): ?>
-        <div>
-            <a href="/loja/produto.php?id=<?= $p['id_produto'] ?>">
-                <?php if ($p['foto']): ?><img src="/<?= htmlspecialchars($p['foto']) ?>" width="150"><?php endif; ?>
-                <div><?= htmlspecialchars($p['nome']) ?></div>
-                <div>R$ <?= number_format($p['preco_base'], 2, ',', '.') ?></div>
-            </a>
-        </div>
+        <a href="/loja/produto.php?id=<?= $p['id_produto'] ?>" class="product-card">
+            <?php if ($p['foto']): ?><img src="/<?= htmlspecialchars($p['foto']) ?>" alt="<?= htmlspecialchars($p['nome']) ?>"><?php endif; ?>
+            <div><?= htmlspecialchars($p['nome']) ?></div>
+            <div class="price">R$ <?= number_format($p['preco_base'], 2, ',', '.') ?></div>
+        </a>
         <?php endforeach; ?>
     </div>
 </main>

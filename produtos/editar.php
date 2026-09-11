@@ -95,7 +95,7 @@ $listaCombinacoes = $combinacoes->fetchAll();
     <?php if (isset($_GET['upload_status']) && $_GET['upload_status'] === 'error'): ?>
         <p style="color:red;">Falha ao enviar a foto (<?= htmlspecialchars($_GET['msg'] ?? 'erro desconhecido') ?>).</p>
     <?php endif; ?>
-    <div style="display:flex; gap:10px;">
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
         <?php foreach ($listaFotos as $f): ?>
         <div>
             <img src="/<?= htmlspecialchars($f['caminho_arquivo']) ?>" width="120" alt="Foto do produto">

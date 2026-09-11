@@ -14,8 +14,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $cor_fundo = trim($_POST['cor_fundo'] ?? '#FFFFFF');
     $cor_texto = trim($_POST['cor_texto'] ?? '#1F2937');
 
-    if ($nome_loja === '' || !in_array($tema, $temasValidos, true)) {
-        $erro = 'Informe o nome da loja e um tema válido.';
+    $coresValidas = preg_match('/^#[0-9A-Fa-f]{6}$/', $cor_primaria)
+        && preg_match('/^#[0-9A-Fa-f]{6}$/', $cor_secundaria)
+        && preg_match('/^#[0-9A-Fa-f]{6}$/', $cor_fundo)
+        && preg_match('/^#[0-9A-Fa-f]{6}$/', $cor_texto);
+
+    if ($nome_loja === '' || !in_array($tema, $temasValidos, true) || !$coresValidas) {
+        $erro = 'Informe o nome da loja, um tema válido e cores em formato hexadecimal (#RRGGBB).';
     } else {
         $logoArquivo = null;
         if (!empty($_FILES['logo']['tmp_name']) && $_FILES['logo']['error'] === UPLOAD_ERR_OK) {
@@ -26,6 +31,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'image/png' => imagecreatefrompng($_FILES['logo']['tmp_name']),
                 default => null,
             };
+            // imagecreatefrom*() retorna false (não null) em falha de decodificação —
+            // checar os dois é necessário, checar só null deixa passar decode inválido.
             if ($origem !== null && $origem !== false) {
                 $dir = __DIR__ . '/../assets/img/logo/';
                 if (!is_dir($dir)) {
@@ -65,7 +72,7 @@ $config = $pdo->query('SELECT * FROM config_loja WHERE id_config = 1')->fetch();
 ?>
 <!DOCTYPE html>
 <html lang="pt-br">
-<head><meta charset="UTF-8"><title>Aparência da loja</title></head>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Aparência da loja</title></head>
 <body>
 <?php require __DIR__ . '/../includes/admin_header.php'; ?>
     <h1>Aparência da loja</h1>

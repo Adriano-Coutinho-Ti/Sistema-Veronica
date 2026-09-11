@@ -21,6 +21,7 @@
                 <a href="/usuarios/lista.php">Usuários</a>
                 <a href="/config_sistema/aparencia.php">Aparência</a>
                 <a href="/config_sistema/entrega.php">Entrega</a>
+                <a href="/integracoes/mercado_pago/conectar.php">Mercado Pago</a>
             <?php endif; ?>
             <span class="site-nav-user">Olá, <?= htmlspecialchars($_SESSION['nome'] ?? '') ?></span>
             <a href="/sair.php">Sair</a>

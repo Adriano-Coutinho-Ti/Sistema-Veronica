@@ -96,7 +96,7 @@ $variacoes = $variacoesAtivas->fetchAll();
     <form method="post">
         <input type="hidden" name="acao" value="criar_variacao">
         <label>Nome da variação (ex: Cor)<br><input type="text" name="nome" required></label><br>
-        <label>Valores, separados por vírgula (ex: Azul, Vermelho)<br><input type="text" name="valores" required style="width:400px;"></label><br>
+        <label>Valores, separados por vírgula (ex: Azul, Vermelho)<br><input type="text" name="valores" required></label><br>
         <button type="submit">Adicionar / atualizar</button>
     </form>
     <table border="1" cellpadding="6">

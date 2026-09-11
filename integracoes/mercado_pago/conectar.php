@@ -25,15 +25,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'iniciar
 ?>
 <!DOCTYPE html>
 <html lang="pt-br">
-<head><meta charset="UTF-8"><title>Conectar Mercado Pago</title></head>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Conectar Mercado Pago</title></head>
 <body>
+<?php require __DIR__ . '/../../includes/admin_header.php'; ?>
     <h1>Mercado Pago</h1>
-    <?php if (isset($_GET['conectado'])): ?><p style="color:green;">Conectado com sucesso!</p><?php endif; ?>
-    <?php if (isset($_GET['erro'])): ?><p style="color:red;"><?= htmlspecialchars($_GET['erro']) ?></p><?php endif; ?>
+    <?php if (isset($_GET['conectado'])): ?><p class="alert alert-sucesso">Conectado com sucesso!</p><?php endif; ?>
+    <?php if (isset($_GET['erro'])): ?><p class="alert alert-erro"><?= htmlspecialchars($_GET['erro']) ?></p><?php endif; ?>
     <p>Status: <?= $conectado ? 'Conectado (usuário MP #' . htmlspecialchars((string) $config['mp_user_id']) . ')' : 'Não conectado' ?></p>
     <form method="post">
         <input type="hidden" name="acao" value="iniciar">
         <button type="submit"><?= $conectado ? 'Reconectar' : 'Conectar' ?> minha conta Mercado Pago</button>
     </form>
+</main>
 </body>
 </html>
