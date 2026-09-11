@@ -122,6 +122,10 @@ function finalizarVenda(PDO $pdo, int $id_venda, array $pagamentos, ?string $id_
         }
 
         if ($valorCredito > 0) {
+            if ($valorCredito > (float) $venda['valor_total'] + 0.01) {
+                throw new Exception('Valor do crédito maior que o total da venda.');
+            }
+
             if (!$venda['id_cliente']) {
                 throw new Exception('É necessário vincular um cliente para vender fiado.');
             }
