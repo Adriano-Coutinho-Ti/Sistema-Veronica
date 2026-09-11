@@ -55,6 +55,9 @@ $erro = $_GET['erro'] ?? '';
             <?= $mov['tipo'] === 'compra' ? 'Compra fiada' : 'Pagamento' ?>
             (<?= htmlspecialchars($mov['status']) ?>) —
             R$ <?= number_format((float) $mov['valor'], 2, ',', '.') ?>
+            <?php if ($mov['tipo'] === 'pagamento' && $mov['status'] !== 'Confirmado'): ?>
+                <br><em>Pagamento não confirmado. A loja vai verificar e ajustar seu saldo.</em>
+            <?php endif; ?>
         </li>
         <?php endforeach; ?>
     </ul>

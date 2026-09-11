@@ -33,7 +33,7 @@ $produtos = $stmt->fetchAll();
     <p>
         <?php if (!empty($_SESSION['id_cliente'])): ?>
             Olá, <?= htmlspecialchars($_SESSION['nome_cliente']) ?> —
-            <a href="/loja/carrinho.php">Carrinho</a> | <a href="/loja/logout.php">Sair</a>
+            <a href="/loja/carrinho.php">Carrinho</a> | <a href="/loja/minha_divida.php">Meus débitos</a> | <a href="/loja/logout.php">Sair</a>
         <?php else: ?>
             <a href="/loja/cadastro.php">Entrar / Cadastrar</a>
         <?php endif; ?>
