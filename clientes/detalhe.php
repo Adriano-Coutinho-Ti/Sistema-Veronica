@@ -74,7 +74,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'atualiz
             if ($pdo->inTransaction()) {
                 $pdo->rollBack();
             }
-            $erro = $e->getMessage();
+            if ($e instanceof Exception && !($e instanceof PDOException)) {
+                $erro = $e->getMessage();
+            } else {
+                error_log('Erro ao registrar pagamento de dívida: ' . $e->getMessage());
+                $erro = 'Erro ao registrar pagamento. Tente novamente.';
+            }
         }
     }
 }
