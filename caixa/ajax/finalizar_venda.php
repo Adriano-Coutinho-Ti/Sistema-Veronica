@@ -8,7 +8,7 @@ header('Content-Type: application/json');
 $id_venda = (int) ($_POST['id_venda'] ?? 0);
 $pagamentos = json_decode($_POST['pagamentos'] ?? '[]', true);
 
-$formasValidas = ['Dinheiro', 'Débito', 'Crédito', 'Pix'];
+$formasValidas = ['Dinheiro', 'Débito', 'Crédito', 'Pix', 'Linha de Crédito'];
 $pagamentosValidos = is_array($pagamentos) && !empty($pagamentos) && array_is_list($pagamentos);
 if ($pagamentosValidos) {
     foreach ($pagamentos as $pag) {

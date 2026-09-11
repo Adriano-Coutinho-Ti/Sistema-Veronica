@@ -60,7 +60,7 @@ function finalizarVenda(PDO $pdo, int $id_venda, array $pagamentos, ?string $id_
     try {
         $pdo->beginTransaction();
 
-        $stmt = $pdo->prepare('SELECT valor_total, status FROM vendas WHERE id_venda = :id FOR UPDATE');
+        $stmt = $pdo->prepare('SELECT valor_total, status, id_cliente, id_usuario FROM vendas WHERE id_venda = :id FOR UPDATE');
         $stmt->execute([':id' => $id_venda]);
         $venda = $stmt->fetch();
 
@@ -110,6 +110,43 @@ function finalizarVenda(PDO $pdo, int $id_venda, array $pagamentos, ?string $id_
         foreach ($quantidadePorVariacao as $id_pv => $quantidadeTotal) {
             $pdo->prepare('UPDATE produto_variacoes SET estoque = estoque - :qtd, estoque_reservado = GREATEST(0, estoque_reservado - :qtd) WHERE id_produto_variacao = :id')
                 ->execute([':qtd' => $quantidadeTotal, ':id' => $id_pv]);
+        }
+
+        // Linha de Crédito não é dinheiro recebido — é uma promessa de pagamento que
+        // aumenta o saldo devedor do cliente vinculado à venda, até o limite liberado.
+        $valorCredito = 0.0;
+        foreach ($pagamentos as $pag) {
+            if ($pag['forma'] === 'Linha de Crédito') {
+                $valorCredito += (float) $pag['valor'];
+            }
+        }
+
+        if ($valorCredito > 0) {
+            if (!$venda['id_cliente']) {
+                throw new Exception('É necessário vincular um cliente para vender fiado.');
+            }
+
+            $id_cliente_credito = (int) $venda['id_cliente'];
+
+            $aumentouCredito = $pdo->prepare(
+                'UPDATE clientes SET saldo_devedor = saldo_devedor + :valor
+                 WHERE id_cliente = :id AND (saldo_devedor + :valor2) <= limite_credito'
+            );
+            $aumentouCredito->execute([':valor' => $valorCredito, ':valor2' => $valorCredito, ':id' => $id_cliente_credito]);
+
+            if ($aumentouCredito->rowCount() === 0) {
+                throw new Exception('Limite de crédito insuficiente.');
+            }
+
+            $pdo->prepare(
+                "INSERT INTO movimentos_credito (id_cliente, tipo, status, valor, id_venda, criado_por)
+                 VALUES (:ic, 'compra', 'Confirmado', :valor, :iv, :criado_por)"
+            )->execute([
+                ':ic' => $id_cliente_credito,
+                ':valor' => $valorCredito,
+                ':iv' => $id_venda,
+                ':criado_por' => $venda['id_usuario'],
+            ]);
         }
 
         $formas = [];
