@@ -16,8 +16,20 @@ $stmtCliente = $pdo->prepare('SELECT saldo_devedor FROM clientes WHERE id_client
 $stmtCliente->execute([':id' => $id_cliente]);
 $saldoDevedor = (float) $stmtCliente->fetchColumn();
 
-if ($valor <= 0 || $valor > $saldoDevedor + 0.01) {
-    header('Location: /loja/minha_divida.php?erro=' . urlencode('Valor inválido.'));
+// Pagamentos já gerados e ainda não confirmados contam contra o saldo: sem isso, duas abas
+// (ou um back-button) geram duas preferências pra mesma dívida e o segundo pagamento
+// desapareceria no piso do GREATEST(0, ...) na confirmação.
+$stmtPendente = $pdo->prepare(
+    "SELECT COALESCE(SUM(valor), 0) FROM movimentos_credito
+     WHERE id_cliente = :id AND tipo = 'pagamento' AND status = 'Pendente'"
+);
+$stmtPendente->execute([':id' => $id_cliente]);
+$totalPendente = (float) $stmtPendente->fetchColumn();
+
+$disponivelParaPagar = $saldoDevedor - $totalPendente;
+
+if ($valor <= 0 || $valor > $disponivelParaPagar + 0.01) {
+    header('Location: /loja/minha_divida.php?erro=' . urlencode('Valor inválido, ou você já tem um pagamento pendente de confirmação que cobre parte dessa dívida.'));
     exit;
 }
 
