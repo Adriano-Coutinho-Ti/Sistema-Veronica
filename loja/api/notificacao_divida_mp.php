@@ -43,15 +43,42 @@ try {
 
         if ($movimento && $movimento['status'] === 'Pendente') {
             if ($statusPagamento === 'approved') {
-                $confirmou = $pdo->prepare(
-                    "UPDATE movimentos_credito SET status = 'Confirmado', id_pagamento_mp = :idmp
-                     WHERE id_movimento = :id AND status = 'Pendente'"
-                );
-                $confirmou->execute([':idmp' => $dataId, ':id' => $id_movimento]);
+                // Observabilidade: o webhook irmão (produtos) compara o valor reportado pelo MP
+                // com o esperado. Aqui só registramos a divergência (não bloqueia a confirmação).
+                $valorReportadoMp = (float) ($pagamento['transaction_amount'] ?? 0);
+                if (abs($valorReportadoMp - (float) $movimento['valor']) > 0.01) {
+                    error_log('Webhook divida MP: valor reportado pelo MP (' . $valorReportadoMp . ') diverge do valor registrado (' . $movimento['valor'] . ') para id_movimento=' . $id_movimento);
+                }
 
-                if ($confirmou->rowCount() > 0) {
-                    $pdo->prepare('UPDATE clientes SET saldo_devedor = GREATEST(0, saldo_devedor - :valor) WHERE id_cliente = :id')
-                        ->execute([':valor' => $movimento['valor'], ':id' => $movimento['id_cliente']]);
+                // Confirmar o movimento e abater o saldo têm que acontecer juntos: se o segundo
+                // UPDATE falhasse, o movimento ficaria 'Confirmado' sem nunca abater a dívida —
+                // e o catch externo responde 200, então nada re-tentaria.
+                $pdo->beginTransaction();
+                try {
+                    $confirmou = $pdo->prepare(
+                        "UPDATE movimentos_credito SET status = 'Confirmado', id_pagamento_mp = :idmp
+                         WHERE id_movimento = :id AND status = 'Pendente'"
+                    );
+                    $confirmou->execute([':idmp' => $dataId, ':id' => $id_movimento]);
+
+                    if ($confirmou->rowCount() > 0) {
+                        $abateu = $pdo->prepare(
+                            'UPDATE clientes SET saldo_devedor = GREATEST(0, saldo_devedor - :valor)
+                             WHERE id_cliente = :id AND saldo_devedor >= :valor2'
+                        );
+                        $abateu->execute([':valor' => $movimento['valor'], ':valor2' => $movimento['valor'], ':id' => $movimento['id_cliente']]);
+
+                        if ($abateu->rowCount() === 0) {
+                            error_log('Webhook divida MP: saldo_devedor já estava abaixo do valor confirmado (id_movimento=' . $id_movimento . ', valor=' . $movimento['valor'] . ')');
+                        }
+                    }
+
+                    $pdo->commit();
+                } catch (Throwable $e) {
+                    if ($pdo->inTransaction()) {
+                        $pdo->rollBack();
+                    }
+                    throw $e;
                 }
             } elseif (in_array($statusPagamento, ['rejected', 'cancelled'], true)) {
                 $pdo->prepare(
