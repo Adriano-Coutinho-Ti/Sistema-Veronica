@@ -77,3 +77,34 @@ function buscarCarrinhoDoCliente(PDO $pdo, int $id_cliente): ?int
     $id = $stmt->fetchColumn();
     return $id ? (int) $id : null;
 }
+
+/**
+ * Grava/substitui a linha de entrega da venda — um item sem produto vinculado
+ * (id_produto_variacao NULL), que finalizarVenda()/devolverReservaDaVenda() já
+ * ignoram — e recalcula o total. Reaproveitado tanto pelo checkout via Mercado
+ * Pago quanto pelo pagamento direto com Linha de Crédito, pra nunca duplicar essa
+ * lógica entre os dois fluxos.
+ */
+function definirEntregaDaVenda(PDO $pdo, int $id_venda, array $entrega): float
+{
+    $pdo->prepare("DELETE FROM itens_venda WHERE id_venda = :iv AND id_produto_variacao IS NULL AND nome_produto = 'Entrega'")
+        ->execute([':iv' => $id_venda]);
+
+    if ((float) $entrega['custo'] > 0) {
+        $pdo->prepare(
+            'INSERT INTO itens_venda (id_venda, nome_produto, descricao_combinacao, id_produto_variacao, quantidade, preco_unit, subtotal)
+             VALUES (:iv, :nome, :desc, NULL, 1, :preco, :subtotal)'
+        )->execute([
+            ':iv' => $id_venda,
+            ':nome' => 'Entrega',
+            ':desc' => $entrega['nome'],
+            ':preco' => (float) $entrega['custo'],
+            ':subtotal' => (float) $entrega['custo'],
+        ]);
+    }
+
+    $pdo->prepare('UPDATE vendas SET id_entrega = :ie WHERE id_venda = :iv')
+        ->execute([':ie' => (int) $entrega['id_entrega'], ':iv' => $id_venda]);
+
+    return recalcularTotalVenda($pdo, $id_venda);
+}

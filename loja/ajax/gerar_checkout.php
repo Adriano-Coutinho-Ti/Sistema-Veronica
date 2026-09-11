@@ -52,29 +52,7 @@ if (empty($listaItens)) {
     exit;
 }
 
-// Remove qualquer linha de entrega anterior (cliente pode ter voltado e trocado a forma de
-// entrega antes de tentar pagar de novo) e insere a atual como um item sem produto vinculado
-// — id_produto_variacao NULL, que finalizarVenda()/devolverReservaDaVenda() já ignoram.
-$pdo->prepare("DELETE FROM itens_venda WHERE id_venda = :iv AND id_produto_variacao IS NULL AND nome_produto = 'Entrega'")
-    ->execute([':iv' => $id_venda]);
-
-if ((float) $entrega['custo'] > 0) {
-    $pdo->prepare(
-        'INSERT INTO itens_venda (id_venda, nome_produto, descricao_combinacao, id_produto_variacao, quantidade, preco_unit, subtotal)
-         VALUES (:iv, :nome, :desc, NULL, 1, :preco, :subtotal)'
-    )->execute([
-        ':iv' => $id_venda,
-        ':nome' => 'Entrega',
-        ':desc' => $entrega['nome'],
-        ':preco' => (float) $entrega['custo'],
-        ':subtotal' => (float) $entrega['custo'],
-    ]);
-}
-
-$pdo->prepare('UPDATE vendas SET id_entrega = :ie WHERE id_venda = :iv')
-    ->execute([':ie' => $id_entrega, ':iv' => $id_venda]);
-
-$valorTotalComEntrega = recalcularTotalVenda($pdo, $id_venda);
+$valorTotalComEntrega = definirEntregaDaVenda($pdo, $id_venda, $entrega);
 
 $config = mpConfig($pdo);
 if (!$config || empty($config['mp_access_token'])) {
