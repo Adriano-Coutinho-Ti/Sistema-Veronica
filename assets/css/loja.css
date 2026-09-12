@@ -829,10 +829,15 @@ textarea { min-height: 88px; }
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 4px 10px;
-    border-radius: 999px;
+    padding: 5px 12px;
+    /* Raio pequeno (não é mais uma "cápsula" 999px) — o texto de alguns
+       status é longo e quebra em 2 linhas dentro do cartão; com raio total
+       isso vira um blob arredondado feio. Um raio pequeno continua bonito
+       tanto com 1 linha quanto com 2. */
+    border-radius: var(--raio-sm);
     font-size: 0.78rem;
     font-weight: 700;
+    line-height: 1.3;
     background: var(--cor-primaria-suave);
     color: var(--cor-primaria);
     margin-top: 6px;
