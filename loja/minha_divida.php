@@ -11,6 +11,16 @@ $cliente = $stmtCliente->fetch();
 
 $creditoDisponivel = (float) $cliente['limite_credito'] - (float) $cliente['saldo_devedor'];
 
+const EXTRATO_POR_PAGINA = 10;
+$pagina = max(1, (int) ($_GET['pagina'] ?? 1));
+
+$stmtTotalExtrato = $pdo->prepare('SELECT COUNT(*) FROM movimentos_credito WHERE id_cliente = :id');
+$stmtTotalExtrato->execute([':id' => $id_cliente]);
+$totalMovimentos = (int) $stmtTotalExtrato->fetchColumn();
+$totalPaginasExtrato = max(1, (int) ceil($totalMovimentos / EXTRATO_POR_PAGINA));
+$pagina = min($pagina, $totalPaginasExtrato);
+$offsetExtrato = ($pagina - 1) * EXTRATO_POR_PAGINA;
+
 $stmtExtrato = $pdo->prepare(
     "SELECT mc.tipo, mc.status, mc.valor, mc.forma_pagamento, mc.data_movimento,
             (SELECT iv.nome_produto FROM itens_venda iv WHERE iv.id_venda = mc.id_venda ORDER BY iv.id_item LIMIT 1) AS produto_nome,
@@ -23,9 +33,13 @@ $stmtExtrato = $pdo->prepare(
             (SELECT COUNT(*) FROM itens_venda iv WHERE iv.id_venda = mc.id_venda) AS qtd_itens
      FROM movimentos_credito mc
      WHERE mc.id_cliente = :id
-     ORDER BY mc.data_movimento DESC"
+     ORDER BY mc.data_movimento DESC
+     LIMIT :limite OFFSET :offset"
 );
-$stmtExtrato->execute([':id' => $id_cliente]);
+$stmtExtrato->bindValue(':id', $id_cliente, PDO::PARAM_INT);
+$stmtExtrato->bindValue(':limite', EXTRATO_POR_PAGINA, PDO::PARAM_INT);
+$stmtExtrato->bindValue(':offset', $offsetExtrato, PDO::PARAM_INT);
+$stmtExtrato->execute();
 $extrato = $stmtExtrato->fetchAll();
 
 $stmtSolicitacao = $pdo->prepare(
@@ -84,6 +98,16 @@ $erro = $_GET['erro'] ?? '';
                 </div>
                 <?php endforeach; ?>
             </div>
+
+            <?php if ($totalPaginasExtrato > 1): ?>
+            <nav class="paginacao">
+                <?php if ($pagina > 1): ?><a href="/loja/minha_divida.php?pagina=<?= $pagina - 1 ?>">‹ Anterior</a><?php endif; ?>
+                <?php for ($p = 1; $p <= $totalPaginasExtrato; $p++): ?>
+                    <a href="/loja/minha_divida.php?pagina=<?= $p ?>" class="<?= $p === $pagina ? 'ativa' : '' ?>"><?= $p ?></a>
+                <?php endfor; ?>
+                <?php if ($pagina < $totalPaginasExtrato): ?><a href="/loja/minha_divida.php?pagina=<?= $pagina + 1 ?>">Próxima ›</a><?php endif; ?>
+            </nav>
+            <?php endif; ?>
             <?php endif; ?>
         </div>
 

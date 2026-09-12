@@ -5,6 +5,16 @@ exigirClienteLogado();
 
 $id_cliente = (int) $_SESSION['id_cliente'];
 
+const FAVORITOS_POR_PAGINA = 12;
+$pagina = max(1, (int) ($_GET['pagina'] ?? 1));
+
+$stmtTotalFav = $pdo->prepare('SELECT COUNT(*) FROM favoritos WHERE id_cliente = :ic');
+$stmtTotalFav->execute([':ic' => $id_cliente]);
+$totalFavoritos = (int) $stmtTotalFav->fetchColumn();
+$totalPaginasFav = max(1, (int) ceil($totalFavoritos / FAVORITOS_POR_PAGINA));
+$pagina = min($pagina, $totalPaginasFav);
+$offsetFav = ($pagina - 1) * FAVORITOS_POR_PAGINA;
+
 $stmt = $pdo->prepare(
     "SELECT f.id_favorito, p.id_produto, p.nome, p.preco_base, p.ativo,
             COALESCE(SUM(pv.estoque - pv.estoque_reservado), 0) AS disponivel,
@@ -15,15 +25,23 @@ $stmt = $pdo->prepare(
      LEFT JOIN produto_variacoes pv ON pv.id_produto = p.id_produto
      WHERE f.id_cliente = :ic
      GROUP BY f.id_favorito, p.id_produto, p.nome, p.preco_base, p.ativo
-     ORDER BY f.criado_em DESC"
+     ORDER BY f.criado_em DESC
+     LIMIT :limite OFFSET :offset"
 );
-$stmt->execute([':ic' => $id_cliente]);
+$stmt->bindValue(':ic', $id_cliente, PDO::PARAM_INT);
+$stmt->bindValue(':limite', FAVORITOS_POR_PAGINA, PDO::PARAM_INT);
+$stmt->bindValue(':offset', $offsetFav, PDO::PARAM_INT);
+$stmt->execute();
 $favoritos = $stmt->fetchAll();
 
 // "Você também pode gostar" — mesma seção da página de produto, mostrando
 // outros produtos ativos com estoque, sorteados, excluindo o que já está
-// nos favoritos do cliente.
-$idsFavoritados = array_column($favoritos, 'id_produto');
+// nos favoritos do cliente. Usa TODOS os favoritos do cliente (não só os
+// desta página), senão um item favoritado que caiu noutra página podia
+// aparecer aqui como "sugestão".
+$stmtIdsFav = $pdo->prepare('SELECT id_produto FROM favoritos WHERE id_cliente = :ic');
+$stmtIdsFav->execute([':ic' => $id_cliente]);
+$idsFavoritados = $stmtIdsFav->fetchAll(PDO::FETCH_COLUMN);
 $placeholdersExcluir = !empty($idsFavoritados) ? implode(',', array_fill(0, count($idsFavoritados), '?')) : null;
 $sqlRelacionados = "SELECT DISTINCT p2.id_produto, p2.nome, p2.preco_base
      FROM produtos p2
@@ -94,6 +112,16 @@ $agoraServidor = $pdo->query('SELECT NOW()')->fetchColumn();
         </a>
         <?php endforeach; ?>
     </div>
+
+    <?php if ($totalPaginasFav > 1): ?>
+    <nav class="paginacao">
+        <?php if ($pagina > 1): ?><a href="/loja/favoritos.php?pagina=<?= $pagina - 1 ?>">‹ Anterior</a><?php endif; ?>
+        <?php for ($p = 1; $p <= $totalPaginasFav; $p++): ?>
+            <a href="/loja/favoritos.php?pagina=<?= $p ?>" class="<?= $p === $pagina ? 'ativa' : '' ?>"><?= $p ?></a>
+        <?php endfor; ?>
+        <?php if ($pagina < $totalPaginasFav): ?><a href="/loja/favoritos.php?pagina=<?= $pagina + 1 ?>">Próxima ›</a><?php endif; ?>
+    </nav>
+    <?php endif; ?>
     <?php endif; ?>
 
     <?php if (!empty($listaRelacionados)): ?>
