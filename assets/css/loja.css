@@ -496,6 +496,31 @@ textarea { min-height: 88px; }
     box-shadow: var(--sombra-sm);
 }
 
+/* Botão de ação circular (favoritar/compartilhar) — usado tanto solto (produto.php)
+   quanto empilhado no canto do cartão do catálogo (.card-acoes). Precisa ser uma
+   regra de nível geral, não só ".card-acoes .botao-acao": um <button> sem essa
+   classe do lado de fora do cartão continua caindo na regra genérica de botão
+   (fundo roxo, tamanho grande) e o ícone dentro dele nunca aparece direito. */
+.botao-acao {
+    width: 44px;
+    height: 44px;
+    min-height: 0;
+    padding: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: var(--sombra-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--cor-borda);
+    cursor: pointer;
+}
+
+.botao-acao:hover { background: #fff; transform: none; box-shadow: var(--sombra-sm); }
+.icon-coracao { width: 20px; height: 20px; fill: none; stroke: #4B5563; stroke-width: 2; }
+.favoritar.ativo .icon-coracao { fill: #EF4444; stroke: #EF4444; }
+.icon-whatsapp { width: 20px; height: 20px; fill: #25D366; }
+
 /* Ações rápidas no canto do cartão — favoritar e compartilhar, sem sair do catálogo */
 .card-acoes {
     position: absolute;
@@ -510,22 +535,10 @@ textarea { min-height: 88px; }
 .card-acoes .botao-acao {
     width: 32px;
     height: 32px;
-    min-height: 0;
-    padding: 0;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.95);
-    box-shadow: var(--sombra-sm);
-    display: flex;
-    align-items: center;
-    justify-content: center;
     border: none;
-    cursor: pointer;
 }
 
-.card-acoes .botao-acao:hover { background: #fff; transform: none; box-shadow: var(--sombra-sm); }
-.card-acoes .icon-coracao { width: 17px; height: 17px; fill: none; stroke: #4B5563; stroke-width: 2; }
-.card-acoes .favoritar.ativo .icon-coracao { fill: #EF4444; stroke: #EF4444; }
-.card-acoes .icon-whatsapp { width: 17px; height: 17px; fill: #25D366; }
+.card-acoes .icon-coracao, .card-acoes .icon-whatsapp { width: 17px; height: 17px; }
 
 .product-card.indisponivel { opacity: 0.55; }
 

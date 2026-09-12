@@ -74,6 +74,20 @@ try {
                 }
             }
         }
+    } elseif (in_array($pagamento['status'] ?? null, ['rejected', 'cancelled'], true)) {
+        // Cartão recusado, Pix cancelado/expirado no lado do Mercado Pago etc. — não é
+        // culpa do cliente ter chegado primeiro no produto, então ele ganha um novo
+        // prazo de reserva inteiro pra tentar de novo (novo Pix, outro cartão) em vez
+        // de perder o item na hora. Só reinicia venda que ainda está 'Reservado' — se
+        // já foi finalizada ou cancelada por outro caminho, não mexe em nada.
+        $externalRef = $pagamento['external_reference'] ?? '';
+        if (str_starts_with($externalRef, 'loja_')) {
+            $id_venda = (int) substr($externalRef, strlen('loja_'));
+            $pdo->prepare(
+                "UPDATE vendas SET data_venda = NOW(), pagamento_expira_em = NULL
+                 WHERE id_venda = :id AND origem = 'loja' AND status = 'Reservado'"
+            )->execute([':id' => $id_venda]);
+        }
     }
 } catch (Throwable $e) {
     error_log('Webhook loja MP erro: ' . $e->getMessage());

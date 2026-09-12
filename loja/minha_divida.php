@@ -28,6 +28,14 @@ $stmtExtrato = $pdo->prepare(
 $stmtExtrato->execute([':id' => $id_cliente]);
 $extrato = $stmtExtrato->fetchAll();
 
+$stmtSolicitacao = $pdo->prepare(
+    'SELECT id_solicitacao, valor_solicitado, status, valor_aprovado, observacao_admin, criado_em
+     FROM solicitacoes_credito WHERE id_cliente = :id ORDER BY criado_em DESC LIMIT 1'
+);
+$stmtSolicitacao->execute([':id' => $id_cliente]);
+$ultimaSolicitacao = $stmtSolicitacao->fetch();
+$temSolicitacaoPendente = $ultimaSolicitacao && $ultimaSolicitacao['status'] === 'Pendente';
+
 $erro = $_GET['erro'] ?? '';
 ?>
 <!DOCTYPE html>
@@ -105,6 +113,32 @@ $erro = $_GET['erro'] ?? '';
                 </p>
             </div>
             <?php endif; ?>
+
+            <div class="resumo-card">
+                <h2>Linha de crédito</h2>
+                <?php if (isset($_GET['solicitado'])): ?>
+                    <p class="alert alert-sucesso">Solicitação enviada! A loja vai analisar e responder em breve.</p>
+                <?php endif; ?>
+
+                <?php if ($temSolicitacaoPendente): ?>
+                    <p>Sua solicitação de R$ <?= number_format($ultimaSolicitacao['valor_solicitado'], 2, ',', '.') ?>, enviada em <?= htmlspecialchars(date('d/m/Y', strtotime($ultimaSolicitacao['criado_em']))) ?>, está em análise.</p>
+                <?php else: ?>
+                    <?php if ($ultimaSolicitacao): ?>
+                        <?php if ($ultimaSolicitacao['status'] === 'Aprovada'): ?>
+                            <p class="alert alert-sucesso">Sua última solicitação foi aprovada — limite de R$ <?= number_format($ultimaSolicitacao['valor_aprovado'], 2, ',', '.') ?>.</p>
+                        <?php else: ?>
+                            <p class="alert alert-erro">Sua última solicitação não foi aprovada<?= $ultimaSolicitacao['observacao_admin'] ? ': ' . htmlspecialchars($ultimaSolicitacao['observacao_admin']) : '.' ?></p>
+                        <?php endif; ?>
+                    <?php endif; ?>
+                    <p>Precisa de mais crédito pra comprar a prazo? Solicite abaixo.</p>
+                    <form method="post" action="/loja/ajax/solicitar_credito.php">
+                        <label>Valor desejado
+                            <input type="text" name="valor_solicitado" placeholder="0,00" required>
+                        </label>
+                        <button type="submit" class="btn-outline btn-bloco">Solicitar linha de crédito</button>
+                    </form>
+                <?php endif; ?>
+            </div>
         </div>
     </div>
 </main>

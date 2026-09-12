@@ -139,7 +139,7 @@ if (!empty($listaRelacionados)) {
             Compartilhar no WhatsApp
         </a>
         <?php if (!empty($_SESSION['id_cliente'])): ?>
-        <button type="button" id="btn-favoritar" class="botao-acao<?= $ehFavorito ? ' ativo' : '' ?>" data-id-produto="<?= $id_produto ?>" aria-label="<?= $ehFavorito ? 'Remover dos favoritos' : 'Adicionar aos favoritos' ?>" style="width:44px; height:44px; box-shadow:var(--sombra-sm); border:1px solid var(--cor-borda);">
+        <button type="button" id="btn-favoritar" class="botao-acao favoritar<?= $ehFavorito ? ' ativo' : '' ?>" data-id-produto="<?= $id_produto ?>" aria-label="<?= $ehFavorito ? 'Remover dos favoritos' : 'Adicionar aos favoritos' ?>">
             <svg class="icon-coracao" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7.5-4.6-10-9.1C.3 8.9 1.5 5 5 4c2.4-.7 4.8.3 6.2 2.3L12 7.6l.8-1.3C14.2 4.3 16.6 3.3 19 4c3.5 1 4.7 4.9 3 7.9-2.5 4.5-10 9.1-10 9.1Z"/></svg>
         </button>
         <script>

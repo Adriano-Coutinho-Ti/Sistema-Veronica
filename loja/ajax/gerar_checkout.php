@@ -75,6 +75,14 @@ if ((float) $entrega['custo'] > 0) {
 
 $application_fee = ceil($valorTotalComEntrega * 0.01 * 100) / 100;
 
+// A partir do clique em "Pagar com Mercado Pago", o cliente tem 10 minutos pra
+// concluir o pagamento — o prazo de reserva do carrinho para de contar (ver
+// includes/loja.php::liberarReservasExpiradas()) e quem passa a decidir o
+// destino da venda é o webhook, nunca mais o cronômetro original. Isso evita
+// devolver pro estoque um item que alguém está no meio de pagar.
+$agora = new DateTime();
+$expiraEm = (clone $agora)->modify('+10 minutes');
+
 $preference = [
     'items' => $itensMp,
     'external_reference' => 'loja_' . $id_venda,
@@ -92,6 +100,9 @@ $preference = [
     'excluded_payment_types' => [
         ['id' => 'ticket'],
     ],
+    'expires' => true,
+    'expiration_date_from' => $agora->format(DateTime::ATOM),
+    'expiration_date_to' => $expiraEm->format(DateTime::ATOM),
 ];
 
 try {
@@ -102,8 +113,8 @@ try {
         exit;
     }
 
-    $pdo->prepare('UPDATE vendas SET id_pagamento_mp = :id WHERE id_venda = :iv')
-        ->execute([':id' => $resposta['dados']['id'], ':iv' => $id_venda]);
+    $pdo->prepare('UPDATE vendas SET id_pagamento_mp = :id, pagamento_expira_em = :exp WHERE id_venda = :iv')
+        ->execute([':id' => $resposta['dados']['id'], ':exp' => $expiraEm->format('Y-m-d H:i:s'), ':iv' => $id_venda]);
 
     header('Location: ' . $resposta['dados']['init_point']);
     exit;

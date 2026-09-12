@@ -21,6 +21,7 @@
             <a href="/pedidos/lista.php">Pedidos</a>
             <?php if (($_SESSION['perfil'] ?? '') === 'Admin'): ?>
                 <a href="/caixa/historico.php">Histórico de Caixas</a>
+                <a href="/clientes/solicitacoes_credito.php">Solicitações de Crédito</a>
                 <a href="/usuarios/lista.php">Usuários</a>
                 <a href="/config_sistema/aparencia.php">Aparência</a>
                 <a href="/config_sistema/entrega.php">Entrega</a>

@@ -14,9 +14,31 @@ if (!$id_venda) {
     exit;
 }
 
-$stmtV = $pdo->prepare('SELECT valor_total FROM vendas WHERE id_venda = :id');
+// Mesmo cronômetro do carrinho — some vira "Ir para o checkout" de mentirinha
+// se o cliente entra aqui mas o prazo continua correndo por trás; precisa
+// continuar visível e valendo até ele realmente clicar em pagar.
+$stmtV = $pdo->prepare(
+    "SELECT v.valor_total, v.data_venda, v.pagamento_expira_em,
+            GREATEST(0, TIMESTAMPDIFF(SECOND, NOW(), DATE_ADD(v.data_venda, INTERVAL cl.prazo_reserva_minutos MINUTE))) AS segundos_restantes
+     FROM vendas v
+     JOIN config_loja cl ON cl.id_config = 1
+     WHERE v.id_venda = :id"
+);
 $stmtV->execute([':id' => $id_venda]);
 $venda = $stmtV->fetch();
+
+// pagamento_expira_em preenchido = já existe um pagamento em andamento (o cliente
+// voltou da tela do Mercado Pago sem terminar) — nesse caso o cronômetro do
+// carrinho não vale mais (ver includes/loja.php), então não faz sentido mostrar
+// nem arriscar redirecionar sozinho.
+$pagamentoEmAndamento = $venda['pagamento_expira_em'] !== null;
+
+$idsProdutosCheckout = [];
+if (!$pagamentoEmAndamento) {
+    $stmtIds = $pdo->prepare('SELECT DISTINCT pv.id_produto FROM itens_venda iv JOIN produto_variacoes pv ON pv.id_produto_variacao = iv.id_produto_variacao WHERE iv.id_venda = :id');
+    $stmtIds->execute([':id' => $id_venda]);
+    $idsProdutosCheckout = array_map('intval', $stmtIds->fetchAll(PDO::FETCH_COLUMN));
+}
 
 $stmtCliente = $pdo->prepare('SELECT endereco, limite_credito, saldo_devedor FROM clientes WHERE id_cliente = :id');
 $stmtCliente->execute([':id' => $id_cliente]);
@@ -39,6 +61,14 @@ $erro = $_GET['erro'] ?? '';
         <h1>Checkout</h1>
     </div>
     <?php if ($erro): ?><p class="alert alert-erro"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
+
+    <?php if (!$pagamentoEmAndamento): ?>
+    <div class="timer-card" id="timer-card">
+        <svg class="icon" style="width:1.6rem; height:1.6rem;" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 2a8 8 0 1 1 0 16 8 8 0 0 1 0-16Zm-1 3v6l5 3 1-1.6-4-2.4V7Z"/></svg>
+        <span class="relogio" id="contagem">--:--</span>
+        <span class="texto">Tempo pra pagar antes dos itens voltarem pro estoque</span>
+    </div>
+    <?php endif; ?>
 
     <form method="post" id="form-checkout" action="/loja/ajax/gerar_checkout.php">
     <div class="layout-colunas">
@@ -96,6 +126,37 @@ function atualizarCampoEndereco() {
 }
 document.getElementById('id_entrega').addEventListener('change', atualizarCampoEndereco);
 atualizarCampoEndereco();
+
+<?php if (!$pagamentoEmAndamento): ?>
+let restante = <?= (int) $venda['segundos_restantes'] ?>;
+const idsProdutosCheckout = <?= json_encode($idsProdutosCheckout) ?>;
+
+function formatarTempo(segundos) {
+    const min = Math.floor(segundos / 60);
+    const seg = segundos % 60;
+    return min + ':' + String(seg).padStart(2, '0');
+}
+
+function atualizarContagemCheckout() {
+    const painel = document.getElementById('timer-card');
+    const rotulo = document.getElementById('contagem');
+    if (!rotulo) { return; }
+    rotulo.textContent = formatarTempo(restante);
+    if (painel) { painel.classList.toggle('urgente', restante <= 60); }
+
+    if (restante <= 0) {
+        clearInterval(intervaloCheckout);
+        const ids = idsProdutosCheckout.join(',');
+        window.location.href = '/loja/index.php' + (ids ? '?voltou=' + ids : '');
+        return;
+    }
+    restante--;
+}
+
+let intervaloCheckout = null;
+atualizarContagemCheckout();
+intervaloCheckout = setInterval(atualizarContagemCheckout, 1000);
+<?php endif; ?>
 </script>
 </main>
 <?php require __DIR__ . '/../includes/loja_footer.php'; ?>
