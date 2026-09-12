@@ -18,7 +18,43 @@ if (!$cliente) {
 $erro = '';
 $sucesso = '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'atualizar_limite') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'atualizar_dados') {
+    $nome = trim($_POST['nome'] ?? '');
+    $whatsapp = preg_replace('/\D/', '', $_POST['whatsapp'] ?? '');
+    if (strlen($whatsapp) === 10 || strlen($whatsapp) === 11) {
+        $whatsapp = '55' . $whatsapp;
+    }
+    $email = trim($_POST['email'] ?? '');
+    $email = $email !== '' ? mb_strtolower($email) : null;
+    $endereco = trim($_POST['endereco'] ?? '') ?: null;
+
+    if ($nome === '' || strlen($whatsapp) < 10) {
+        $erro = 'Informe nome e um WhatsApp válido (com DDD).';
+    } elseif ($email !== null && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $erro = 'Informe um e-mail válido (ou deixe em branco).';
+    } else {
+        $existe = $pdo->prepare('SELECT id_cliente FROM clientes WHERE whatsapp = :whatsapp AND id_cliente != :id');
+        $existe->execute([':whatsapp' => $whatsapp, ':id' => $id]);
+        $existeEmail = $email !== null ? $pdo->prepare('SELECT id_cliente FROM clientes WHERE email = :email AND id_cliente != :id') : null;
+        if ($existeEmail) {
+            $existeEmail->execute([':email' => $email, ':id' => $id]);
+        }
+
+        if ($existe->fetch()) {
+            $erro = 'Já existe outro cliente cadastrado com esse WhatsApp.';
+        } elseif ($existeEmail && $existeEmail->fetch()) {
+            $erro = 'Já existe outro cliente cadastrado com esse e-mail.';
+        } else {
+            $pdo->prepare('UPDATE clientes SET nome = :nome, whatsapp = :whatsapp, email = :email, endereco = :endereco WHERE id_cliente = :id')
+                ->execute([':nome' => $nome, ':whatsapp' => $whatsapp, ':email' => $email, ':endereco' => $endereco, ':id' => $id]);
+            $sucesso = 'Dados atualizados.';
+            $cliente['nome'] = $nome;
+            $cliente['whatsapp'] = $whatsapp;
+            $cliente['email'] = $email;
+            $cliente['endereco'] = $endereco;
+        }
+    }
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'atualizar_limite') {
     if (($_SESSION['perfil'] ?? '') !== 'Admin') {
         http_response_code(403);
         echo 'Acesso restrito ao administrador.';
@@ -109,12 +145,19 @@ $creditoDisponivel = (float) $cliente['limite_credito'] - (float) $cliente['sald
 <body>
 <?php require __DIR__ . '/../includes/admin_header.php'; ?>
     <h1><?= htmlspecialchars($cliente['nome']) ?></h1>
-    <p>WhatsApp: <?= htmlspecialchars($cliente['whatsapp']) ?></p>
-    <p>E-mail: <?= htmlspecialchars($cliente['email'] ?? '—') ?></p>
-    <p>Endereço: <?= htmlspecialchars($cliente['endereco'] ?? '—') ?></p>
 
     <?php if ($erro): ?><p style="color:red;"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
     <?php if ($sucesso): ?><p style="color:green;"><?= htmlspecialchars($sucesso) ?></p><?php endif; ?>
+
+    <h2>Dados</h2>
+    <form method="post">
+        <input type="hidden" name="acao" value="atualizar_dados">
+        <label>Nome<br><input type="text" name="nome" value="<?= htmlspecialchars($cliente['nome']) ?>" required></label><br>
+        <label>WhatsApp (com DDD)<br><input type="text" name="whatsapp" value="<?= htmlspecialchars($cliente['whatsapp']) ?>" required></label><br>
+        <label>E-mail (obrigatório pro cliente conseguir entrar na loja online)<br><input type="email" name="email" value="<?= htmlspecialchars($cliente['email'] ?? '') ?>"></label><br>
+        <label>Endereço<br><input type="text" name="endereco" value="<?= htmlspecialchars($cliente['endereco'] ?? '') ?>"></label><br>
+        <button type="submit">Salvar dados</button>
+    </form>
 
     <h2>Linha de Crédito</h2>
     <p>Limite: R$ <?= number_format((float) $cliente['limite_credito'], 2, ',', '.') ?></p>

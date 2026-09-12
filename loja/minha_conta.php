@@ -11,18 +11,28 @@ $sucessoSenha = false;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'perfil') {
     $nome = trim($_POST['nome'] ?? '');
-    $email = trim($_POST['email'] ?? '');
+    $email = mb_strtolower(trim($_POST['email'] ?? ''));
     $endereco = trim($_POST['endereco'] ?? '');
 
     if ($nome === '') {
         $erroPerfil = 'Informe seu nome.';
-    } elseif ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $erroPerfil = 'Informe um e-mail válido (ou deixe em branco).';
+    } elseif ($email === '') {
+        // E-mail é o login do cliente — não dá pra deixar em branco depois de já ter
+        // uma conta ativa (diferente do cadastro pelo PDV, que ainda aceita sem e-mail).
+        $erroPerfil = 'Informe seu e-mail — ele é usado pra entrar na loja.';
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $erroPerfil = 'Informe um e-mail válido.';
     } else {
-        $pdo->prepare('UPDATE clientes SET nome = :nome, email = :email, endereco = :endereco WHERE id_cliente = :id')
-            ->execute([':nome' => $nome, ':email' => $email ?: null, ':endereco' => $endereco ?: null, ':id' => $id_cliente]);
-        $_SESSION['nome_cliente'] = $nome;
-        $sucessoPerfil = true;
+        $stmtDup = $pdo->prepare('SELECT id_cliente FROM clientes WHERE email = :email AND id_cliente != :id');
+        $stmtDup->execute([':email' => $email, ':id' => $id_cliente]);
+        if ($stmtDup->fetch()) {
+            $erroPerfil = 'Esse e-mail já está sendo usado por outra conta.';
+        } else {
+            $pdo->prepare('UPDATE clientes SET nome = :nome, email = :email, endereco = :endereco WHERE id_cliente = :id')
+                ->execute([':nome' => $nome, ':email' => $email, ':endereco' => $endereco ?: null, ':id' => $id_cliente]);
+            $_SESSION['nome_cliente'] = $nome;
+            $sucessoPerfil = true;
+        }
     }
 } elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'senha') {
     $senhaAtual = $_POST['senha_atual'] ?? '';
@@ -69,8 +79,8 @@ $cliente = $stmt->fetch();
                 <form method="post">
                     <input type="hidden" name="acao" value="perfil">
                     <label>Nome<input type="text" name="nome" value="<?= htmlspecialchars($cliente['nome']) ?>" required></label>
-                    <label>WhatsApp (usado pra entrar — fale com a loja pra trocar)<input type="text" value="<?= htmlspecialchars($cliente['whatsapp']) ?>" disabled></label>
-                    <label>E-mail<input type="email" name="email" value="<?= htmlspecialchars($cliente['email'] ?? '') ?>"></label>
+                    <label>WhatsApp (fale com a loja pra trocar)<input type="text" value="<?= htmlspecialchars($cliente['whatsapp']) ?>" disabled></label>
+                    <label>E-mail (usado pra entrar)<input type="email" name="email" value="<?= htmlspecialchars($cliente['email'] ?? '') ?>" required></label>
                     <label>Endereço<textarea name="endereco"><?= htmlspecialchars($cliente['endereco'] ?? '') ?></textarea></label>
                     <button type="submit" class="btn-bloco">Salvar dados</button>
                 </form>

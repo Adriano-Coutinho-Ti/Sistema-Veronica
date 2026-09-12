@@ -11,16 +11,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (strlen($whatsapp) === 10 || strlen($whatsapp) === 11) {
         $whatsapp = '55' . $whatsapp;
     }
-    $email = trim($_POST['email'] ?? '') ?: null;
+    $email = trim($_POST['email'] ?? '');
+    $email = $email !== '' ? mb_strtolower($email) : null;
     $endereco = trim($_POST['endereco'] ?? '') ?: null;
 
     if ($nome === '' || strlen($whatsapp) < 10) {
         $erro = 'Informe nome e um WhatsApp válido (com DDD).';
+    } elseif ($email !== null && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $erro = 'Informe um e-mail válido (ou deixe em branco).';
     } else {
         $existe = $pdo->prepare('SELECT id_cliente FROM clientes WHERE whatsapp = :whatsapp');
         $existe->execute([':whatsapp' => $whatsapp]);
+        $existeEmail = $email !== null ? $pdo->prepare('SELECT id_cliente FROM clientes WHERE email = :email') : null;
+        if ($existeEmail) {
+            $existeEmail->execute([':email' => $email]);
+        }
         if ($existe->fetch()) {
             $erro = 'Já existe um cliente cadastrado com esse WhatsApp.';
+        } elseif ($existeEmail && $existeEmail->fetch()) {
+            $erro = 'Já existe um cliente cadastrado com esse e-mail.';
         } else {
             $stmt = $pdo->prepare('INSERT INTO clientes (nome, whatsapp, email, endereco) VALUES (:nome, :whatsapp, :email, :endereco)');
             $stmt->execute([':nome' => $nome, ':whatsapp' => $whatsapp, ':email' => $email, ':endereco' => $endereco]);
