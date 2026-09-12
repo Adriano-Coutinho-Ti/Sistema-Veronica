@@ -236,6 +236,38 @@ if (!empty($listaRelacionados)) {
     </section>
     <?php endif; ?>
 </main>
+<script>
+// Essa página não tem como reconstruir sozinha, em JS, tudo que muda quando a
+// disponibilidade vira (combinações, preço por opção, formulário) — em vez de
+// tentar remendar o DOM e arriscar mostrar algo errado, ela só checa a cada
+// poucos segundos se o produto cruzou de "disponível" pra "reservado/esgotado"
+// (ou o contrário) e, se cruzou, recarrega do zero. Garante que a página nunca
+// fica presa mostrando um estado que já não é mais verdade.
+(function () {
+    const idProduto = <?= (int) $id_produto ?>;
+    let ultimaChecagem = <?= json_encode($pdo->query('SELECT NOW()')->fetchColumn()) ?>;
+    let estavaDisponivel = <?= json_encode($disponivelTotal > 0) ?>;
+
+    function checarDisponibilidade() {
+        const params = new URLSearchParams({ desde: ultimaChecagem, categoria: 0, ids: String(idProduto) });
+        fetch('/loja/ajax/verificar_novidades.php?' + params.toString())
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (!data.success) { return; }
+                ultimaChecagem = data.agora;
+                const status = (data.status || []).find(function (s) { return s.id_produto === idProduto; });
+                if (!status) { return; }
+                const agoraDisponivel = status.disponivel > 0;
+                if (agoraDisponivel !== estavaDisponivel) {
+                    window.location.reload();
+                }
+            })
+            .catch(function () {});
+    }
+
+    setInterval(checarDisponibilidade, 5000);
+})();
+</script>
 <?php require __DIR__ . '/../includes/loja_footer.php'; ?>
 </body>
 </html>

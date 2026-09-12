@@ -794,7 +794,6 @@ textarea { min-height: 88px; }
     border-radius: var(--raio-lg);
     padding: 26px 22px;
     box-shadow: var(--sombra-md);
-    margin-bottom: 20px;
 }
 
 .saldo-hero .rotulo { font-size: 0.85rem; opacity: 0.85; text-transform: uppercase; letter-spacing: 0.04em; }
@@ -924,6 +923,75 @@ th, td { padding: 10px 12px; border-bottom: 1px solid var(--cor-borda); text-ali
 .whatsapp-flutuante:hover { background: #25D366; transform: scale(1.08); box-shadow: var(--sombra-lg); }
 .whatsapp-flutuante svg { width: 30px; height: 30px; fill: #fff; }
 
+/* Popup rápido avisando que um item voltou pra loja — some sozinho em 5s ou no X. */
+.toast-oportunidade {
+    position: fixed;
+    top: 76px;
+    left: 16px;
+    right: 16px;
+    max-width: 340px;
+    margin-left: auto;
+    background: var(--cor-fundo);
+    border: 1px solid var(--cor-dourado);
+    border-radius: var(--raio-md);
+    box-shadow: var(--sombra-lg);
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    z-index: 70;
+    animation: toast-entrar 0.25s ease;
+}
+
+@keyframes toast-entrar {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.toast-oportunidade .toast-conteudo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: var(--cor-texto);
+    flex: 1;
+    min-width: 0;
+}
+
+.toast-oportunidade .toast-foto {
+    width: 46px;
+    height: 46px;
+    border-radius: var(--raio-sm);
+    object-fit: cover;
+    flex-shrink: 0;
+    background: var(--cor-fundo-alt);
+}
+
+.toast-oportunidade .toast-texto { min-width: 0; display: block; }
+.toast-oportunidade .toast-texto strong { display: block; font-size: 0.88rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.toast-oportunidade .toast-texto span { display: block; font-size: 0.78rem; color: var(--cor-texto-suave); }
+
+.toast-fechar {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    min-height: 0;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    font-size: 1.3rem;
+    line-height: 1;
+    color: var(--cor-texto-suave);
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.toast-fechar:hover { background: transparent; box-shadow: none; transform: none; color: var(--cor-texto); }
+
+@media (min-width: 768px) {
+    .toast-oportunidade { left: auto; width: 340px; }
+}
+
 /* Botão de compartilhar — sempre verde do WhatsApp, não é um .btn do tema. */
 .btn-compartilhar-whatsapp {
     display: inline-flex;
@@ -976,7 +1044,7 @@ th, td { padding: 10px 12px; border-bottom: 1px solid var(--cor-borda); text-ali
 
 .layout-colunas { display: block; }
 
-.painel-lateral { margin-top: 24px; }
+.painel-lateral { margin-top: 24px; display: flex; flex-direction: column; gap: 20px; }
 
 .resumo-card {
     background: var(--cor-fundo);

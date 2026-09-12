@@ -279,45 +279,104 @@ function montarLinkPagina(int $p, int $categoria, string $busca): string
         return a;
     }
 
-    function mostrarAviso(qtd) {
-        const banner = document.getElementById('banner-oportunidade');
-        const sparkle = '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8L12 2Z"/></svg>';
-        const texto = qtd === 1
-            ? 'Um item que estava no carrinho de alguém acabou de voltar — já está disponível!'
-            : qtd + ' itens que estavam em carrinhos acabaram de voltar — já estão disponíveis!';
-        banner.innerHTML = '<p class="alert alert-oportunidade">' + sparkle + ' ' + texto + '</p>';
-        clearTimeout(avisoTimeout);
-        avisoTimeout = setTimeout(function () { banner.innerHTML = ''; }, 9000);
+    // Corrige o estado de UM cartão pra bater com a disponibilidade real, sempre —
+    // nunca fica "meio atualizado". Chamado em toda checagem, pra todo cartão que
+    // já está na tela, então um cartão nunca fica preso mostrando "em um carrinho"
+    // depois de já ter sido liberado (nem o contrário, se alguém acabou de
+    // reservar o que restava). É essa reafirmação total, e não um "avisa só o que
+    // mudou", que garante 100% de acerto mesmo se uma rodada de poll falhar.
+    function sincronizarCard(card, disponivel) {
+        const reservado = disponivel <= 0;
+        card.classList.toggle('reservado', reservado);
+
+        let tagReservado = card.querySelector('.tag-reservado');
+        if (reservado && !tagReservado && !card.querySelector('.tag-oportunidade')) {
+            tagReservado = document.createElement('span');
+            tagReservado.className = 'tag-reservado';
+            tagReservado.textContent = 'Em um carrinho';
+            card.prepend(tagReservado);
+        } else if (!reservado && tagReservado) {
+            tagReservado.remove();
+        }
+
+        const dispEl = card.querySelector('.disponibilidade.card');
+        if (dispEl) {
+            if (reservado) {
+                dispEl.className = 'disponibilidade card disponibilidade-baixa';
+                dispEl.textContent = 'Aguardando pagamento de outro cliente';
+            } else {
+                dispEl.className = 'disponibilidade card' + (disponivel <= 3 ? ' disponibilidade-baixa' : '');
+                dispEl.textContent = disponivel + (disponivel === 1 ? ' disponível' : ' disponíveis');
+            }
+        }
+    }
+
+    let popupTimeout = null;
+    function mostrarPopupOportunidade(produto) {
+        let popup = document.getElementById('toast-oportunidade');
+        if (popup) { popup.remove(); }
+
+        popup = document.createElement('div');
+        popup.className = 'toast-oportunidade';
+        popup.id = 'toast-oportunidade';
+        const foto = produto.fotos && produto.fotos.length ? '/' + produto.fotos[0] : '';
+        popup.innerHTML =
+            '<a href="/loja/produto.php?id=' + produto.id_produto + '" class="toast-conteudo">' +
+                (foto ? '<img src="' + escaparHtml(foto) + '" class="toast-foto" alt="">' : '') +
+                '<span class="toast-texto"><strong>' + escaparHtml(produto.nome) + '</strong><span>Voltou pra loja — já disponível!</span></span>' +
+            '</a>' +
+            '<button type="button" class="toast-fechar" aria-label="Fechar aviso">&times;</button>';
+
+        document.body.appendChild(popup);
+        popup.querySelector('.toast-fechar').addEventListener('click', function () {
+            clearTimeout(popupTimeout);
+            popup.remove();
+        });
+
+        clearTimeout(popupTimeout);
+        popupTimeout = setTimeout(function () { popup.remove(); }, 5000);
     }
 
     function verificarNovidades() {
-        const params = new URLSearchParams({ desde: ultimaChecagem, categoria: categoriaAtual });
+        const grade = document.getElementById('grade-produtos');
+        const idsVisiveis = Array.from(grade.querySelectorAll('[data-id-produto]')).map(function (el) { return el.dataset.idProduto; });
+        const params = new URLSearchParams({ desde: ultimaChecagem, categoria: categoriaAtual, ids: idsVisiveis.join(',') });
+
         fetch('/loja/ajax/verificar_novidades.php?' + params.toString())
             .then(function (r) { return r.json(); })
             .then(function (data) {
                 if (!data.success) { return; }
                 ultimaChecagem = data.agora;
-                if (data.produtos.length === 0) { return; }
 
-                const grade = document.getElementById('grade-produtos');
-                data.produtos.forEach(function (produto) {
-                    const existente = grade.querySelector('[data-id-produto="' + produto.id_produto + '"]');
-                    if (existente) {
-                        existente.classList.add('voltou');
-                        if (!existente.querySelector('.tag-oportunidade')) {
-                            const tag = document.createElement('span');
-                            tag.className = 'tag-oportunidade';
-                            tag.textContent = 'Nova oportunidade';
-                            existente.prepend(tag);
-                        }
-                    } else {
-                        const novoCard = criarCardProduto(produto);
-                        grade.prepend(novoCard);
-                        iniciarCarrosseis(novoCard);
-                    }
+                // 1) Resincroniza TODO cartão visível com a disponibilidade real —
+                // independe de ter mudado ou não desde a última rodada.
+                (data.status || []).forEach(function (s) {
+                    const card = grade.querySelector('[data-id-produto="' + s.id_produto + '"]');
+                    if (card) { sincronizarCard(card, s.disponivel); }
                 });
 
-                mostrarAviso(data.produtos.length);
+                // 2) Camada extra só pra celebrar quem voltou AGORA: borda dourada,
+                // tag e um popup rápido com um dos itens.
+                if (data.produtos.length > 0) {
+                    data.produtos.forEach(function (produto) {
+                        const existente = grade.querySelector('[data-id-produto="' + produto.id_produto + '"]');
+                        if (existente) {
+                            existente.classList.add('voltou');
+                            if (!existente.querySelector('.tag-oportunidade')) {
+                                const tag = document.createElement('span');
+                                tag.className = 'tag-oportunidade';
+                                tag.innerHTML = '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8L12 2Z"/></svg> Nova oportunidade';
+                                existente.prepend(tag);
+                            }
+                        } else {
+                            const novoCard = criarCardProduto(produto);
+                            grade.prepend(novoCard);
+                            iniciarCarrosseis(novoCard);
+                        }
+                    });
+
+                    mostrarPopupOportunidade(data.produtos[0]);
+                }
             })
             .catch(function () {});
     }

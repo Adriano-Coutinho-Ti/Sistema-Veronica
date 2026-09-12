@@ -114,6 +114,7 @@ $erro = $_GET['erro'] ?? '';
             </div>
             <?php endif; ?>
 
+            <?php if ((float) $cliente['limite_credito'] <= 0): ?>
             <div class="resumo-card">
                 <h2>Linha de crédito</h2>
                 <?php if (isset($_GET['solicitado'])): ?>
@@ -123,14 +124,10 @@ $erro = $_GET['erro'] ?? '';
                 <?php if ($temSolicitacaoPendente): ?>
                     <p>Sua solicitação de R$ <?= number_format($ultimaSolicitacao['valor_solicitado'], 2, ',', '.') ?>, enviada em <?= htmlspecialchars(date('d/m/Y', strtotime($ultimaSolicitacao['criado_em']))) ?>, está em análise.</p>
                 <?php else: ?>
-                    <?php if ($ultimaSolicitacao): ?>
-                        <?php if ($ultimaSolicitacao['status'] === 'Aprovada'): ?>
-                            <p class="alert alert-sucesso">Sua última solicitação foi aprovada — limite de R$ <?= number_format($ultimaSolicitacao['valor_aprovado'], 2, ',', '.') ?>.</p>
-                        <?php else: ?>
-                            <p class="alert alert-erro">Sua última solicitação não foi aprovada<?= $ultimaSolicitacao['observacao_admin'] ? ': ' . htmlspecialchars($ultimaSolicitacao['observacao_admin']) : '.' ?></p>
-                        <?php endif; ?>
+                    <?php if ($ultimaSolicitacao && $ultimaSolicitacao['status'] === 'Rejeitada'): ?>
+                        <p class="alert alert-erro">Sua última solicitação não foi aprovada<?= $ultimaSolicitacao['observacao_admin'] ? ': ' . htmlspecialchars($ultimaSolicitacao['observacao_admin']) : '.' ?></p>
                     <?php endif; ?>
-                    <p>Precisa de mais crédito pra comprar a prazo? Solicite abaixo.</p>
+                    <p>Você ainda não tem uma linha de crédito na loja. Solicite abaixo pra poder comprar a prazo.</p>
                     <form method="post" action="/loja/ajax/solicitar_credito.php">
                         <label>Valor desejado
                             <input type="text" name="valor_solicitado" placeholder="0,00" required>
@@ -139,6 +136,7 @@ $erro = $_GET['erro'] ?? '';
                     </form>
                 <?php endif; ?>
             </div>
+            <?php endif; ?>
         </div>
     </div>
 </main>

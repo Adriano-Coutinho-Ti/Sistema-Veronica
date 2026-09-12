@@ -1,11 +1,23 @@
 <?php
 /**
- * Poll público (sem login) chamado pelo catálogo pra descobrir, sem recarregar
- * a página, quais produtos voltaram a ficar disponíveis desde a última
- * checagem — inclusive itens liberados pelo carrinho de OUTRA pessoa que
- * expirou. Retorna também o instante atual do próprio MySQL (não do PHP)
- * como próximo "desde", pelo mesmo motivo do cronômetro do carrinho: evita
- * depender do relógio do servidor PHP/navegador, que pode divergir do banco.
+ * Poll público (sem login) chamado pelo catálogo — faz dois trabalhos diferentes
+ * a cada checagem:
+ *
+ * 1) "novidades": produtos que voltaram a ficar disponíveis desde a última
+ *    checagem (inclusive liberados pelo carrinho de OUTRA pessoa que expirou) —
+ *    alimenta o destaque dourado / tag "Nova oportunidade" / popup.
+ *
+ * 2) "status": o estado ATUAL (sem depender de delta nenhum) de cada produto que
+ *    já está desenhado na tela (passado em `ids`) — o cliente resincroniza esses
+ *    cartões toda vez, mesmo os que não mudaram. Isso existe pra nunca deixar um
+ *    cartão preso mostrando "em um carrinho" depois de já ter sido liberado (ou
+ *    vice-versa, mostrando disponível quando outra pessoa acabou de reservar) —
+ *    um poll baseado só em delta pode perder eventos; reafirmar o estado
+ *    completo a cada rodada não perde.
+ *
+ * Retorna também o instante atual do próprio MySQL (não do PHP) como próximo
+ * "desde", pelo mesmo motivo do cronômetro do carrinho: evita depender do
+ * relógio do servidor PHP/navegador, que pode divergir do banco.
  */
 require_once __DIR__ . '/../../conecta_bd.php';
 
@@ -13,6 +25,7 @@ header('Content-Type: application/json');
 
 $desde = $_GET['desde'] ?? '';
 $id_categoria = (int) ($_GET['categoria'] ?? 0);
+$idsVisiveis = array_filter(array_map('intval', explode(',', $_GET['ids'] ?? '')));
 
 if ($desde === '' || !preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $desde)) {
     echo json_encode(['success' => false, 'message' => 'Parâmetro "desde" inválido.']);
@@ -51,7 +64,7 @@ if (!empty($produtos)) {
     }
 }
 
-$resultado = array_map(function ($p) use ($fotosPorProduto) {
+$novidades = array_map(function ($p) use ($fotosPorProduto) {
     return [
         'id_produto' => (int) $p['id_produto'],
         'nome' => $p['nome'],
@@ -61,6 +74,21 @@ $resultado = array_map(function ($p) use ($fotosPorProduto) {
     ];
 }, $produtos);
 
+$status = [];
+if (!empty($idsVisiveis)) {
+    $placeholdersStatus = implode(',', array_fill(0, count($idsVisiveis), '?'));
+    $stmtStatus = $pdo->prepare(
+        "SELECT id_produto, SUM(estoque - estoque_reservado) AS disponivel
+         FROM produto_variacoes
+         WHERE id_produto IN ($placeholdersStatus)
+         GROUP BY id_produto"
+    );
+    $stmtStatus->execute($idsVisiveis);
+    foreach ($stmtStatus->fetchAll() as $s) {
+        $status[] = ['id_produto' => (int) $s['id_produto'], 'disponivel' => (int) $s['disponivel']];
+    }
+}
+
 $agora = $pdo->query('SELECT NOW()')->fetchColumn();
 
-echo json_encode(['success' => true, 'agora' => $agora, 'produtos' => $resultado]);
+echo json_encode(['success' => true, 'agora' => $agora, 'produtos' => $novidades, 'status' => $status]);
