@@ -32,19 +32,24 @@ $versaoCssAdmin = @filemtime(__DIR__ . '/assets/css/admin.css') ?: time();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Entrar — Sistema Veronica</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap">
     <link rel="stylesheet" href="/assets/css/admin.css?v=<?= $versaoCssAdmin ?>">
 </head>
 <body>
 <main class="container">
-    <h1>Entrar</h1>
-    <?php if ($erro): ?>
-        <p style="color:red;"><?= htmlspecialchars($erro) ?></p>
-    <?php endif; ?>
-    <form method="post">
-        <label>E-mail<br><input type="email" name="email" required></label><br>
-        <label>Senha<br><input type="password" name="senha" required></label><br>
-        <button type="submit">Entrar</button>
-    </form>
+    <div class="auth-card">
+        <h1>Sistema Veronica</h1>
+        <?php if ($erro): ?>
+            <p class="alert alert-erro"><?= htmlspecialchars($erro) ?></p>
+        <?php endif; ?>
+        <form method="post">
+            <label>E-mail<input type="email" name="email" required></label>
+            <label>Senha<input type="password" name="senha" required></label>
+            <button type="submit" class="btn-bloco">Entrar</button>
+        </form>
+    </div>
 </main>
 </body>
 </html>

@@ -8,12 +8,21 @@
  * </body>. Não usar em login.php (ainda não há sessão de usuário ali).
  */
 ?>
-<?php $versaoCssAdmin = @filemtime(__DIR__ . '/../assets/css/admin.css') ?: time(); ?>
+<?php
+$versaoCssAdmin = @filemtime(__DIR__ . '/../assets/css/admin.css') ?: time();
+$versaoJsAdmin = @filemtime(__DIR__ . '/../assets/js/admin.js') ?: time();
+?>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap">
 <link rel="stylesheet" href="/assets/css/admin.css?v=<?= $versaoCssAdmin ?>">
 <header class="site-header">
     <div class="site-header-inner">
         <a href="/produtos/lista.php" class="site-logo">Sistema Veronica</a>
-        <nav class="site-nav">
+        <button type="button" class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="site-nav" aria-label="Abrir menu">
+            <span></span><span></span><span></span>
+        </button>
+        <nav class="site-nav" id="site-nav">
             <a href="/produtos/lista.php">Produtos</a>
             <a href="/produtos/categorias.php">Categorias</a>
             <a href="/clientes/lista.php">Clientes</a>
@@ -32,4 +41,5 @@
         </nav>
     </div>
 </header>
+<script src="/assets/js/admin.js?v=<?= $versaoJsAdmin ?>" defer></script>
 <main class="container">
