@@ -60,6 +60,43 @@ h2 { font-size: 1.3rem; font-weight: 600; }
 
 p { margin: 0 0 12px; }
 
+/* ============ Títulos de página ============ */
+
+.banner-hero {
+    background: linear-gradient(135deg, var(--cor-primaria), var(--cor-secundaria));
+    color: #fff;
+    border-radius: var(--raio-lg);
+    padding: 34px 24px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.banner-hero h1 { color: #fff; margin-bottom: 6px; }
+.banner-hero p { color: rgba(255, 255, 255, 0.92); margin: 0; }
+
+.page-title {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 22px;
+}
+
+.page-title .icone-titulo {
+    width: 46px;
+    height: 46px;
+    border-radius: var(--raio-sm);
+    background: var(--cor-primaria-suave);
+    color: var(--cor-primaria);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.page-title .icone-titulo svg { width: 24px; height: 24px; }
+.page-title h1 { margin-bottom: 2px; }
+.page-title .subtitulo { color: var(--cor-texto-suave); font-size: 0.9rem; }
+
 .container {
     max-width: 1140px;
     margin: 0 auto;
@@ -160,6 +197,9 @@ p { margin: 0 0 12px; }
 .site-nav a { color: var(--cor-texto); text-decoration: none; }
 .site-nav a:hover { color: var(--cor-primaria); }
 .site-nav .site-nav-user { color: var(--cor-texto-suave); font-weight: 400; }
+
+/* Sair é sempre vermelho no hover — regra fixa, não muda com o tema da loja. */
+.site-nav a.link-sair:hover { color: var(--cor-erro); }
 
 /* ============ Botões — sempre botão de verdade, nunca link de texto ============ */
 
@@ -482,7 +522,16 @@ textarea { min-height: 88px; }
     font-size: 1.6rem;
     font-weight: 600;
     color: var(--cor-primaria);
-    margin: 10px 0 18px;
+    margin: 10px 0 4px;
+}
+
+.disponibilidade { color: var(--cor-texto-suave); font-size: 0.88rem; margin-bottom: 18px; }
+.disponibilidade-baixa { color: var(--cor-erro); font-weight: 700; }
+
+.secao-relacionados {
+    margin-top: 56px;
+    padding-top: 32px;
+    border-top: 1px solid var(--cor-borda);
 }
 
 /* ============ Carrinho ============ */
@@ -674,15 +723,26 @@ textarea { min-height: 88px; }
 
 .extrato-item {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     padding: 14px 0;
     border-bottom: 1px solid var(--cor-borda);
 }
 
+.extrato-item .foto {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--raio-sm);
+    overflow: hidden;
+    background: var(--cor-fundo-alt);
+    flex-shrink: 0;
+}
+
+.extrato-item .foto img { width: 100%; height: 100%; object-fit: cover; }
+.extrato-item .desc-wrap { flex: 1; min-width: 0; }
 .extrato-item .desc { font-weight: 600; }
 .extrato-item .data { color: var(--cor-texto-suave); font-size: 0.82rem; }
+.extrato-item .variacao { color: var(--cor-texto-suave); font-size: 0.82rem; }
 .extrato-item .valor { font-weight: 700; white-space: nowrap; }
 .extrato-item .valor.pagamento { color: var(--cor-sucesso); }
 
@@ -697,6 +757,87 @@ table {
 }
 
 th, td { padding: 10px 12px; border-bottom: 1px solid var(--cor-borda); text-align: left; }
+
+/* ============ Rodapé ============ */
+/* A barra final é sempre escura, de propósito — não segue o tema da loja,
+   igual o botão do WhatsApp é sempre verde. São elementos de identidade
+   fixos do site, não da vitrine. */
+
+.site-footer { margin-top: 56px; }
+
+.footer-contato {
+    background: var(--cor-fundo-alt);
+    border-top: 1px solid var(--cor-borda);
+    padding: 26px 0;
+}
+
+.footer-contato-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+}
+
+.footer-contato-grid > div { font-size: 0.9rem; }
+
+.footer-contato-grid .rotulo {
+    display: block;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+    color: var(--cor-texto-suave);
+    margin-bottom: 2px;
+}
+
+.footer-final {
+    background: #17130F;
+    color: #C9C2B6;
+    padding: 26px 16px;
+}
+
+.footer-final-inner {
+    max-width: 1140px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    text-align: center;
+    font-size: 0.85rem;
+}
+
+.footer-final .footer-logo {
+    font-family: var(--fonte-titulo);
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: #fff;
+}
+
+.footer-final a { color: #fff; text-decoration: underline; }
+
+.whatsapp-flutuante {
+    position: fixed;
+    right: 18px;
+    bottom: 18px;
+    width: 58px;
+    height: 58px;
+    min-height: 0;
+    border-radius: 50%;
+    background: #25D366;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--sombra-lg);
+    z-index: 60;
+    transition: transform 0.15s ease;
+}
+
+.whatsapp-flutuante:hover { background: #25D366; transform: scale(1.08); box-shadow: var(--sombra-lg); }
+.whatsapp-flutuante svg { width: 30px; height: 30px; fill: #fff; }
+
+@media (min-width: 768px) {
+    .footer-contato-grid { grid-template-columns: repeat(4, 1fr); }
+}
 
 /* ============ Ícones — mesmo tamanho e alinhamento em qualquer contexto ============ */
 
@@ -753,6 +894,47 @@ th, td { padding: 10px 12px; border-bottom: 1px solid var(--cor-borda); text-ali
     color: var(--cor-primaria);
     font-weight: 700;
 }
+
+/* ============ Busca, resultado e paginação do catálogo ============ */
+
+.busca-catalogo {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+.busca-catalogo input { flex: 1; margin-top: 0; }
+.busca-catalogo button { flex-shrink: 0; padding: 0 18px; }
+
+.resultado-busca { color: var(--cor-texto-suave); font-size: 0.9rem; margin-top: -6px; margin-bottom: 12px; }
+
+.disponibilidade.card { font-size: 0.72rem; margin: 4px 0 0; }
+
+.paginacao {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 32px;
+}
+
+.paginacao a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 40px;
+    height: 40px;
+    padding: 0 10px;
+    border-radius: var(--raio-sm);
+    border: 1px solid var(--cor-borda);
+    text-decoration: none;
+    color: var(--cor-texto);
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.paginacao a.ativa { background: var(--cor-primaria); border-color: var(--cor-primaria); color: #fff; }
+.paginacao a:hover:not(.ativa) { border-color: var(--cor-primaria); color: var(--cor-primaria); }
 
 /* ============ Layout do produto (galeria + informações lado a lado no desktop) ============ */
 

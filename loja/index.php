@@ -6,22 +6,54 @@ require_once __DIR__ . '/../includes/loja.php';
 liberarReservasExpiradas($pdo);
 
 $id_categoria = (int) ($_GET['categoria'] ?? 0);
+$busca = trim($_GET['busca'] ?? '');
 
 $categorias = $pdo->query('SELECT id_categoria, nome FROM categorias ORDER BY nome')->fetchAll();
 
-$sql = "SELECT DISTINCT p.id_produto, p.nome, p.preco_base
-        FROM produtos p
-        JOIN produto_variacoes pv ON pv.id_produto = p.id_produto
-        WHERE p.ativo = 1 AND (pv.estoque - pv.estoque_reservado) > 0";
+const PRODUTOS_POR_PAGINA = 12;
+$pagina = max(1, (int) ($_GET['pagina'] ?? 1));
+
+$filtros = '';
 $params = [];
 if ($id_categoria > 0) {
-    $sql .= ' AND p.id_categoria = :ic';
+    $filtros .= ' AND p.id_categoria = :ic';
     $params[':ic'] = $id_categoria;
 }
-$sql .= ' ORDER BY p.nome';
+if ($busca !== '') {
+    $filtros .= ' AND p.nome LIKE :busca';
+    $params[':busca'] = '%' . $busca . '%';
+}
 
+$sqlTotal = "SELECT COUNT(*) FROM (
+    SELECT p.id_produto
+    FROM produtos p
+    JOIN produto_variacoes pv ON pv.id_produto = p.id_produto
+    WHERE p.ativo = 1 $filtros
+    GROUP BY p.id_produto
+    HAVING SUM(pv.estoque - pv.estoque_reservado) > 0
+) t";
+$stmtTotal = $pdo->prepare($sqlTotal);
+$stmtTotal->execute($params);
+$totalProdutos = (int) $stmtTotal->fetchColumn();
+$totalPaginas = max(1, (int) ceil($totalProdutos / PRODUTOS_POR_PAGINA));
+$pagina = min($pagina, $totalPaginas);
+$offset = ($pagina - 1) * PRODUTOS_POR_PAGINA;
+
+$sql = "SELECT p.id_produto, p.nome, p.preco_base, SUM(pv.estoque - pv.estoque_reservado) AS disponivel
+        FROM produtos p
+        JOIN produto_variacoes pv ON pv.id_produto = p.id_produto
+        WHERE p.ativo = 1 $filtros
+        GROUP BY p.id_produto, p.nome, p.preco_base
+        HAVING disponivel > 0
+        ORDER BY p.nome
+        LIMIT :limite OFFSET :offset";
 $stmt = $pdo->prepare($sql);
-$stmt->execute($params);
+foreach ($params as $chave => $valor) {
+    $stmt->bindValue($chave, $valor);
+}
+$stmt->bindValue(':limite', PRODUTOS_POR_PAGINA, PDO::PARAM_INT);
+$stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+$stmt->execute();
 $produtos = $stmt->fetchAll();
 
 $fotosPorProduto = [];
@@ -48,19 +80,42 @@ if (!empty($_GET['voltou'])) {
 // Instante de referência pro poll de novidades (loja/ajax/verificar_novidades.php) —
 // vem do MySQL, não do PHP, pra bater com o mesmo relógio usado em liberado_em.
 $agoraServidor = $pdo->query('SELECT NOW()')->fetchColumn();
+
+function montarLinkPagina(int $p, int $categoria, string $busca): string
+{
+    $params = ['pagina' => $p];
+    if ($categoria > 0) {
+        $params['categoria'] = $categoria;
+    }
+    if ($busca !== '') {
+        $params['busca'] = $busca;
+    }
+    return '/loja/index.php?' . http_build_query($params);
+}
 ?>
 <!DOCTYPE html>
 <html lang="pt-br">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Loja</title></head>
 <body>
 <?php require __DIR__ . '/../includes/loja_header.php'; ?>
-    <h1>Catálogo</h1>
+    <div class="banner-hero">
+        <h1>Catálogo</h1>
+        <p>Peças selecionadas com carinho — cada compra dá uma segunda vida a algo especial.</p>
+    </div>
 
     <div id="banner-oportunidade">
         <?php if (!empty($voltouIds)): ?>
         <p class="alert alert-oportunidade"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 2a8 8 0 1 1 0 16 8 8 0 0 1 0-16Zm-1 3v6l5 3 1-1.6-4-2.4V7Z"/></svg> Seu tempo pra pagar acabou — os itens do seu carrinho voltaram pra loja e já estão disponíveis de novo (inclusive pra outros clientes).</p>
         <?php endif; ?>
     </div>
+
+    <form class="busca-catalogo" method="get">
+        <?php if ($id_categoria > 0): ?><input type="hidden" name="categoria" value="<?= $id_categoria ?>"><?php endif; ?>
+        <input type="text" name="busca" placeholder="Buscar produtos..." value="<?= htmlspecialchars($busca) ?>">
+        <button type="submit" aria-label="Buscar">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4a6 6 0 1 0 3.76 10.66l4.79 4.79 1.41-1.41-4.79-4.79A6 6 0 0 0 10 4Zm-4 6a4 4 0 1 1 8 0 4 4 0 0 1-8 0Z"/></svg>
+        </button>
+    </form>
 
     <div class="catalogo-layout">
         <aside class="categorias-lateral">
@@ -85,11 +140,16 @@ $agoraServidor = $pdo->query('SELECT NOW()')->fetchColumn();
                 <?php endforeach; ?>
             </div>
 
+            <?php if ($busca !== ''): ?>
+                <p class="resultado-busca"><?= $totalProdutos ?> resultado<?= $totalProdutos === 1 ? '' : 's' ?> para "<?= htmlspecialchars($busca) ?>"</p>
+            <?php endif; ?>
+
             <div class="product-grid" id="grade-produtos">
                 <?php foreach ($produtos as $p): ?>
                 <?php
                     $fotos = $fotosPorProduto[(int) $p['id_produto']] ?? [];
                     $ehOportunidade = in_array((int) $p['id_produto'], $voltouIds, true);
+                    $disp = (int) $p['disponivel'];
                 ?>
                 <a href="/loja/produto.php?id=<?= $p['id_produto'] ?>" class="product-card<?= $ehOportunidade ? ' voltou' : '' ?>" data-id-produto="<?= $p['id_produto'] ?>">
                     <?php if ($ehOportunidade): ?><span class="tag-oportunidade"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8L12 2Z"/></svg> Nova oportunidade</span><?php endif; ?>
@@ -113,12 +173,23 @@ $agoraServidor = $pdo->query('SELECT NOW()')->fetchColumn();
                     </div>
                     <div class="nome"><?= htmlspecialchars($p['nome']) ?></div>
                     <div class="price">R$ <?= number_format($p['preco_base'], 2, ',', '.') ?></div>
+                    <div class="disponibilidade card<?= $disp <= 3 ? ' disponibilidade-baixa' : '' ?>"><?= $disp ?> disponíve<?= $disp === 1 ? 'l' : 'is' ?></div>
                 </a>
                 <?php endforeach; ?>
                 <?php if (empty($produtos)): ?>
-                    <p>Nenhum produto disponível nessa categoria no momento.</p>
+                    <p>Nenhum produto encontrado.</p>
                 <?php endif; ?>
             </div>
+
+            <?php if ($totalPaginas > 1): ?>
+            <nav class="paginacao">
+                <?php if ($pagina > 1): ?><a href="<?= montarLinkPagina($pagina - 1, $id_categoria, $busca) ?>">‹ Anterior</a><?php endif; ?>
+                <?php for ($p = 1; $p <= $totalPaginas; $p++): ?>
+                    <a href="<?= montarLinkPagina($p, $id_categoria, $busca) ?>" class="<?= $p === $pagina ? 'ativa' : '' ?>"><?= $p ?></a>
+                <?php endfor; ?>
+                <?php if ($pagina < $totalPaginas): ?><a href="<?= montarLinkPagina($pagina + 1, $id_categoria, $busca) ?>">Próxima ›</a><?php endif; ?>
+            </nav>
+            <?php endif; ?>
         </div>
     </div>
 
@@ -149,11 +220,14 @@ $agoraServidor = $pdo->query('SELECT NOW()')->fetchColumn();
         a.href = '/loja/produto.php?id=' + produto.id_produto;
         a.className = 'product-card voltou';
         a.dataset.idProduto = String(produto.id_produto);
+        const dispClasse = produto.disponivel <= 3 ? ' disponibilidade-baixa' : '';
+        const dispTexto = produto.disponivel + (produto.disponivel === 1 ? ' disponível' : ' disponíveis');
         a.innerHTML =
             '<span class="tag-oportunidade"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8L12 2Z"/></svg> Nova oportunidade</span>' +
             '<div class="card-media">' + mediaHtml + '</div>' +
             '<div class="nome">' + escaparHtml(produto.nome) + '</div>' +
-            '<div class="price">R$ ' + precoFormatado + '</div>';
+            '<div class="price">R$ ' + precoFormatado + '</div>' +
+            '<div class="disponibilidade card' + dispClasse + '">' + dispTexto + '</div>';
         return a;
     }
 
@@ -204,5 +278,6 @@ $agoraServidor = $pdo->query('SELECT NOW()')->fetchColumn();
 })();
 </script>
 </main>
+<?php require __DIR__ . '/../includes/loja_footer.php'; ?>
 </body>
 </html>

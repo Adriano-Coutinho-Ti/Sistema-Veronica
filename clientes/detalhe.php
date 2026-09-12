@@ -158,7 +158,7 @@ $creditoDisponivel = (float) $cliente['limite_credito'] - (float) $cliente['sald
         <?php foreach ($extrato as $mov): ?>
         <li>
             <?= htmlspecialchars($mov['data_movimento']) ?> —
-            <?= $mov['tipo'] === 'compra' ? 'Compra fiada' : 'Pagamento' ?>
+            <?= $mov['tipo'] === 'compra' ? 'Compra a prazo' : 'Pagamento' ?>
             (<?= htmlspecialchars($mov['status']) ?>) —
             R$ <?= number_format((float) $mov['valor'], 2, ',', '.') ?>
             <?= $mov['forma_pagamento'] ? ' via ' . htmlspecialchars($mov['forma_pagamento']) : '' ?>

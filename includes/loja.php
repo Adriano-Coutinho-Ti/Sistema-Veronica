@@ -113,3 +113,16 @@ function definirEntregaDaVenda(PDO $pdo, int $id_venda, array $entrega): float
 
     return recalcularTotalVenda($pdo, $id_venda);
 }
+
+/**
+ * Formata o WhatsApp da loja (guardado como só dígitos, ex: "5534996536637")
+ * pra exibição — usado no rodapé. Se não bater com o formato esperado (BR,
+ * DDI+DDD+9 dígitos), devolve como veio pra nunca esconder um número salvo.
+ */
+function formatarWhatsappExibicao(string $whatsapp): string
+{
+    if (preg_match('/^55(\d{2})(\d{5})(\d{4})$/', $whatsapp, $m)) {
+        return '+55 (' . $m[1] . ') ' . $m[2] . '-' . $m[3];
+    }
+    return $whatsapp;
+}

@@ -14,6 +14,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $cor_fundo = trim($_POST['cor_fundo'] ?? '#FFFFFF');
     $cor_texto = trim($_POST['cor_texto'] ?? '#1F2937');
 
+    $whatsapp_loja = preg_replace('/\D/', '', $_POST['whatsapp_loja'] ?? '');
+    if (in_array(strlen($whatsapp_loja), [10, 11], true)) {
+        $whatsapp_loja = '55' . $whatsapp_loja;
+    }
+    $whatsapp_loja = $whatsapp_loja !== '' ? $whatsapp_loja : null;
+    $endereco_loja = trim($_POST['endereco_loja'] ?? '') ?: null;
+    $horario_atendimento = trim($_POST['horario_atendimento'] ?? '') ?: null;
+    $email_loja = trim($_POST['email_loja'] ?? '') ?: null;
+
     $coresValidas = preg_match('/^#[0-9A-Fa-f]{6}$/', $cor_primaria)
         && preg_match('/^#[0-9A-Fa-f]{6}$/', $cor_secundaria)
         && preg_match('/^#[0-9A-Fa-f]{6}$/', $cor_fundo)
@@ -54,8 +63,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ':cs' => $cor_secundaria,
                 ':cf' => $cor_fundo,
                 ':ct' => $cor_texto,
+                ':wa' => $whatsapp_loja,
+                ':end' => $endereco_loja,
+                ':hor' => $horario_atendimento,
+                ':email' => $email_loja,
             ];
-            $sql = 'UPDATE config_loja SET nome_loja = :nome, tema = :tema, cor_primaria = :cp, cor_secundaria = :cs, cor_fundo = :cf, cor_texto = :ct';
+            $sql = 'UPDATE config_loja SET nome_loja = :nome, tema = :tema, cor_primaria = :cp, cor_secundaria = :cs, cor_fundo = :cf, cor_texto = :ct,
+                    whatsapp_loja = :wa, endereco_loja = :end, horario_atendimento = :hor, email_loja = :email';
             if ($logoArquivo !== null) {
                 $sql .= ', logo_arquivo = :logo';
                 $campos[':logo'] = $logoArquivo;
@@ -97,6 +111,13 @@ $config = $pdo->query('SELECT * FROM config_loja WHERE id_config = 1')->fetch();
             <label>Cor de fundo<br><input type="color" name="cor_fundo" value="<?= htmlspecialchars($config['cor_fundo']) ?>"></label>
             <label>Cor do texto<br><input type="color" name="cor_texto" value="<?= htmlspecialchars($config['cor_texto']) ?>"></label>
         </div>
+        <h2>Contato da loja</h2>
+        <p>Aparece no rodapé e no botão flutuante de WhatsApp de todas as páginas da loja online. Deixe em branco o que não se aplica.</p>
+        <label>WhatsApp (com DDD)<br><input type="text" name="whatsapp_loja" placeholder="11987654321" value="<?= htmlspecialchars($config['whatsapp_loja'] ?? '') ?>"></label>
+        <label>E-mail<br><input type="email" name="email_loja" value="<?= htmlspecialchars($config['email_loja'] ?? '') ?>"></label>
+        <label>Endereço<br><input type="text" name="endereco_loja" placeholder="Ex: Atendimento online para todo o país" value="<?= htmlspecialchars($config['endereco_loja'] ?? '') ?>"></label>
+        <label>Horário de atendimento<br><input type="text" name="horario_atendimento" placeholder="Ex: Segunda a sexta, 9h às 18h" value="<?= htmlspecialchars($config['horario_atendimento'] ?? '') ?>"></label>
+
         <button type="submit">Salvar</button>
     </form>
 <script>

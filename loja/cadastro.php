@@ -177,5 +177,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <?php endif; ?>
     </div>
 </main>
+<?php require __DIR__ . '/../includes/loja_footer.php'; ?>
 </body>
 </html>

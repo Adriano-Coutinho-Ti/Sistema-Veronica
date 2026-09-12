@@ -59,7 +59,10 @@ if ($id_venda) {
 <body>
 <?php require __DIR__ . '/../includes/loja_header.php'; ?>
     <p><a href="/loja/index.php" class="btn-texto">← Continuar comprando</a></p>
-    <h1>Carrinho</h1>
+    <div class="page-title">
+        <span class="icone-titulo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.4 12.2a2 2 0 0 0 2 1.8h7.2a2 2 0 0 0 2-1.6L20 8H6M9 21a1 1 0 1 0 0-2 1 1 0 0 0 0 2Zm8 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <h1>Carrinho</h1>
+    </div>
 
     <?php if (empty($itens)): ?>
     <p>Seu carrinho está vazio. <a href="/loja/index.php">Ver catálogo</a></p>
@@ -86,6 +89,11 @@ if ($id_venda) {
                     <div class="nome"><?= htmlspecialchars($item['nome_produto']) ?></div>
                     <?php if ($item['descricao_combinacao']): ?>
                         <div class="variacao"><?= htmlspecialchars($item['descricao_combinacao']) ?></div>
+                    <?php endif; ?>
+                    <?php if ($item['id_produto_variacao'] !== null):
+                        $totalDisponivel = (int) $item['disponivel_adicional'] + (int) $item['quantidade'];
+                    ?>
+                        <div class="disponibilidade<?= $totalDisponivel <= 3 ? ' disponibilidade-baixa' : '' ?>"><?= $totalDisponivel ?> disponíve<?= $totalDisponivel === 1 ? 'l' : 'is' ?> no total</div>
                     <?php endif; ?>
                     <div class="linha-controle">
                         <?php if ($item['id_produto_variacao'] !== null): ?>
@@ -189,5 +197,6 @@ if ($id_venda) {
     </script>
     <?php endif; ?>
 </main>
+<?php require __DIR__ . '/../includes/loja_footer.php'; ?>
 </body>
 </html>

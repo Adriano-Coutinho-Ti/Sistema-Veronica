@@ -35,7 +35,7 @@ $configLoja = $pdo->query('SELECT nome_loja, logo_arquivo FROM config_loja WHERE
                 <a href="/loja/meus_pedidos.php">Meus pedidos</a>
                 <a href="/loja/minha_divida.php">Meus débitos</a>
                 <span class="site-nav-user">Olá, <?= htmlspecialchars($_SESSION['nome_cliente']) ?></span>
-                <a href="/loja/logout.php">Sair</a>
+                <a href="/loja/logout.php" class="link-sair">Sair</a>
             <?php else: ?>
                 <a href="/loja/cadastro.php">Entrar / Cadastrar</a>
             <?php endif; ?>

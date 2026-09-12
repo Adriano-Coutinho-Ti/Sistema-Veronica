@@ -36,6 +36,45 @@ $combinacoes = $pdo->prepare(
 );
 $combinacoes->execute([':id' => $id_produto]);
 $listaCombinacoes = $combinacoes->fetchAll();
+
+$disponivelTotal = array_sum(array_column($listaCombinacoes, 'disponivel'));
+
+// Relacionados: prioriza a mesma categoria; se não achar nenhum (categoria pequena
+// ou só este produto nela), cai pra qualquer outro produto ativo com estoque.
+$relacionados = $pdo->prepare(
+    "SELECT DISTINCT p2.id_produto, p2.nome, p2.preco_base
+     FROM produtos p2
+     JOIN produto_variacoes pv2 ON pv2.id_produto = p2.id_produto
+     WHERE p2.ativo = 1 AND p2.id_produto != :id AND p2.id_categoria = :cat
+       AND (pv2.estoque - pv2.estoque_reservado) > 0
+     ORDER BY RAND() LIMIT 8"
+);
+$relacionados->execute([':id' => $id_produto, ':cat' => $produto['id_categoria']]);
+$listaRelacionados = $relacionados->fetchAll();
+
+if (empty($listaRelacionados)) {
+    $outros = $pdo->prepare(
+        "SELECT DISTINCT p2.id_produto, p2.nome, p2.preco_base
+         FROM produtos p2
+         JOIN produto_variacoes pv2 ON pv2.id_produto = p2.id_produto
+         WHERE p2.ativo = 1 AND p2.id_produto != :id
+           AND (pv2.estoque - pv2.estoque_reservado) > 0
+         ORDER BY RAND() LIMIT 8"
+    );
+    $outros->execute([':id' => $id_produto]);
+    $listaRelacionados = $outros->fetchAll();
+}
+
+$fotosRelacionados = [];
+if (!empty($listaRelacionados)) {
+    $idsRel = array_column($listaRelacionados, 'id_produto');
+    $placeholders = implode(',', array_fill(0, count($idsRel), '?'));
+    $stmtFotosRel = $pdo->prepare("SELECT id_produto, caminho_arquivo FROM produto_fotos WHERE id_produto IN ($placeholders) ORDER BY id_produto, ordem");
+    $stmtFotosRel->execute($idsRel);
+    foreach ($stmtFotosRel->fetchAll() as $f) {
+        $fotosRelacionados[(int) $f['id_produto']][] = $f['caminho_arquivo'];
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="pt-br">
@@ -73,6 +112,9 @@ $listaCombinacoes = $combinacoes->fetchAll();
     <h1><?= htmlspecialchars($produto['nome']) ?></h1>
     <p><?= nl2br(htmlspecialchars($produto['descricao'] ?? '')) ?></p>
     <p class="produto-preco">R$ <?= number_format($produto['preco_base'], 2, ',', '.') ?></p>
+    <?php if ($disponivelTotal > 0): ?>
+    <p class="disponibilidade<?= $disponivelTotal <= 3 ? ' disponibilidade-baixa' : '' ?>"><?= $disponivelTotal ?> <?= $disponivelTotal === 1 ? 'unidade disponível' : 'unidades disponíveis' ?></p>
+    <?php endif; ?>
 
     <?php if (empty($_SESSION['id_cliente'])): ?>
         <a href="/loja/cadastro.php" class="btn btn-lg btn-bloco">Entrar ou cadastrar pra comprar</a>
@@ -114,6 +156,27 @@ $listaCombinacoes = $combinacoes->fetchAll();
     <?php endif; ?>
     </div>
     </div>
+
+    <?php if (!empty($listaRelacionados)): ?>
+    <section class="secao-relacionados">
+        <h2>Você também pode gostar</h2>
+        <div class="product-grid">
+            <?php foreach ($listaRelacionados as $rp): ?>
+            <?php $fotosRp = $fotosRelacionados[(int) $rp['id_produto']] ?? []; ?>
+            <a href="/loja/produto.php?id=<?= $rp['id_produto'] ?>" class="product-card">
+                <div class="card-media">
+                    <?php if (!empty($fotosRp)): ?>
+                        <img src="/<?= htmlspecialchars($fotosRp[0]) ?>" alt="<?= htmlspecialchars($rp['nome']) ?>">
+                    <?php endif; ?>
+                </div>
+                <div class="nome"><?= htmlspecialchars($rp['nome']) ?></div>
+                <div class="price">R$ <?= number_format($rp['preco_base'], 2, ',', '.') ?></div>
+            </a>
+            <?php endforeach; ?>
+        </div>
+    </section>
+    <?php endif; ?>
 </main>
+<?php require __DIR__ . '/../includes/loja_footer.php'; ?>
 </body>
 </html>

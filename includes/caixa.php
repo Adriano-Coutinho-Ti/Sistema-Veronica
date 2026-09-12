@@ -135,7 +135,7 @@ function finalizarVenda(PDO $pdo, int $id_venda, array $pagamentos, ?string $id_
             }
 
             if (!$venda['id_cliente']) {
-                throw new Exception('É necessário vincular um cliente para vender fiado.');
+                throw new Exception('É necessário vincular um cliente para vender a prazo.');
             }
 
             $id_cliente_credito = (int) $venda['id_cliente'];

@@ -19,19 +19,20 @@ if ($desde === '' || !preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $des
     exit;
 }
 
-$sql = "SELECT DISTINCT p.id_produto, p.nome, p.preco_base
+$sql = "SELECT p.id_produto, p.nome, p.preco_base, SUM(pv.estoque - pv.estoque_reservado) AS disponivel
         FROM produtos p
         JOIN produto_variacoes pv ON pv.id_produto = p.id_produto
         WHERE p.ativo = 1
-          AND (pv.estoque - pv.estoque_reservado) > 0
-          AND pv.liberado_em IS NOT NULL
-          AND pv.liberado_em > :desde";
+          AND p.id_produto IN (
+              SELECT DISTINCT pv2.id_produto FROM produto_variacoes pv2
+              WHERE pv2.liberado_em IS NOT NULL AND pv2.liberado_em > :desde
+          )";
 $params = [':desde' => $desde];
 if ($id_categoria > 0) {
     $sql .= ' AND p.id_categoria = :ic';
     $params[':ic'] = $id_categoria;
 }
-$sql .= ' ORDER BY p.nome';
+$sql .= ' GROUP BY p.id_produto, p.nome, p.preco_base HAVING disponivel > 0 ORDER BY p.nome';
 
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
@@ -55,6 +56,7 @@ $resultado = array_map(function ($p) use ($fotosPorProduto) {
         'id_produto' => (int) $p['id_produto'],
         'nome' => $p['nome'],
         'preco_base' => (float) $p['preco_base'],
+        'disponivel' => (int) $p['disponivel'],
         'fotos' => $fotosPorProduto[(int) $p['id_produto']] ?? [],
     ];
 }, $produtos);

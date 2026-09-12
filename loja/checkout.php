@@ -34,7 +34,10 @@ $erro = $_GET['erro'] ?? '';
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Checkout</title></head>
 <body>
 <?php require __DIR__ . '/../includes/loja_header.php'; ?>
-    <h1>Checkout</h1>
+    <div class="page-title">
+        <span class="icone-titulo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm-1.5 14.5-4-4 1.4-1.4 2.6 2.6 6.6-6.6 1.4 1.4Z" fill="currentColor"/></svg></span>
+        <h1>Checkout</h1>
+    </div>
     <?php if ($erro): ?><p class="alert alert-erro"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
 
     <form method="post" id="form-checkout" action="/loja/ajax/gerar_checkout.php">
@@ -95,5 +98,6 @@ document.getElementById('id_entrega').addEventListener('change', atualizarCampoE
 atualizarCampoEndereco();
 </script>
 </main>
+<?php require __DIR__ . '/../includes/loja_footer.php'; ?>
 </body>
 </html>
