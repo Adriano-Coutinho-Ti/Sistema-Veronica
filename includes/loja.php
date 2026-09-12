@@ -115,6 +115,22 @@ function definirEntregaDaVenda(PDO $pdo, int $id_venda, array $entrega): float
 }
 
 /**
+ * Monta o link "wa.me" pra compartilhar um produto num grupo/contato do
+ * WhatsApp — sem número de destino, então abre o seletor de conversa do
+ * próprio WhatsApp. O texto traz nome e preço direto na mensagem (não
+ * depende só da prévia do link, que demora pra carregar ou pode falhar
+ * em alguns grupos); a prévia bonita com foto vem das tags og:* que
+ * loja/produto.php imprime no <head>, lidas pelo crawler do WhatsApp
+ * quando alguém abre/reenvia o link.
+ */
+function montarLinkCompartilharWhatsapp(string $nome, float $preco, string $urlProduto): string
+{
+    $precoFormatado = number_format($preco, 2, ',', '.');
+    $texto = "🛍️ *{$nome}*\nR$ {$precoFormatado}\n\n{$urlProduto}";
+    return 'https://api.whatsapp.com/send?text=' . urlencode($texto);
+}
+
+/**
  * Formata o WhatsApp da loja (guardado como só dígitos, ex: "5534996536637")
  * pra exibição — usado no rodapé. Se não bater com o formato esperado (BR,
  * DDI+DDD+9 dígitos), devolve como veio pra nunca esconder um número salvo.
