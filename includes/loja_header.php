@@ -44,12 +44,26 @@ $versaoJs = @filemtime(__DIR__ . '/../assets/js/loja.js') ?: time();
                 <a href="/loja/meus_pedidos.php">Meus pedidos</a>
                 <a href="/loja/minha_divida.php">Meus débitos</a>
                 <a href="/loja/minha_conta.php" class="site-nav-user">Olá, <?= htmlspecialchars($_SESSION['nome_cliente']) ?></a>
-                <a href="/loja/logout.php" class="link-sair" onclick="return confirm('Tem certeza que quer sair da sua conta?');">Sair</a>
+                <a href="/loja/logout.php" class="link-sair" id="link-sair">Sair</a>
             <?php else: ?>
                 <a href="/loja/cadastro.php">Entrar / Cadastrar</a>
             <?php endif; ?>
         </nav>
     </div>
 </header>
+
+<?php if (!empty($_SESSION['id_cliente'])): ?>
+<div class="modal-overlay" id="modal-sair" hidden>
+    <div class="modal-card">
+        <h3>Sair da conta</h3>
+        <p>Tem certeza que quer sair da sua conta?</p>
+        <div class="modal-acoes">
+            <button type="button" class="btn-outline" id="modal-sair-cancelar">Cancelar</button>
+            <a href="/loja/logout.php" class="btn">Sim, sair</a>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
+
 <script src="/assets/js/loja.js?v=<?= $versaoJs ?>" defer></script>
 <main class="container">

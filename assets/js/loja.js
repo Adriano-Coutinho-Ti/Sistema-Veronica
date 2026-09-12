@@ -102,7 +102,30 @@ function iniciarCarrosseis(raiz) {
     });
 }
 
+function iniciarModalSair() {
+    const link = document.getElementById('link-sair');
+    const modal = document.getElementById('modal-sair');
+    if (!link || !modal) {
+        return;
+    }
+    link.addEventListener('click', function (e) {
+        e.preventDefault();
+        modal.hidden = false;
+    });
+    const cancelar = document.getElementById('modal-sair-cancelar');
+    if (cancelar) {
+        cancelar.addEventListener('click', function () { modal.hidden = true; });
+    }
+    modal.addEventListener('click', function (e) {
+        if (e.target === modal) { modal.hidden = true; }
+    });
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && !modal.hidden) { modal.hidden = true; }
+    });
+}
+
 document.addEventListener('DOMContentLoaded', function () {
     iniciarMenuMobile();
     iniciarCarrosseis();
+    iniciarModalSair();
 });

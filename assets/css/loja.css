@@ -201,6 +201,37 @@ p { margin: 0 0 12px; }
 /* Sair é sempre vermelho no hover — regra fixa, não muda com o tema da loja. */
 .site-nav a.link-sair:hover { color: var(--cor-erro); }
 
+/* Modal de confirmação (ex: sair da conta) — nunca alert()/confirm() do
+   navegador, sempre dentro da própria tela, com a cara do site. */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(17, 12, 4, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 100;
+}
+
+.modal-overlay[hidden] { display: none; }
+
+.modal-card {
+    background: var(--cor-fundo);
+    border-radius: var(--raio-lg);
+    box-shadow: var(--sombra-lg);
+    padding: 28px 24px;
+    max-width: 360px;
+    width: 100%;
+    text-align: center;
+}
+
+.modal-card h3 { margin-bottom: 8px; }
+.modal-card p { color: var(--cor-texto-suave); margin-bottom: 22px; }
+
+.modal-acoes { display: flex; gap: 10px; }
+.modal-acoes .btn, .modal-acoes .btn-outline { flex: 1; margin: 0; }
+
 /* ============ Botões — sempre botão de verdade, nunca link de texto ============ */
 
 button, input[type="submit"], .btn {
