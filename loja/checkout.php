@@ -116,7 +116,7 @@ $erro = $_GET['erro'] ?? '';
 
                 <?php if ($temLimiteCredito): ?>
                 <button type="submit" id="btn-pagar-credito" formaction="/loja/ajax/finalizar_credito.php" class="btn-outline btn-bloco" style="margin-top:10px;">
-                    Pagar com Linha de Crédito
+                    <span class="rotulo-credito">Pagar com Linha de Crédito</span>
                     <span id="texto-credito-disponivel"></span>
                 </button>
                 <?php endif; ?>

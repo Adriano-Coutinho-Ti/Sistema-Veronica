@@ -59,9 +59,9 @@ if ($id_venda) {
 <body>
 <?php require __DIR__ . '/../includes/loja_header.php'; ?>
     <p><a href="/loja/index.php" class="btn-texto">← Continuar comprando</a></p>
-    <div class="page-title">
-        <span class="icone-titulo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.4 12.2a2 2 0 0 0 2 1.8h7.2a2 2 0 0 0 2-1.6L20 8H6M9 21a1 1 0 1 0 0-2 1 1 0 0 0 0 2Zm8 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+    <div class="banner-hero">
         <h1>Carrinho</h1>
+        <p>Confira os itens antes de finalizar sua compra.</p>
     </div>
 
     <?php if (empty($itens)): ?>

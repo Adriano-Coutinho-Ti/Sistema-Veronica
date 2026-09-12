@@ -44,9 +44,9 @@ $erro = $_GET['erro'] ?? '';
 <body>
 <?php require __DIR__ . '/../includes/loja_header.php'; ?>
     <p><a href="/loja/index.php" class="btn-texto">← Voltar pra loja</a></p>
-    <div class="page-title">
-        <span class="icone-titulo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v1H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2h-4a1.5 1.5 0 0 0 0 3h4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+    <div class="banner-hero">
         <h1>Meus débitos</h1>
+        <p>Acompanhe seu saldo e pague com segurança quando quiser.</p>
     </div>
     <?php if ($erro): ?><p class="alert alert-erro"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
 

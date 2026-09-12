@@ -93,3 +93,23 @@ function rotuloStatusPedido(string $status, ?string $status_entrega, ?string $ti
         default => 'Pagamento confirmado — na fila de preparo',
     };
 }
+
+/**
+ * Classe CSS da bolinha de status (.status-pill) — cada etapa tem sua própria
+ * cor fixa (ver :root de loja.css) pra dar pra reconhecer o estágio de
+ * relance, sem precisar ler o texto.
+ */
+function classePillStatusPedido(string $status, ?string $status_entrega): string
+{
+    if ($status === 'Cancelado') {
+        return 'cancelado';
+    }
+
+    return match ($status_entrega) {
+        'Preparando' => 'preparando',
+        'Pronto' => 'pronto',
+        'Enviado' => 'enviado',
+        'Entregue' => 'concluido',
+        default => '',
+    };
+}

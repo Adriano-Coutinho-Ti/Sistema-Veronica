@@ -20,6 +20,32 @@ $stmt = $pdo->prepare(
 $stmt->execute([':ic' => $id_cliente]);
 $favoritos = $stmt->fetchAll();
 
+// "Você também pode gostar" — mesma seção da página de produto, mostrando
+// outros produtos ativos com estoque, sorteados, excluindo o que já está
+// nos favoritos do cliente.
+$idsFavoritados = array_column($favoritos, 'id_produto');
+$placeholdersExcluir = !empty($idsFavoritados) ? implode(',', array_fill(0, count($idsFavoritados), '?')) : null;
+$sqlRelacionados = "SELECT DISTINCT p2.id_produto, p2.nome, p2.preco_base
+     FROM produtos p2
+     JOIN produto_variacoes pv2 ON pv2.id_produto = p2.id_produto
+     WHERE p2.ativo = 1 AND (pv2.estoque - pv2.estoque_reservado) > 0"
+     . ($placeholdersExcluir ? " AND p2.id_produto NOT IN ($placeholdersExcluir)" : '')
+     . ' ORDER BY RAND() LIMIT 8';
+$stmtRelacionados = $pdo->prepare($sqlRelacionados);
+$stmtRelacionados->execute(array_values($idsFavoritados));
+$listaRelacionados = $stmtRelacionados->fetchAll();
+
+$fotosRelacionados = [];
+if (!empty($listaRelacionados)) {
+    $idsRel = array_column($listaRelacionados, 'id_produto');
+    $placeholders = implode(',', array_fill(0, count($idsRel), '?'));
+    $stmtFotosRel = $pdo->prepare("SELECT id_produto, caminho_arquivo FROM produto_fotos WHERE id_produto IN ($placeholders) ORDER BY id_produto, ordem");
+    $stmtFotosRel->execute($idsRel);
+    foreach ($stmtFotosRel->fetchAll() as $f) {
+        $fotosRelacionados[(int) $f['id_produto']][] = $f['caminho_arquivo'];
+    }
+}
+
 $agoraServidor = $pdo->query('SELECT NOW()')->fetchColumn();
 ?>
 <!DOCTYPE html>
@@ -27,9 +53,9 @@ $agoraServidor = $pdo->query('SELECT NOW()')->fetchColumn();
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Meus favoritos</title></head>
 <body>
 <?php require __DIR__ . '/../includes/loja_header.php'; ?>
-    <div class="page-title">
-        <span class="icone-titulo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7.5-4.6-10-9.1C.3 8.9 1.5 5 5 4c2.4-.7 4.8.3 6.2 2.3L12 7.6l.8-1.3C14.2 4.3 16.6 3.3 19 4c3.5 1 4.7 4.9 3 7.9-2.5 4.5-10 9.1-10 9.1Z" fill="currentColor"/></svg></span>
+    <div class="banner-hero">
         <h1>Meus favoritos</h1>
+        <p>Os itens que você mais amou, guardados aqui num só lugar.</p>
     </div>
 
     <?php if (empty($favoritos)): ?>
@@ -68,6 +94,26 @@ $agoraServidor = $pdo->query('SELECT NOW()')->fetchColumn();
         </a>
         <?php endforeach; ?>
     </div>
+    <?php endif; ?>
+
+    <?php if (!empty($listaRelacionados)): ?>
+    <section class="secao-relacionados">
+        <h2>Você também pode gostar</h2>
+        <div class="product-grid">
+            <?php foreach ($listaRelacionados as $rp): ?>
+            <?php $fotosRp = $fotosRelacionados[(int) $rp['id_produto']] ?? []; ?>
+            <a href="/loja/produto.php?id=<?= $rp['id_produto'] ?>" class="product-card">
+                <div class="card-media">
+                    <?php if (!empty($fotosRp)): ?>
+                        <img src="/<?= htmlspecialchars($fotosRp[0]) ?>" alt="<?= htmlspecialchars($rp['nome']) ?>">
+                    <?php endif; ?>
+                </div>
+                <div class="nome"><?= htmlspecialchars($rp['nome']) ?></div>
+                <div class="price">R$ <?= number_format($rp['preco_base'], 2, ',', '.') ?></div>
+            </a>
+            <?php endforeach; ?>
+        </div>
+    </section>
     <?php endif; ?>
 
 <script>

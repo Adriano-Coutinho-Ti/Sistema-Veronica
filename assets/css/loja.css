@@ -21,6 +21,16 @@
     --cor-dourado: #C9971F;
     --cor-dourado-suave: #FBF1DA;
 
+    /* Cores fixas das etapas de status de pedido — cada etapa precisa ser
+       reconhecível de relance, então não seguem o tema do lojista, igual
+       o dourado de oportunidade acima. */
+    --cor-preparando: #B45309;
+    --cor-preparando-fundo: #FEF3C7;
+    --cor-pronto: #2563EB;
+    --cor-pronto-fundo: #DBEAFE;
+    --cor-enviado: #0D9488;
+    --cor-enviado-fundo: #CCFBF1;
+
     --fonte-titulo: 'Fraunces', Georgia, serif;
     --fonte-corpo: 'Manrope', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
 
@@ -296,6 +306,19 @@ button:disabled, input[type="submit"]:disabled, .btn[disabled] {
 
 .btn-bloco { display: flex; width: 100%; }
 .btn-lg { padding: 15px 26px; font-size: 1.05rem; }
+
+/* Botão "Pagar com Linha de Crédito" tem um rótulo + o valor disponível —
+   empilhados em duas linhas centralizadas, cada um quebrando dentro de si
+   mesmo, em vez de tudo virar uma linha só que quebra no meio das palavras
+   sem critério nenhum quando o botão fica estreito. */
+#btn-pagar-credito {
+    flex-direction: column;
+    gap: 2px;
+    text-align: center;
+    line-height: 1.35;
+}
+#btn-pagar-credito .rotulo-credito { display: block; }
+#texto-credito-disponivel { display: block; font-size: 0.82rem; font-weight: 500; opacity: 0.9; }
 
 /* ============ Formulários ============ */
 
@@ -817,6 +840,9 @@ textarea { min-height: 88px; }
 
 .status-pill.cancelado { background: var(--cor-erro-fundo); color: var(--cor-erro); }
 .status-pill.concluido { background: var(--cor-sucesso-fundo); color: var(--cor-sucesso); }
+.status-pill.preparando { background: var(--cor-preparando-fundo); color: var(--cor-preparando); }
+.status-pill.pronto { background: var(--cor-pronto-fundo); color: var(--cor-pronto); }
+.status-pill.enviado { background: var(--cor-enviado-fundo); color: var(--cor-enviado); }
 
 /* ============ Meus débitos ============ */
 
@@ -1084,6 +1110,18 @@ th, td { padding: 10px 12px; border-bottom: 1px solid var(--cor-borda); text-ali
     border-radius: var(--raio-md);
     box-shadow: var(--sombra-sm);
     padding: 22px;
+}
+
+.info-lista { display: flex; flex-direction: column; gap: 12px; margin-top: 6px; }
+.info-lista > div { font-size: 0.9rem; }
+.info-lista .rotulo {
+    display: block;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+    color: var(--cor-texto-suave);
+    margin-bottom: 2px;
 }
 
 /* ============ Layout do catálogo (categorias em coluna lateral no desktop) ============ */

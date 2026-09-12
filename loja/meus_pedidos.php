@@ -72,9 +72,9 @@ function montarLinkFiltro(string $status, int $pagina = 1): string
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Meus pedidos</title></head>
 <body>
 <?php require __DIR__ . '/../includes/loja_header.php'; ?>
-    <div class="page-title">
-        <span class="icone-titulo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 3 6.5V17.5L12 22l9-4.5V6.5L12 2Zm0 2.24 6.24 3.12L12 10.48 5.76 7.36 12 4.24ZM5 9.12l6 3v7.53l-6-3V9.12Zm14 0v7.53l-6 3V12.12l6-3Z" fill="currentColor"/></svg></span>
+    <div class="banner-hero">
         <h1>Meus pedidos</h1>
+        <p>Acompanhe o status de tudo que você já comprou.</p>
     </div>
 
     <div class="catalogo-layout">
@@ -107,7 +107,7 @@ function montarLinkFiltro(string $status, int $pagina = 1): string
                 <?php foreach ($pedidos as $p): ?>
                     <?php
                         $rotulo = rotuloStatusPedido($p['status'], $p['status_entrega'], $p['entrega_tipo']);
-                        $classePill = $p['status'] === 'Cancelado' ? 'cancelado' : ($p['status_entrega'] === 'Entregue' ? 'concluido' : '');
+                        $classePill = classePillStatusPedido($p['status'], $p['status_entrega']);
                     ?>
                     <a href="/loja/pedido_status.php?id_venda=<?= (int) $p['id_venda'] ?>" class="pedido-card">
                         <div class="foto">
