@@ -20,8 +20,18 @@
  * relógio do servidor PHP/navegador, que pode divergir do banco.
  */
 require_once __DIR__ . '/../../conecta_bd.php';
+require_once __DIR__ . '/../../includes/loja.php';
 
 header('Content-Type: application/json');
+
+// Sem isso, o poll só REPORTA o que já está no banco — quem devolve a reserva de
+// verdade (estoque_reservado, liberado_em, status da venda) é sempre
+// liberarReservasExpiradas(), hoje só chamada quando alguém carrega uma página
+// da loja. Numa madrugada sem ninguém navegando, o carrinho vencido nunca seria
+// varrido e o poll ficaria reportando "reservado" pra sempre, mesmo com o prazo
+// estourado. Chamar aqui faz o próprio poll da pessoa parada no catálogo ser
+// quem dispara a liberação, sem depender de outra página carregar antes.
+liberarReservasExpiradas($pdo);
 
 $desde = $_GET['desde'] ?? '';
 $id_categoria = (int) ($_GET['categoria'] ?? 0);
