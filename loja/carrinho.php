@@ -13,10 +13,27 @@ $itens = [];
 $total = 0;
 $dataVenda = null;
 $segundosRestantes = 0;
+$idsProdutos = [];
+
 if ($id_venda) {
-    $stmt = $pdo->prepare('SELECT id_item, nome_produto, descricao_combinacao, quantidade, preco_unit, subtotal FROM itens_venda WHERE id_venda = :id ORDER BY id_item');
+    $stmt = $pdo->prepare(
+        "SELECT iv.id_item, iv.nome_produto, iv.descricao_combinacao, iv.quantidade, iv.preco_unit, iv.subtotal,
+                iv.id_produto_variacao, pv.id_produto,
+                (SELECT caminho_arquivo FROM produto_fotos WHERE id_produto = pv.id_produto ORDER BY ordem LIMIT 1) AS foto,
+                (pv.estoque - pv.estoque_reservado) AS disponivel_adicional
+         FROM itens_venda iv
+         LEFT JOIN produto_variacoes pv ON pv.id_produto_variacao = iv.id_produto_variacao
+         WHERE iv.id_venda = :id
+         ORDER BY iv.id_item"
+    );
     $stmt->execute([':id' => $id_venda]);
     $itens = $stmt->fetchAll();
+
+    foreach ($itens as $item) {
+        if ($item['id_produto'] !== null) {
+            $idsProdutos[(int) $item['id_produto']] = true;
+        }
+    }
 
     // Os segundos restantes são calculados no próprio MySQL, não em PHP: se o timezone do PHP
     // e o do MySQL divergirem (comum num WAMP padrão), comparar data_venda do banco com a hora
@@ -41,44 +58,89 @@ if ($id_venda) {
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Carrinho</title></head>
 <body>
 <?php require __DIR__ . '/../includes/loja_header.php'; ?>
-    <p><a href="/loja/index.php">Continuar comprando</a></p>
+    <p><a href="/loja/index.php" class="btn-texto">← Continuar comprando</a></p>
     <h1>Carrinho</h1>
 
     <?php if (empty($itens)): ?>
-    <p>Seu carrinho está vazio.</p>
+    <p>Seu carrinho está vazio. <a href="/loja/index.php">Ver catálogo</a></p>
     <?php else: ?>
+
     <?php if ($dataVenda): ?>
-    <p id="contagem"></p>
+    <div class="timer-card" id="timer-card">
+        <span class="relogio" id="contagem">--:--</span>
+        <span class="texto">Tempo pra pagar antes dos itens voltarem pro estoque</span>
+    </div>
+    <?php endif; ?>
+
+    <div>
+        <?php foreach ($itens as $item): ?>
+        <div class="carrinho-item" data-id-item="<?= $item['id_item'] ?>">
+            <div class="foto">
+                <?php if ($item['foto']): ?>
+                    <img src="/<?= htmlspecialchars($item['foto']) ?>" alt="<?= htmlspecialchars($item['nome_produto']) ?>">
+                <?php endif; ?>
+            </div>
+            <div class="info">
+                <div class="nome"><?= htmlspecialchars($item['nome_produto']) ?></div>
+                <?php if ($item['descricao_combinacao']): ?>
+                    <div class="variacao"><?= htmlspecialchars($item['descricao_combinacao']) ?></div>
+                <?php endif; ?>
+                <div class="linha-controle">
+                    <?php if ($item['id_produto_variacao'] !== null): ?>
+                    <div class="stepper">
+                        <button type="button" class="btn-diminuir" aria-label="Diminuir quantidade">−</button>
+                        <span class="qtd"><?= (int) $item['quantidade'] ?></span>
+                        <button type="button" class="btn-aumentar" aria-label="Aumentar quantidade" <?= (int) $item['disponivel_adicional'] <= 0 ? 'disabled' : '' ?>>+</button>
+                    </div>
+                    <?php else: ?>
+                        <span></span>
+                    <?php endif; ?>
+                    <span class="subtotal">R$ <span class="valor-subtotal"><?= number_format($item['subtotal'], 2, ',', '.') ?></span></span>
+                </div>
+                <button type="button" data-id-item="<?= $item['id_item'] ?>" class="btn-remover">Remover</button>
+            </div>
+        </div>
+        <?php endforeach; ?>
+    </div>
+
+    <div class="resumo-total">
+        <span>Total</span>
+        <span id="valor-total">R$ <?= number_format($total, 2, ',', '.') ?></span>
+    </div>
+    <a href="/loja/checkout.php" class="btn btn-lg btn-bloco">Ir para o checkout</a>
+
     <script>
+    const idsProdutosNoCarrinho = <?= json_encode(array_keys($idsProdutos)) ?>;
     let restante = <?= $segundosRestantes ?>;
+
+    function formatarTempo(segundos) {
+        const min = Math.floor(segundos / 60);
+        const seg = segundos % 60;
+        return min + ':' + String(seg).padStart(2, '0');
+    }
+
     function atualizarContagem() {
-        const min = Math.floor(restante / 60);
-        const seg = restante % 60;
-        document.getElementById('contagem').textContent = 'Tempo pra pagar: ' + min + ':' + String(seg).padStart(2, '0');
+        const painel = document.getElementById('timer-card');
+        const rotulo = document.getElementById('contagem');
+        if (!rotulo) { return; }
+        rotulo.textContent = formatarTempo(restante);
+        if (painel) { painel.classList.toggle('urgente', restante <= 60); }
+
         if (restante <= 0) {
-            window.location.reload();
+            clearInterval(intervaloContagem);
+            const ids = idsProdutosNoCarrinho.join(',');
+            window.location.href = '/loja/index.php' + (ids ? '?voltou=' + ids : '');
             return;
         }
         restante--;
     }
-    atualizarContagem();
-    setInterval(atualizarContagem, 1000);
-    </script>
-    <?php endif; ?>
 
-    <ul>
-        <?php foreach ($itens as $item): ?>
-        <li>
-            <?= (int) $item['quantidade'] ?>x <?= htmlspecialchars($item['nome_produto']) ?>
-            <?= $item['descricao_combinacao'] ? '(' . htmlspecialchars($item['descricao_combinacao']) . ')' : '' ?>
-            — R$ <?= number_format($item['subtotal'], 2, ',', '.') ?>
-            <button type="button" data-id-item="<?= $item['id_item'] ?>" class="btn-remover">remover</button>
-        </li>
-        <?php endforeach; ?>
-    </ul>
-    <p>Total: R$ <?= number_format($total, 2, ',', '.') ?></p>
-    <p><a href="/loja/checkout.php">Ir para o checkout</a></p>
-    <script>
+    let intervaloContagem = null;
+    if (document.getElementById('contagem')) {
+        atualizarContagem();
+        intervaloContagem = setInterval(atualizarContagem, 1000);
+    }
+
     document.querySelectorAll('.btn-remover').forEach(function (btn) {
         btn.addEventListener('click', function () {
             fetch('/loja/ajax/remover_item.php', {
@@ -87,9 +149,34 @@ if ($id_venda) {
                 body: 'id_item=' + btn.dataset.idItem
             }).then(r => r.json()).then(data => {
                 if (data.success) { window.location.reload(); } else { alert(data.message); }
-            }).catch(err => {
+            }).catch(function () {
                 alert('Erro de conexão. Tente novamente.');
             });
+        });
+    });
+
+    function alterarQuantidade(linha, delta) {
+        const idItem = linha.dataset.idItem;
+        fetch('/loja/ajax/alterar_quantidade.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: 'id_item=' + idItem + '&delta=' + delta
+        }).then(r => r.json()).then(data => {
+            if (!data.success) { alert(data.message); return; }
+            window.location.reload();
+        }).catch(function () {
+            alert('Erro de conexão. Tente novamente.');
+        });
+    }
+
+    document.querySelectorAll('.btn-aumentar').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            alterarQuantidade(btn.closest('.carrinho-item'), 1);
+        });
+    });
+    document.querySelectorAll('.btn-diminuir').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            alterarQuantidade(btn.closest('.carrinho-item'), -1);
         });
     });
     </script>

@@ -57,7 +57,7 @@ $listaItens = $itens->fetchAll();
     <p>Total: R$ <?= number_format($venda['valor_total'], 2, ',', '.') ?></p>
     <?php endif; ?>
 
-    <p><a href="/loja/meus_pedidos.php">Meus pedidos</a> | <a href="/loja/index.php">Voltar pra loja</a></p>
+    <p><a href="/loja/meus_pedidos.php" class="btn-texto">← Meus pedidos</a></p>
 </main>
 </body>
 </html>

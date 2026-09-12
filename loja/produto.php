@@ -42,21 +42,38 @@ $listaCombinacoes = $combinacoes->fetchAll();
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title><?= htmlspecialchars($produto['nome']) ?></title></head>
 <body>
 <?php require __DIR__ . '/../includes/loja_header.php'; ?>
-    <p><a href="/loja/index.php">Voltar</a></p>
-    <h1><?= htmlspecialchars($produto['nome']) ?></h1>
-    <p><?= htmlspecialchars($produto['descricao'] ?? '') ?></p>
-    <p>Categoria: <?= htmlspecialchars($produto['categoria']) ?></p>
+    <p><a href="/loja/index.php" class="btn-texto">← Voltar ao catálogo</a></p>
 
-    <div>
-        <?php foreach ($listaFotos as $foto): ?>
-            <img src="/<?= htmlspecialchars($foto) ?>" width="150">
-        <?php endforeach; ?>
+    <?php if (count($listaFotos) > 1): ?>
+    <div class="produto-carousel carousel" data-carousel>
+        <div class="carousel-track">
+            <?php foreach ($listaFotos as $foto): ?>
+                <img src="/<?= htmlspecialchars($foto) ?>" alt="<?= htmlspecialchars($produto['nome']) ?>">
+            <?php endforeach; ?>
+        </div>
+        <div class="carousel-dots">
+            <?php foreach ($listaFotos as $i => $foto): ?>
+                <button type="button" class="dot<?= $i === 0 ? ' ativo' : '' ?>" data-index="<?= $i ?>" aria-label="Foto <?= $i + 1 ?>"></button>
+            <?php endforeach; ?>
+        </div>
+        <button type="button" class="carousel-prev" aria-label="Foto anterior">‹</button>
+        <button type="button" class="carousel-next" aria-label="Próxima foto">›</button>
     </div>
+    <?php elseif (count($listaFotos) === 1): ?>
+    <div class="produto-carousel">
+        <img src="/<?= htmlspecialchars($listaFotos[0]) ?>" alt="<?= htmlspecialchars($produto['nome']) ?>" style="width:100%; height:100%; object-fit:cover;">
+    </div>
+    <?php endif; ?>
+
+    <span class="produto-categoria"><?= htmlspecialchars($produto['categoria']) ?></span>
+    <h1><?= htmlspecialchars($produto['nome']) ?></h1>
+    <p><?= nl2br(htmlspecialchars($produto['descricao'] ?? '')) ?></p>
+    <p class="produto-preco">R$ <?= number_format($produto['preco_base'], 2, ',', '.') ?></p>
 
     <?php if (empty($_SESSION['id_cliente'])): ?>
-        <p><a href="/loja/cadastro.php">Entre ou cadastre-se</a> pra comprar.</p>
+        <a href="/loja/cadastro.php" class="btn btn-lg btn-bloco">Entrar ou cadastrar pra comprar</a>
     <?php elseif (empty($listaCombinacoes)): ?>
-        <p>Sem estoque disponível no momento.</p>
+        <p class="alert alert-erro">Sem estoque disponível no momento.</p>
     <?php else: ?>
     <form id="form-adicionar">
         <label>Opção
@@ -68,7 +85,7 @@ $listaCombinacoes = $combinacoes->fetchAll();
                 <?php endforeach; ?>
             </select>
         </label>
-        <button type="submit">Adicionar ao carrinho</button>
+        <button type="submit" class="btn-lg btn-bloco">Adicionar ao carrinho</button>
     </form>
     <p id="mensagem-adicionar"></p>
     <script>

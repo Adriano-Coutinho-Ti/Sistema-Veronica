@@ -11,6 +11,9 @@ require_once __DIR__ . '/tema.php';
 
 $configLoja = $pdo->query('SELECT nome_loja, logo_arquivo FROM config_loja WHERE id_config = 1')->fetch();
 ?>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap">
 <link rel="stylesheet" href="/assets/css/loja.css">
 <?php imprimirVariaveisTema($pdo); ?>
 <header class="site-header">
@@ -22,7 +25,10 @@ $configLoja = $pdo->query('SELECT nome_loja, logo_arquivo FROM config_loja WHERE
                 <?= htmlspecialchars($configLoja['nome_loja']) ?>
             <?php endif; ?>
         </a>
-        <nav class="site-nav">
+        <button type="button" class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="site-nav" aria-label="Abrir menu">
+            <span></span><span></span><span></span>
+        </button>
+        <nav class="site-nav" id="site-nav">
             <a href="/loja/index.php">Catálogo</a>
             <?php if (!empty($_SESSION['id_cliente'])): ?>
                 <a href="/loja/carrinho.php">Carrinho</a>
@@ -36,4 +42,5 @@ $configLoja = $pdo->query('SELECT nome_loja, logo_arquivo FROM config_loja WHERE
         </nav>
     </div>
 </header>
+<script src="/assets/js/loja.js" defer></script>
 <main class="container">

@@ -138,22 +138,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Entrar</title></head>
 <body>
 <?php require __DIR__ . '/../includes/loja_header.php'; ?>
-    <?php if ($erro): ?><p style="color:red;"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
+    <div class="auth-card">
+    <?php if ($erro): ?><p class="alert alert-erro"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
 
     <?php if ($etapa === 'whatsapp'): ?>
+    <h1>Entrar na loja</h1>
     <form method="post">
         <input type="hidden" name="acao" value="verificar_whatsapp">
-        <label>WhatsApp (com DDD)<br><input type="text" name="whatsapp" required placeholder="11987654321"></label><br>
-        <button type="submit">Continuar</button>
+        <label>WhatsApp (com DDD)<input type="text" name="whatsapp" required placeholder="11987654321"></label>
+        <button type="submit" class="btn-bloco">Continuar</button>
     </form>
     <?php elseif ($etapa === 'cadastro'): ?>
     <h2>Complete seu cadastro</h2>
     <form method="post">
         <input type="hidden" name="acao" value="cadastro">
         <input type="hidden" name="whatsapp" value="<?= htmlspecialchars($whatsappNormalizado) ?>">
-        <label>Nome<br><input type="text" name="nome" required></label><br>
-        <label>Crie uma senha<br><input type="password" name="senha" required minlength="6"></label><br>
-        <button type="submit">Cadastrar</button>
+        <label>Nome<input type="text" name="nome" required></label>
+        <label>Crie uma senha<input type="password" name="senha" required minlength="6"></label>
+        <button type="submit" class="btn-bloco">Cadastrar</button>
     </form>
     <?php elseif ($etapa === 'ativar'): ?>
     <h2>Ativar minha conta</h2>
@@ -161,18 +163,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <form method="post">
         <input type="hidden" name="acao" value="ativar">
         <input type="hidden" name="whatsapp" value="<?= htmlspecialchars($whatsappNormalizado) ?>">
-        <label>Crie uma senha<br><input type="password" name="senha" required minlength="6"></label><br>
-        <button type="submit">Ativar</button>
+        <label>Crie uma senha<input type="password" name="senha" required minlength="6"></label>
+        <button type="submit" class="btn-bloco">Ativar</button>
     </form>
     <?php elseif ($etapa === 'login'): ?>
     <h2>Entrar</h2>
     <form method="post">
         <input type="hidden" name="acao" value="login">
         <input type="hidden" name="whatsapp" value="<?= htmlspecialchars($whatsappNormalizado) ?>">
-        <label>Senha<br><input type="password" name="senha" required></label><br>
-        <button type="submit">Entrar</button>
+        <label>Senha<input type="password" name="senha" required></label>
+        <button type="submit" class="btn-bloco">Entrar</button>
     </form>
     <?php endif; ?>
+    </div>
 </main>
 </body>
 </html>

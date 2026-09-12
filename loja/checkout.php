@@ -35,8 +35,8 @@ $erro = $_GET['erro'] ?? '';
 <body>
 <?php require __DIR__ . '/../includes/loja_header.php'; ?>
     <h1>Checkout</h1>
-    <?php if ($erro): ?><p style="color:red;"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
-    <p>Total dos itens: R$ <?= number_format($venda['valor_total'], 2, ',', '.') ?></p>
+    <?php if ($erro): ?><p class="alert alert-erro"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
+    <p class="produto-preco">Total: R$ <?= number_format($venda['valor_total'], 2, ',', '.') ?></p>
 
     <form method="post" action="/loja/ajax/gerar_checkout.php">
         <label>Forma de entrega
@@ -55,10 +55,10 @@ $erro = $_GET['erro'] ?? '';
                 <textarea name="endereco"><?= htmlspecialchars($cliente['endereco'] ?? '') ?></textarea>
             </label>
         </div>
-        <button type="submit" formaction="/loja/ajax/gerar_checkout.php">Pagar com Mercado Pago</button>
+        <button type="submit" formaction="/loja/ajax/gerar_checkout.php" class="btn-lg btn-bloco">🔒 Pagar com Mercado Pago</button>
 
         <?php if ($temLimiteCredito): ?>
-        <button type="submit" formaction="/loja/ajax/finalizar_credito.php" <?= $creditoDisponivel < (float) $venda['valor_total'] ? 'disabled' : '' ?>>
+        <button type="submit" formaction="/loja/ajax/finalizar_credito.php" class="btn-outline btn-bloco" style="margin-top:10px;" <?= $creditoDisponivel < (float) $venda['valor_total'] ? 'disabled' : '' ?>>
             Pagar com minha Linha de Crédito
             <?= $creditoDisponivel < (float) $venda['valor_total']
                 ? ' (crédito insuficiente: disponível R$ ' . number_format($creditoDisponivel, 2, ',', '.') . ')'
