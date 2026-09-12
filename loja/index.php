@@ -24,13 +24,18 @@ if ($busca !== '') {
     $params[':busca'] = '%' . $busca . '%';
 }
 
+// Produto com estoque físico > 0 continua listado mesmo se, no momento, tudo já
+// estiver reservado em carrinhos de outros clientes — a reserva pode expirar ou o
+// pagamento pode falhar, e o item volta a ficar comprável. Só some da vitrine de
+// verdade quando o estoque físico realmente zera (venda concluída). O card mostra
+// a tag "Em um carrinho" nesse caso intermediário — ver $reservado mais abaixo.
 $sqlTotal = "SELECT COUNT(*) FROM (
     SELECT p.id_produto
     FROM produtos p
     JOIN produto_variacoes pv ON pv.id_produto = p.id_produto
     WHERE p.ativo = 1 $filtros
     GROUP BY p.id_produto
-    HAVING SUM(pv.estoque - pv.estoque_reservado) > 0
+    HAVING SUM(pv.estoque) > 0
 ) t";
 $stmtTotal = $pdo->prepare($sqlTotal);
 $stmtTotal->execute($params);
@@ -39,12 +44,14 @@ $totalPaginas = max(1, (int) ceil($totalProdutos / PRODUTOS_POR_PAGINA));
 $pagina = min($pagina, $totalPaginas);
 $offset = ($pagina - 1) * PRODUTOS_POR_PAGINA;
 
-$sql = "SELECT p.id_produto, p.nome, p.preco_base, SUM(pv.estoque - pv.estoque_reservado) AS disponivel
+$sql = "SELECT p.id_produto, p.nome, p.preco_base,
+               SUM(pv.estoque - pv.estoque_reservado) AS disponivel,
+               SUM(pv.estoque) AS estoque_fisico
         FROM produtos p
         JOIN produto_variacoes pv ON pv.id_produto = p.id_produto
         WHERE p.ativo = 1 $filtros
         GROUP BY p.id_produto, p.nome, p.preco_base
-        HAVING disponivel > 0
+        HAVING estoque_fisico > 0
         ORDER BY p.nome
         LIMIT :limite OFFSET :offset";
 $stmt = $pdo->prepare($sql);
@@ -55,6 +62,14 @@ $stmt->bindValue(':limite', PRODUTOS_POR_PAGINA, PDO::PARAM_INT);
 $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
 $stmt->execute();
 $produtos = $stmt->fetchAll();
+
+$temReservadoNaPagina = false;
+foreach ($produtos as $p) {
+    if ((int) $p['disponivel'] <= 0) {
+        $temReservadoNaPagina = true;
+        break;
+    }
+}
 
 $fotosPorProduto = [];
 if (!empty($produtos)) {
@@ -151,17 +166,23 @@ function montarLinkPagina(int $p, int $categoria, string $busca): string
                 <p class="resultado-busca"><?= $totalProdutos ?> resultado<?= $totalProdutos === 1 ? '' : 's' ?> para "<?= htmlspecialchars($busca) ?>"</p>
             <?php endif; ?>
 
+            <?php if ($temReservadoNaPagina): ?>
+                <p class="alert alert-info">Itens com a tag "Em um carrinho" estão reservados no carrinho de outro cliente, mas ainda não foram pagos — podem voltar a ficar disponíveis a qualquer momento.</p>
+            <?php endif; ?>
+
             <div class="product-grid" id="grade-produtos">
                 <?php foreach ($produtos as $p): ?>
                 <?php
                     $fotos = $fotosPorProduto[(int) $p['id_produto']] ?? [];
                     $ehOportunidade = in_array((int) $p['id_produto'], $voltouIds, true);
                     $disp = (int) $p['disponivel'];
+                    $reservado = $disp <= 0;
                     $ehFavorito = in_array((int) $p['id_produto'], $favoritoIds, true);
                     $linkWhatsappCard = montarLinkCompartilharWhatsapp($p['nome'], (float) $p['preco_base'], 'https://brechodaveve.codernex.com.br/loja/produto.php?id=' . $p['id_produto']);
                 ?>
-                <a href="/loja/produto.php?id=<?= $p['id_produto'] ?>" class="product-card<?= $ehOportunidade ? ' voltou' : '' ?>" data-id-produto="<?= $p['id_produto'] ?>">
-                    <?php if ($ehOportunidade): ?><span class="tag-oportunidade"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8L12 2Z"/></svg> Nova oportunidade</span><?php endif; ?>
+                <a href="/loja/produto.php?id=<?= $p['id_produto'] ?>" class="product-card<?= $ehOportunidade ? ' voltou' : '' ?><?= $reservado ? ' reservado' : '' ?>" data-id-produto="<?= $p['id_produto'] ?>">
+                    <?php if ($ehOportunidade): ?><span class="tag-oportunidade"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8L12 2Z"/></svg> Nova oportunidade</span>
+                    <?php elseif ($reservado): ?><span class="tag-reservado">Em um carrinho</span><?php endif; ?>
                     <div class="card-acoes">
                         <button type="button" class="botao-acao favoritar<?= $ehFavorito ? ' ativo' : '' ?>" data-id-produto="<?= $p['id_produto'] ?>" aria-label="<?= $ehFavorito ? 'Remover dos favoritos' : 'Adicionar aos favoritos' ?>">
                             <svg class="icon-coracao" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7.5-4.6-10-9.1C.3 8.9 1.5 5 5 4c2.4-.7 4.8.3 6.2 2.3L12 7.6l.8-1.3C14.2 4.3 16.6 3.3 19 4c3.5 1 4.7 4.9 3 7.9-2.5 4.5-10 9.1-10 9.1Z"/></svg>
@@ -190,7 +211,11 @@ function montarLinkPagina(int $p, int $categoria, string $busca): string
                     </div>
                     <div class="nome"><?= htmlspecialchars($p['nome']) ?></div>
                     <div class="price">R$ <?= number_format($p['preco_base'], 2, ',', '.') ?></div>
-                    <div class="disponibilidade card<?= $disp <= 3 ? ' disponibilidade-baixa' : '' ?>"><?= $disp ?> disponíve<?= $disp === 1 ? 'l' : 'is' ?></div>
+                    <?php if ($reservado): ?>
+                        <div class="disponibilidade card disponibilidade-baixa">Aguardando pagamento de outro cliente</div>
+                    <?php else: ?>
+                        <div class="disponibilidade card<?= $disp <= 3 ? ' disponibilidade-baixa' : '' ?>"><?= $disp ?> disponíve<?= $disp === 1 ? 'l' : 'is' ?></div>
+                    <?php endif; ?>
                 </a>
                 <?php endforeach; ?>
                 <?php if (empty($produtos)): ?>

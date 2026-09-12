@@ -39,6 +39,14 @@ $listaCombinacoes = $combinacoes->fetchAll();
 
 $disponivelTotal = array_sum(array_column($listaCombinacoes, 'disponivel'));
 
+// Estoque físico (sem descontar reserva) diz se o produto só está temporariamente
+// preso no carrinho de outro cliente (pode voltar) ou se já foi vendido de verdade
+// (não volta mais). Só importa quando não há nenhuma combinação disponível agora.
+$stmtEstoqueFisico = $pdo->prepare('SELECT COALESCE(SUM(estoque), 0) FROM produto_variacoes WHERE id_produto = :id');
+$stmtEstoqueFisico->execute([':id' => $id_produto]);
+$estoqueFisicoTotal = (int) $stmtEstoqueFisico->fetchColumn();
+$reservadoEmCarrinho = $disponivelTotal <= 0 && $estoqueFisicoTotal > 0;
+
 $urlProdutoAbsoluta = 'https://brechodaveve.codernex.com.br/loja/produto.php?id=' . $id_produto;
 $fotoOgAbsoluta = !empty($listaFotos) ? 'https://brechodaveve.codernex.com.br/' . $listaFotos[0] : null;
 $linkCompartilharWhatsapp = montarLinkCompartilharWhatsapp($produto['nome'], (float) $produto['preco_base'], $urlProdutoAbsoluta);
@@ -161,10 +169,16 @@ if (!empty($listaRelacionados)) {
     <p class="disponibilidade<?= $disponivelTotal <= 3 ? ' disponibilidade-baixa' : '' ?>"><?= $disponivelTotal ?> <?= $disponivelTotal === 1 ? 'unidade disponível' : 'unidades disponíveis' ?></p>
     <?php endif; ?>
 
+    <?php if ($reservadoEmCarrinho): ?>
+        <p class="alert alert-info">Este item está no carrinho de outro cliente e ainda não foi comprado. Ele pode voltar a ficar disponível a qualquer momento — vale a pena checar de novo daqui a pouco.</p>
+    <?php elseif (empty($listaCombinacoes)): ?>
+        <p class="alert alert-erro">Sem estoque disponível no momento.</p>
+    <?php endif; ?>
+
     <?php if (empty($_SESSION['id_cliente'])): ?>
         <a href="/loja/cadastro.php" class="btn btn-lg btn-bloco">Entrar ou cadastrar pra comprar</a>
     <?php elseif (empty($listaCombinacoes)): ?>
-        <p class="alert alert-erro">Sem estoque disponível no momento.</p>
+        <?php // Mensagem de indisponibilidade já mostrada acima. ?>
     <?php else: ?>
     <form id="form-adicionar">
         <label>Opção

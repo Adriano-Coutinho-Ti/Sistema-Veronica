@@ -327,6 +327,13 @@ textarea { min-height: 88px; }
     gap: 10px;
 }
 
+.alert-info {
+    background: var(--cor-fundo-alt);
+    color: var(--cor-texto-suave);
+    border: 1px solid var(--cor-borda);
+    font-size: 0.9rem;
+}
+
 /* ============ Categorias (pills) ============ */
 
 .categorias {
@@ -478,6 +485,27 @@ textarea { min-height: 88px; }
 .product-card.voltou {
     border: 2px solid var(--cor-dourado);
     box-shadow: 0 0 0 4px var(--cor-dourado-suave), var(--sombra-md);
+}
+
+/* Cartão de item reservado no carrinho de outro cliente — ainda não vendido de
+   verdade, então continua na vitrine (só mais discreto que um item disponível). */
+.product-card.reservado .card-media img { opacity: 0.65; }
+.product-card.reservado .price { opacity: 0.6; }
+
+.tag-reservado {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    z-index: 2;
+    background: #6B7280;
+    color: #fff;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    padding: 4px 9px;
+    border-radius: 999px;
+    box-shadow: var(--sombra-sm);
 }
 
 .tag-oportunidade {

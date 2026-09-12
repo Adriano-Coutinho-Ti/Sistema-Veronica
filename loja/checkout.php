@@ -49,6 +49,16 @@ $temLimiteCredito = (float) $cliente['limite_credito'] > 0;
 
 $formasEntrega = $pdo->query('SELECT id_entrega, nome, tipo, prazo_dias, custo FROM formas_entrega WHERE ativo = 1 ORDER BY fixa DESC, nome')->fetchAll();
 
+// Total só dos itens (sem a linha de "Entrega", que ainda não foi escolhida ou pode
+// mudar) — é a base que o JS soma ao custo da entrega selecionada, pra o Total
+// exibido acompanhar a escolha na hora, sem esperar o formulário ser enviado.
+$stmtItensSubtotal = $pdo->prepare(
+    "SELECT COALESCE(SUM(subtotal), 0) FROM itens_venda
+     WHERE id_venda = :id AND NOT (id_produto_variacao IS NULL AND nome_produto = 'Entrega')"
+);
+$stmtItensSubtotal->execute([':id' => $id_venda]);
+$itensSubtotal = (float) $stmtItensSubtotal->fetchColumn();
+
 $erro = $_GET['erro'] ?? '';
 ?>
 <!DOCTYPE html>
@@ -77,9 +87,9 @@ $erro = $_GET['erro'] ?? '';
                 <label>Forma de entrega
                     <select name="id_entrega" id="id_entrega">
                         <?php foreach ($formasEntrega as $f): ?>
-                        <option value="<?= $f['id_entrega'] ?>" data-tipo="<?= htmlspecialchars($f['tipo']) ?>">
+                        <option value="<?= $f['id_entrega'] ?>" data-tipo="<?= htmlspecialchars($f['tipo']) ?>" data-custo="<?= number_format((float) $f['custo'], 2, '.', '') ?>">
                             <?= htmlspecialchars($f['nome']) ?>
-                            <?= $f['prazo_dias'] !== null ? '(' . (int) $f['prazo_dias'] . ' dias)' : '' ?>
+                            <?= $f['prazo_dias'] !== null ? '(Prazo de ' . (int) $f['prazo_dias'] . ' dias)' : '' ?>
                             — R$ <?= number_format($f['custo'], 2, ',', '.') ?>
                         </option>
                         <?php endforeach; ?>
@@ -97,7 +107,7 @@ $erro = $_GET['erro'] ?? '';
             <div class="resumo-card">
                 <div class="resumo-total" style="border-top:none; margin-top:0; padding-top:0;">
                     <span>Total</span>
-                    <span>R$ <?= number_format($venda['valor_total'], 2, ',', '.') ?></span>
+                    <span id="valor-total-checkout">R$ <?= number_format($itensSubtotal, 2, ',', '.') ?></span>
                 </div>
                 <button type="submit" formaction="/loja/ajax/gerar_checkout.php" class="btn-lg btn-bloco">
                     <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 10V8a6 6 0 1 1 12 0v2h1a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V11a1 1 0 0 1 1-1h1Zm2 0h8V8a4 4 0 1 0-8 0v2Z"/></svg>
@@ -105,11 +115,9 @@ $erro = $_GET['erro'] ?? '';
                 </button>
 
                 <?php if ($temLimiteCredito): ?>
-                <button type="submit" formaction="/loja/ajax/finalizar_credito.php" class="btn-outline btn-bloco" style="margin-top:10px;" <?= $creditoDisponivel < (float) $venda['valor_total'] ? 'disabled' : '' ?>>
+                <button type="submit" id="btn-pagar-credito" formaction="/loja/ajax/finalizar_credito.php" class="btn-outline btn-bloco" style="margin-top:10px;">
                     Pagar com Linha de Crédito
-                    <?= $creditoDisponivel < (float) $venda['valor_total']
-                        ? ' (insuficiente: R$ ' . number_format($creditoDisponivel, 2, ',', '.') . ')'
-                        : ' (disponível: R$ ' . number_format($creditoDisponivel, 2, ',', '.') . ')' ?>
+                    <span id="texto-credito-disponivel"></span>
                 </button>
                 <?php endif; ?>
             </div>
@@ -126,6 +134,37 @@ function atualizarCampoEndereco() {
 }
 document.getElementById('id_entrega').addEventListener('change', atualizarCampoEndereco);
 atualizarCampoEndereco();
+
+// O total exibido (e o botão de Linha de Crédito) acompanha a forma de entrega
+// escolhida na hora — antes disso, mudar a entrega não somava o custo dela ao
+// total mostrado, só quando o formulário já tinha sido enviado.
+const itensSubtotalCheckout = <?= json_encode($itensSubtotal) ?>;
+const creditoDisponivelCheckout = <?= json_encode($creditoDisponivel) ?>;
+
+function formatarMoeda(valor) {
+    return 'R$ ' + valor.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d)(?=,))/g, '.');
+}
+
+function atualizarTotalCheckout() {
+    const select = document.getElementById('id_entrega');
+    const opcao = select.options[select.selectedIndex];
+    const custoEntrega = opcao ? parseFloat(opcao.dataset.custo || '0') : 0;
+    const total = itensSubtotalCheckout + custoEntrega;
+
+    document.getElementById('valor-total-checkout').textContent = formatarMoeda(total);
+
+    const btnCredito = document.getElementById('btn-pagar-credito');
+    if (btnCredito) {
+        const textoCredito = document.getElementById('texto-credito-disponivel');
+        const insuficiente = creditoDisponivelCheckout < total;
+        btnCredito.disabled = insuficiente;
+        textoCredito.textContent = insuficiente
+            ? ' (insuficiente: ' + formatarMoeda(creditoDisponivelCheckout) + ')'
+            : ' (disponível: ' + formatarMoeda(creditoDisponivelCheckout) + ')';
+    }
+}
+document.getElementById('id_entrega').addEventListener('change', atualizarTotalCheckout);
+atualizarTotalCheckout();
 
 <?php if (!$pagamentoEmAndamento): ?>
 let restante = <?= (int) $venda['segundos_restantes'] ?>;
