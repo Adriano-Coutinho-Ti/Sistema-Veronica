@@ -36,35 +36,52 @@ $erro = $_GET['erro'] ?? '';
 <?php require __DIR__ . '/../includes/loja_header.php'; ?>
     <h1>Checkout</h1>
     <?php if ($erro): ?><p class="alert alert-erro"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
-    <p class="produto-preco">Total: R$ <?= number_format($venda['valor_total'], 2, ',', '.') ?></p>
 
-    <form method="post" action="/loja/ajax/gerar_checkout.php">
-        <label>Forma de entrega
-            <select name="id_entrega" id="id_entrega">
-                <?php foreach ($formasEntrega as $f): ?>
-                <option value="<?= $f['id_entrega'] ?>" data-tipo="<?= htmlspecialchars($f['tipo']) ?>">
-                    <?= htmlspecialchars($f['nome']) ?>
-                    <?= $f['prazo_dias'] !== null ? '(' . (int) $f['prazo_dias'] . ' dias)' : '' ?>
-                    — R$ <?= number_format($f['custo'], 2, ',', '.') ?>
-                </option>
-                <?php endforeach; ?>
-            </select>
-        </label><br>
-        <div id="campo-endereco">
-            <label>Endereço de entrega<br>
-                <textarea name="endereco"><?= htmlspecialchars($cliente['endereco'] ?? '') ?></textarea>
-            </label>
+    <form method="post" id="form-checkout" action="/loja/ajax/gerar_checkout.php">
+    <div class="layout-colunas">
+        <div>
+            <div class="resumo-card">
+                <label>Forma de entrega
+                    <select name="id_entrega" id="id_entrega">
+                        <?php foreach ($formasEntrega as $f): ?>
+                        <option value="<?= $f['id_entrega'] ?>" data-tipo="<?= htmlspecialchars($f['tipo']) ?>">
+                            <?= htmlspecialchars($f['nome']) ?>
+                            <?= $f['prazo_dias'] !== null ? '(' . (int) $f['prazo_dias'] . ' dias)' : '' ?>
+                            — R$ <?= number_format($f['custo'], 2, ',', '.') ?>
+                        </option>
+                        <?php endforeach; ?>
+                    </select>
+                </label>
+                <div id="campo-endereco">
+                    <label>Endereço de entrega
+                        <textarea name="endereco"><?= htmlspecialchars($cliente['endereco'] ?? '') ?></textarea>
+                    </label>
+                </div>
+            </div>
         </div>
-        <button type="submit" formaction="/loja/ajax/gerar_checkout.php" class="btn-lg btn-bloco">🔒 Pagar com Mercado Pago</button>
 
-        <?php if ($temLimiteCredito): ?>
-        <button type="submit" formaction="/loja/ajax/finalizar_credito.php" class="btn-outline btn-bloco" style="margin-top:10px;" <?= $creditoDisponivel < (float) $venda['valor_total'] ? 'disabled' : '' ?>>
-            Pagar com minha Linha de Crédito
-            <?= $creditoDisponivel < (float) $venda['valor_total']
-                ? ' (crédito insuficiente: disponível R$ ' . number_format($creditoDisponivel, 2, ',', '.') . ')'
-                : ' (disponível: R$ ' . number_format($creditoDisponivel, 2, ',', '.') . ')' ?>
-        </button>
-        <?php endif; ?>
+        <div class="painel-lateral">
+            <div class="resumo-card">
+                <div class="resumo-total" style="border-top:none; margin-top:0; padding-top:0;">
+                    <span>Total</span>
+                    <span>R$ <?= number_format($venda['valor_total'], 2, ',', '.') ?></span>
+                </div>
+                <button type="submit" formaction="/loja/ajax/gerar_checkout.php" class="btn-lg btn-bloco">
+                    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 10V8a6 6 0 1 1 12 0v2h1a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V11a1 1 0 0 1 1-1h1Zm2 0h8V8a4 4 0 1 0-8 0v2Z"/></svg>
+                    Pagar com Mercado Pago
+                </button>
+
+                <?php if ($temLimiteCredito): ?>
+                <button type="submit" formaction="/loja/ajax/finalizar_credito.php" class="btn-outline btn-bloco" style="margin-top:10px;" <?= $creditoDisponivel < (float) $venda['valor_total'] ? 'disabled' : '' ?>>
+                    Pagar com Linha de Crédito
+                    <?= $creditoDisponivel < (float) $venda['valor_total']
+                        ? ' (insuficiente: R$ ' . number_format($creditoDisponivel, 2, ',', '.') . ')'
+                        : ' (disponível: R$ ' . number_format($creditoDisponivel, 2, ',', '.') . ')' ?>
+                </button>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
     </form>
 
 <script>

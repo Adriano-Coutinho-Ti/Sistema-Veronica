@@ -23,8 +23,16 @@ function iniciarMenuMobile() {
     });
 }
 
-function iniciarCarrosseis() {
-    document.querySelectorAll('[data-carousel]').forEach(function (carousel) {
+function iniciarCarrosseis(raiz) {
+    (raiz || document).querySelectorAll('[data-carousel]').forEach(function (carousel) {
+        // Chamar de novo (ex: depois de injetar um cartão novo via JS) nunca deve
+        // religar um carrossel que já está rodando — duplicaria os temporizadores
+        // de avanço automático.
+        if (carousel.dataset.carouselIniciado) {
+            return;
+        }
+        carousel.dataset.carouselIniciado = '1';
+
         const track = carousel.querySelector('.carousel-track');
         const dots = carousel.querySelectorAll('.carousel-dots .dot');
         const prev = carousel.querySelector('.carousel-prev');

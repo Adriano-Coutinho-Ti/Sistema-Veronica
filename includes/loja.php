@@ -61,7 +61,10 @@ function devolverReservaDaVenda(PDO $pdo, int $id_venda): void
         if ($item['id_produto_variacao'] === null) {
             continue;
         }
-        $pdo->prepare('UPDATE produto_variacoes SET estoque_reservado = GREATEST(0, estoque_reservado - :qtd) WHERE id_produto_variacao = :id')
+        // liberado_em marca o instante em que a peça voltou a ficar disponível — é o que
+        // permite ao catálogo avisar em tempo real quem está navegando (ver
+        // loja/ajax/verificar_novidades.php), mesmo sem essa pessoa ter mexido no carrinho.
+        $pdo->prepare('UPDATE produto_variacoes SET estoque_reservado = GREATEST(0, estoque_reservado - :qtd), liberado_em = NOW() WHERE id_produto_variacao = :id')
             ->execute([':qtd' => $item['quantidade'], ':id' => $item['id_produto_variacao']]);
     }
 }

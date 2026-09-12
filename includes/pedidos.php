@@ -37,7 +37,7 @@ function cancelarPedidoPago(PDO $pdo, int $id_venda, int $id_usuario_admin): arr
         }
         ksort($porVariacao);
         foreach ($porVariacao as $id_pv => $qtd) {
-            $pdo->prepare('UPDATE produto_variacoes SET estoque = estoque + :qtd WHERE id_produto_variacao = :id')
+            $pdo->prepare('UPDATE produto_variacoes SET estoque = estoque + :qtd, liberado_em = NOW() WHERE id_produto_variacao = :id')
                 ->execute([':qtd' => $qtd, ':id' => $id_pv]);
         }
 

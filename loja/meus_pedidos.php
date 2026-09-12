@@ -33,25 +33,29 @@ $pedidos = $stmt->fetchAll();
         <p>Você ainda não fez nenhum pedido. <a href="/loja/index.php">Ver catálogo</a></p>
     <?php endif; ?>
 
-    <?php foreach ($pedidos as $p): ?>
-        <?php
-            $rotulo = rotuloStatusPedido($p['status'], $p['status_entrega'], $p['entrega_tipo']);
-            $classePill = $p['status'] === 'Cancelado' ? 'cancelado' : ($p['status_entrega'] === 'Entregue' ? 'concluido' : '');
-        ?>
-        <a href="/loja/pedido_status.php?id_venda=<?= (int) $p['id_venda'] ?>" class="pedido-card">
-            <div class="foto">
-                <?php if ($p['foto']): ?>
-                    <img src="/<?= htmlspecialchars($p['foto']) ?>" alt="Pedido #<?= (int) $p['id_venda'] ?>">
-                <?php endif; ?>
-            </div>
-            <div>
-                <div class="numero">Pedido #<?= (int) $p['id_venda'] ?></div>
-                <div class="data"><?= htmlspecialchars(date('d/m/Y', strtotime($p['data_venda']))) ?></div>
-                <div class="total">R$ <?= number_format($p['valor_total'], 2, ',', '.') ?></div>
-                <span class="status-pill<?= $classePill ? ' ' . $classePill : '' ?>"><?= htmlspecialchars($rotulo) ?></span>
-            </div>
-        </a>
-    <?php endforeach; ?>
+    <?php if (!empty($pedidos)): ?>
+    <div class="pedidos-grid">
+        <?php foreach ($pedidos as $p): ?>
+            <?php
+                $rotulo = rotuloStatusPedido($p['status'], $p['status_entrega'], $p['entrega_tipo']);
+                $classePill = $p['status'] === 'Cancelado' ? 'cancelado' : ($p['status_entrega'] === 'Entregue' ? 'concluido' : '');
+            ?>
+            <a href="/loja/pedido_status.php?id_venda=<?= (int) $p['id_venda'] ?>" class="pedido-card">
+                <div class="foto">
+                    <?php if ($p['foto']): ?>
+                        <img src="/<?= htmlspecialchars($p['foto']) ?>" alt="Pedido #<?= (int) $p['id_venda'] ?>">
+                    <?php endif; ?>
+                </div>
+                <div>
+                    <div class="numero">Pedido #<?= (int) $p['id_venda'] ?></div>
+                    <div class="data"><?= htmlspecialchars(date('d/m/Y', strtotime($p['data_venda']))) ?></div>
+                    <div class="total">R$ <?= number_format($p['valor_total'], 2, ',', '.') ?></div>
+                    <span class="status-pill<?= $classePill ? ' ' . $classePill : '' ?>"><?= htmlspecialchars($rotulo) ?></span>
+                </div>
+            </a>
+        <?php endforeach; ?>
+    </div>
+    <?php endif; ?>
 </main>
 </body>
 </html>

@@ -31,42 +31,56 @@ $erro = $_GET['erro'] ?? '';
     <h1>Meus débitos</h1>
     <?php if ($erro): ?><p class="alert alert-erro"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
 
-    <div class="saldo-hero">
-        <div class="rotulo">Saldo devedor</div>
-        <div class="valor">R$ <?= number_format((float) $cliente['saldo_devedor'], 2, ',', '.') ?></div>
-        <div class="linha"><span>Limite de crédito</span><span>R$ <?= number_format((float) $cliente['limite_credito'], 2, ',', '.') ?></span></div>
-        <div class="linha"><span>Crédito disponível</span><span>R$ <?= number_format($creditoDisponivel, 2, ',', '.') ?></span></div>
-    </div>
-
-    <?php if ((float) $cliente['saldo_devedor'] > 0): ?>
-    <h2>Pagar dívida</h2>
-    <form method="post" action="/loja/ajax/gerar_checkout_divida.php">
-        <label>Valor a pagar
-            <input type="text" name="valor" placeholder="0,00" value="<?= number_format((float) $cliente['saldo_devedor'], 2, ',', '.') ?>">
-        </label>
-        <button type="submit" class="btn-lg btn-bloco">🔒 Pagar com Mercado Pago</button>
-    </form>
-    <p class="pagamento-seguro">🔒 Pagamento processado com segurança pelo Mercado Pago — seus dados de cartão nunca passam pelo nosso sistema.</p>
-    <?php endif; ?>
-
-    <h2>Extrato</h2>
-    <?php if (empty($extrato)): ?>
-    <p>Nenhum movimento ainda.</p>
-    <?php else: ?>
-    <div>
-        <?php foreach ($extrato as $mov): ?>
-        <div class="extrato-item">
+    <div class="layout-colunas">
+        <div>
+            <h2>Extrato</h2>
+            <?php if (empty($extrato)): ?>
+            <p>Nenhum movimento ainda.</p>
+            <?php else: ?>
             <div>
-                <div class="desc"><?= $mov['tipo'] === 'compra' ? 'Compra fiada' : 'Pagamento' ?></div>
-                <div class="data"><?= htmlspecialchars(date('d/m/Y H:i', strtotime($mov['data_movimento']))) ?><?php if ($mov['tipo'] === 'pagamento' && $mov['status'] !== 'Confirmado'): ?> — aguardando confirmação<?php endif; ?></div>
+                <?php foreach ($extrato as $mov): ?>
+                <div class="extrato-item">
+                    <div>
+                        <div class="desc"><?= $mov['tipo'] === 'compra' ? 'Compra fiada' : 'Pagamento' ?></div>
+                        <div class="data"><?= htmlspecialchars(date('d/m/Y H:i', strtotime($mov['data_movimento']))) ?><?php if ($mov['tipo'] === 'pagamento' && $mov['status'] !== 'Confirmado'): ?> — aguardando confirmação<?php endif; ?></div>
+                    </div>
+                    <div class="valor<?= $mov['tipo'] === 'pagamento' ? ' pagamento' : '' ?>">
+                        <?= $mov['tipo'] === 'pagamento' ? '−' : '+' ?> R$ <?= number_format((float) $mov['valor'], 2, ',', '.') ?>
+                    </div>
+                </div>
+                <?php endforeach; ?>
             </div>
-            <div class="valor<?= $mov['tipo'] === 'pagamento' ? ' pagamento' : '' ?>">
-                <?= $mov['tipo'] === 'pagamento' ? '−' : '+' ?> R$ <?= number_format((float) $mov['valor'], 2, ',', '.') ?>
-            </div>
+            <?php endif; ?>
         </div>
-        <?php endforeach; ?>
+
+        <div class="painel-lateral">
+            <div class="saldo-hero">
+                <div class="rotulo">Saldo devedor</div>
+                <div class="valor">R$ <?= number_format((float) $cliente['saldo_devedor'], 2, ',', '.') ?></div>
+                <div class="linha"><span>Limite de crédito</span><span>R$ <?= number_format((float) $cliente['limite_credito'], 2, ',', '.') ?></span></div>
+                <div class="linha"><span>Crédito disponível</span><span>R$ <?= number_format($creditoDisponivel, 2, ',', '.') ?></span></div>
+            </div>
+
+            <?php if ((float) $cliente['saldo_devedor'] > 0): ?>
+            <div class="resumo-card">
+                <h2>Pagar dívida</h2>
+                <form method="post" action="/loja/ajax/gerar_checkout_divida.php">
+                    <label>Valor a pagar
+                        <input type="text" name="valor" placeholder="0,00" value="<?= number_format((float) $cliente['saldo_devedor'], 2, ',', '.') ?>">
+                    </label>
+                    <button type="submit" class="btn-lg btn-bloco">
+                        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 10V8a6 6 0 1 1 12 0v2h1a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V11a1 1 0 0 1 1-1h1Zm2 0h8V8a4 4 0 1 0-8 0v2Z"/></svg>
+                        Pagar com Mercado Pago
+                    </button>
+                </form>
+                <p class="pagamento-seguro">
+                    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 10V8a6 6 0 1 1 12 0v2h1a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V11a1 1 0 0 1 1-1h1Zm2 0h8V8a4 4 0 1 0-8 0v2Z"/></svg>
+                    Pagamento processado com segurança pelo Mercado Pago — seus dados de cartão nunca passam pelo nosso sistema.
+                </p>
+            </div>
+            <?php endif; ?>
+        </div>
     </div>
-    <?php endif; ?>
 </main>
 </body>
 </html>

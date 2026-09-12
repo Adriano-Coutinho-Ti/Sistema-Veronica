@@ -71,7 +71,7 @@ try {
     // delta === -1
     if ((int) $item['quantidade'] <= 1) {
         $pdo->prepare('DELETE FROM itens_venda WHERE id_item = :id')->execute([':id' => $item['id_item']]);
-        $pdo->prepare('UPDATE produto_variacoes SET estoque_reservado = GREATEST(0, estoque_reservado - :qtd) WHERE id_produto_variacao = :id')
+        $pdo->prepare('UPDATE produto_variacoes SET estoque_reservado = GREATEST(0, estoque_reservado - :qtd), liberado_em = NOW() WHERE id_produto_variacao = :id')
             ->execute([':qtd' => $item['quantidade'], ':id' => $item['id_produto_variacao']]);
 
         $novoTotal = recalcularTotalVenda($pdo, (int) $item['id_venda']);
@@ -84,7 +84,7 @@ try {
     $novoSubtotal = (float) $item['preco_unit'] * $novaQuantidade;
     $pdo->prepare('UPDATE itens_venda SET quantidade = :q, subtotal = :s WHERE id_item = :id')
         ->execute([':q' => $novaQuantidade, ':s' => $novoSubtotal, ':id' => $item['id_item']]);
-    $pdo->prepare('UPDATE produto_variacoes SET estoque_reservado = GREATEST(0, estoque_reservado - 1) WHERE id_produto_variacao = :id')
+    $pdo->prepare('UPDATE produto_variacoes SET estoque_reservado = GREATEST(0, estoque_reservado - 1), liberado_em = NOW() WHERE id_produto_variacao = :id')
         ->execute([':id' => $item['id_produto_variacao']]);
 
     $novoTotal = recalcularTotalVenda($pdo, (int) $item['id_venda']);

@@ -515,6 +515,7 @@ textarea { min-height: 88px; }
     justify-content: space-between;
     gap: 10px;
     flex-wrap: wrap;
+    max-width: 380px;
 }
 
 .stepper {
@@ -601,6 +602,13 @@ textarea { min-height: 88px; }
 
 /* ============ Cards de pedido (meus pedidos) ============ */
 
+.pedidos-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin-top: 16px;
+}
+
 .pedido-card {
     display: grid;
     grid-template-columns: 68px 1fr;
@@ -611,10 +619,12 @@ textarea { min-height: 88px; }
     border-radius: var(--raio-md);
     box-shadow: var(--sombra-sm);
     padding: 14px;
-    margin-bottom: 12px;
     text-decoration: none;
     color: var(--cor-texto);
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
 }
+
+.pedido-card:hover { transform: translateY(-2px); box-shadow: var(--sombra-md); }
 
 .pedido-card .foto { width: 68px; height: 68px; border-radius: var(--raio-sm); overflow: hidden; background: var(--cor-fundo-alt); }
 .pedido-card .foto img { width: 100%; height: 100%; object-fit: cover; }
@@ -688,6 +698,66 @@ table {
 
 th, td { padding: 10px 12px; border-bottom: 1px solid var(--cor-borda); text-align: left; }
 
+/* ============ Ícones — mesmo tamanho e alinhamento em qualquer contexto ============ */
+
+.icon {
+    width: 1em;
+    height: 1em;
+    vertical-align: -0.15em;
+    fill: currentColor;
+    flex-shrink: 0;
+}
+
+/* ============ Layout de duas colunas (carrinho, checkout, débitos) ============ */
+/* No mobile tudo empilha; no desktop vira conteúdo + painel lateral fixo. */
+
+.layout-colunas { display: block; }
+
+.painel-lateral { margin-top: 24px; }
+
+.resumo-card {
+    background: var(--cor-fundo);
+    border: 1px solid var(--cor-borda);
+    border-radius: var(--raio-md);
+    box-shadow: var(--sombra-sm);
+    padding: 22px;
+}
+
+/* ============ Layout do catálogo (categorias em coluna lateral no desktop) ============ */
+
+.categorias-lateral { display: none; }
+
+.categorias-lateral h2 {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--cor-texto-suave);
+    margin-bottom: 10px;
+}
+
+.categorias-lateral nav { display: flex; flex-direction: column; gap: 2px; }
+
+.categorias-lateral nav a {
+    padding: 10px 12px;
+    border-radius: var(--raio-sm);
+    text-decoration: none;
+    color: var(--cor-texto);
+    font-weight: 500;
+    font-size: 0.92rem;
+}
+
+.categorias-lateral nav a:hover { background: var(--cor-fundo-alt); }
+
+.categorias-lateral nav a.ativa {
+    background: var(--cor-primaria-suave);
+    color: var(--cor-primaria);
+    font-weight: 700;
+}
+
+/* ============ Layout do produto (galeria + informações lado a lado no desktop) ============ */
+
+.produto-layout { display: block; }
+
 @media (min-width: 768px) {
     .container { padding: 0 24px 56px; }
 
@@ -710,10 +780,55 @@ th, td { padding: 10px 12px; border-bottom: 1px solid var(--cor-borda); text-ali
 
     .product-grid { grid-template-columns: repeat(3, 1fr); gap: 20px; }
 
+    .pedidos-grid { grid-template-columns: repeat(2, 1fr); }
+
     .pedido-card { grid-template-columns: 88px 1fr; padding: 18px; }
     .pedido-card .foto { width: 88px; height: 88px; }
 }
 
+/* A partir daqui a página deixa de ser "mobile esticado": entram colunas
+   laterais e layouts lado a lado — o que muda de verdade entre celular e
+   computador não é só o tamanho da fonte, é a estrutura. */
 @media (min-width: 1024px) {
+    .container { max-width: 1280px; }
+    .site-header-inner { max-width: 1280px; }
+
     .product-grid { grid-template-columns: repeat(4, 1fr); }
+
+    .pedidos-grid { grid-template-columns: repeat(3, 1fr); }
+
+    .catalogo-layout {
+        display: grid;
+        grid-template-columns: 220px 1fr;
+        gap: 36px;
+        align-items: start;
+    }
+
+    .categorias-lateral { display: block; position: sticky; top: 96px; }
+
+    .categorias { display: none; }
+
+    .layout-colunas {
+        display: grid;
+        grid-template-columns: 1fr 360px;
+        gap: 36px;
+        align-items: start;
+    }
+
+    .painel-lateral { margin-top: 0; position: sticky; top: 96px; }
+
+    .produto-layout {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 44px;
+        align-items: start;
+    }
+
+    .produto-layout .produto-carousel { position: sticky; top: 96px; margin-bottom: 0; }
+
+    .auth-card { margin-top: 48px; }
+}
+
+@media (min-width: 1440px) {
+    .product-grid { grid-template-columns: repeat(5, 1fr); }
 }

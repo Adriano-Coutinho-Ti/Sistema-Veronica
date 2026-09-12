@@ -67,47 +67,54 @@ if ($id_venda) {
 
     <?php if ($dataVenda): ?>
     <div class="timer-card" id="timer-card">
+        <svg class="icon" style="width:1.6rem; height:1.6rem;" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 2a8 8 0 1 1 0 16 8 8 0 0 1 0-16Zm-1 3v6l5 3 1-1.6-4-2.4V7Z"/></svg>
         <span class="relogio" id="contagem">--:--</span>
         <span class="texto">Tempo pra pagar antes dos itens voltarem pro estoque</span>
     </div>
     <?php endif; ?>
 
-    <div>
-        <?php foreach ($itens as $item): ?>
-        <div class="carrinho-item" data-id-item="<?= $item['id_item'] ?>">
-            <div class="foto">
-                <?php if ($item['foto']): ?>
-                    <img src="/<?= htmlspecialchars($item['foto']) ?>" alt="<?= htmlspecialchars($item['nome_produto']) ?>">
-                <?php endif; ?>
-            </div>
-            <div class="info">
-                <div class="nome"><?= htmlspecialchars($item['nome_produto']) ?></div>
-                <?php if ($item['descricao_combinacao']): ?>
-                    <div class="variacao"><?= htmlspecialchars($item['descricao_combinacao']) ?></div>
-                <?php endif; ?>
-                <div class="linha-controle">
-                    <?php if ($item['id_produto_variacao'] !== null): ?>
-                    <div class="stepper">
-                        <button type="button" class="btn-diminuir" aria-label="Diminuir quantidade">−</button>
-                        <span class="qtd"><?= (int) $item['quantidade'] ?></span>
-                        <button type="button" class="btn-aumentar" aria-label="Aumentar quantidade" <?= (int) $item['disponivel_adicional'] <= 0 ? 'disabled' : '' ?>>+</button>
-                    </div>
-                    <?php else: ?>
-                        <span></span>
+    <div class="layout-colunas">
+        <div>
+            <?php foreach ($itens as $item): ?>
+            <div class="carrinho-item" data-id-item="<?= $item['id_item'] ?>">
+                <div class="foto">
+                    <?php if ($item['foto']): ?>
+                        <img src="/<?= htmlspecialchars($item['foto']) ?>" alt="<?= htmlspecialchars($item['nome_produto']) ?>">
                     <?php endif; ?>
-                    <span class="subtotal">R$ <span class="valor-subtotal"><?= number_format($item['subtotal'], 2, ',', '.') ?></span></span>
                 </div>
-                <button type="button" data-id-item="<?= $item['id_item'] ?>" class="btn-remover">Remover</button>
+                <div class="info">
+                    <div class="nome"><?= htmlspecialchars($item['nome_produto']) ?></div>
+                    <?php if ($item['descricao_combinacao']): ?>
+                        <div class="variacao"><?= htmlspecialchars($item['descricao_combinacao']) ?></div>
+                    <?php endif; ?>
+                    <div class="linha-controle">
+                        <?php if ($item['id_produto_variacao'] !== null): ?>
+                        <div class="stepper">
+                            <button type="button" class="btn-diminuir" aria-label="Diminuir quantidade">−</button>
+                            <span class="qtd"><?= (int) $item['quantidade'] ?></span>
+                            <button type="button" class="btn-aumentar" aria-label="Aumentar quantidade" <?= (int) $item['disponivel_adicional'] <= 0 ? 'disabled' : '' ?>>+</button>
+                        </div>
+                        <?php else: ?>
+                            <span></span>
+                        <?php endif; ?>
+                        <span class="subtotal">R$ <span class="valor-subtotal"><?= number_format($item['subtotal'], 2, ',', '.') ?></span></span>
+                    </div>
+                    <button type="button" data-id-item="<?= $item['id_item'] ?>" class="btn-remover">Remover</button>
+                </div>
+            </div>
+            <?php endforeach; ?>
+        </div>
+
+        <div class="painel-lateral">
+            <div class="resumo-card">
+                <div class="resumo-total" style="border-top:none; margin-top:0; padding-top:0;">
+                    <span>Total</span>
+                    <span id="valor-total">R$ <?= number_format($total, 2, ',', '.') ?></span>
+                </div>
+                <a href="/loja/checkout.php" class="btn btn-lg btn-bloco">Ir para o checkout</a>
             </div>
         </div>
-        <?php endforeach; ?>
     </div>
-
-    <div class="resumo-total">
-        <span>Total</span>
-        <span id="valor-total">R$ <?= number_format($total, 2, ',', '.') ?></span>
-    </div>
-    <a href="/loja/checkout.php" class="btn btn-lg btn-bloco">Ir para o checkout</a>
 
     <script>
     const idsProdutosNoCarrinho = <?= json_encode(array_keys($idsProdutos)) ?>;

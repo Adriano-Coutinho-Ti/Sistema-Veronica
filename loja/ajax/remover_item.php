@@ -36,7 +36,7 @@ try {
     $del->execute([':id' => $item['id_item']]);
 
     if ($del->rowCount() === 1 && $item['id_produto_variacao'] !== null) {
-        $pdo->prepare('UPDATE produto_variacoes SET estoque_reservado = GREATEST(0, estoque_reservado - :qtd) WHERE id_produto_variacao = :id')
+        $pdo->prepare('UPDATE produto_variacoes SET estoque_reservado = GREATEST(0, estoque_reservado - :qtd), liberado_em = NOW() WHERE id_produto_variacao = :id')
             ->execute([':qtd' => $item['quantidade'], ':id' => $item['id_produto_variacao']]);
     }
 

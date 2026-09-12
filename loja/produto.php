@@ -44,6 +44,7 @@ $listaCombinacoes = $combinacoes->fetchAll();
 <?php require __DIR__ . '/../includes/loja_header.php'; ?>
     <p><a href="/loja/index.php" class="btn-texto">← Voltar ao catálogo</a></p>
 
+    <div class="produto-layout">
     <?php if (count($listaFotos) > 1): ?>
     <div class="produto-carousel carousel" data-carousel>
         <div class="carousel-track">
@@ -63,8 +64,11 @@ $listaCombinacoes = $combinacoes->fetchAll();
     <div class="produto-carousel">
         <img src="/<?= htmlspecialchars($listaFotos[0]) ?>" alt="<?= htmlspecialchars($produto['nome']) ?>" style="width:100%; height:100%; object-fit:cover;">
     </div>
+    <?php else: ?>
+    <div class="produto-carousel"></div>
     <?php endif; ?>
 
+    <div>
     <span class="produto-categoria"><?= htmlspecialchars($produto['categoria']) ?></span>
     <h1><?= htmlspecialchars($produto['nome']) ?></h1>
     <p><?= nl2br(htmlspecialchars($produto['descricao'] ?? '')) ?></p>
@@ -108,6 +112,8 @@ $listaCombinacoes = $combinacoes->fetchAll();
     });
     </script>
     <?php endif; ?>
+    </div>
+    </div>
 </main>
 </body>
 </html>
