@@ -425,7 +425,76 @@ td a { font-weight: 600; }
     font-size: 0.85rem;
 }
 
+/* ============ Layout com coluna lateral (listas com filtro — ex: Produtos) ============ */
+/* Mesmo padrão do catalogo-layout da loja: barra de pills no mobile, coluna
+   fixa lateral a partir do desktop. */
+
+.filtros-lateral { display: none; }
+.filtros-lateral h2 {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--cor-texto-suave);
+    margin: 20px 0 10px;
+}
+.filtros-lateral h2:first-child { margin-top: 0; }
+.filtros-lateral nav { display: flex; flex-direction: column; gap: 2px; }
+.filtros-lateral nav a { padding: 9px 12px; border-radius: var(--raio-sm); text-decoration: none; color: var(--cor-texto); font-weight: 500; font-size: 0.9rem; }
+.filtros-lateral nav a:hover { background: var(--cor-fundo-alt); }
+.filtros-lateral nav a.ativa { background: var(--cor-primaria-suave); color: var(--cor-primaria); font-weight: 700; }
+
+.filtros-mobile { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+.filtro-pill {
+    display: inline-flex;
+    padding: 7px 14px;
+    border-radius: 999px;
+    border: 1.5px solid var(--cor-borda);
+    background: var(--cor-fundo);
+    color: var(--cor-texto-suave);
+    text-decoration: none;
+    font-size: 0.85rem;
+}
+.filtro-pill:hover { border-color: var(--cor-primaria); color: var(--cor-primaria); }
+.filtro-pill.ativa { background: var(--cor-primaria); border-color: var(--cor-primaria); color: #fff; }
+
+.busca-lista { display: flex; gap: 8px; margin-bottom: 18px; }
+.busca-lista input { flex: 1; margin-top: 0; }
+.busca-lista button { flex-shrink: 0; padding: 0 20px; }
+
+/* ============ Paginação ============ */
+
+.paginacao { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 24px; }
+.paginacao a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 38px;
+    height: 38px;
+    padding: 0 10px;
+    border-radius: var(--raio-sm);
+    border: 1px solid var(--cor-borda);
+    text-decoration: none;
+    color: var(--cor-texto);
+    font-weight: 600;
+    font-size: 0.88rem;
+}
+.paginacao a.ativa { background: var(--cor-primaria); border-color: var(--cor-primaria); color: #fff; }
+.paginacao a:hover:not(.ativa) { border-color: var(--cor-primaria); color: var(--cor-primaria); }
+
 @media (min-width: 768px) {
     .container { padding: 0 24px 48px; }
     .grade-2col { grid-template-columns: 1fr 1fr; }
+}
+
+/* A partir daqui a tela deixa de ser "mobile esticado" — mesmo critério
+   usado na loja: 1024px é onde faz sentido ter coluna lateral de verdade. */
+@media (min-width: 1024px) {
+    .layout-lateral {
+        display: grid;
+        grid-template-columns: 220px 1fr;
+        gap: 32px;
+        align-items: start;
+    }
+    .filtros-lateral { display: block; position: sticky; top: 90px; }
+    .filtros-mobile { display: none; }
 }
