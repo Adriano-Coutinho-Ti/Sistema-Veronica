@@ -496,6 +496,54 @@ textarea { min-height: 88px; }
     box-shadow: var(--sombra-sm);
 }
 
+/* Ações rápidas no canto do cartão — favoritar e compartilhar, sem sair do catálogo */
+.card-acoes {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.card-acoes .botao-acao {
+    width: 32px;
+    height: 32px;
+    min-height: 0;
+    padding: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: var(--sombra-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    cursor: pointer;
+}
+
+.card-acoes .botao-acao:hover { background: #fff; transform: none; box-shadow: var(--sombra-sm); }
+.card-acoes .icon-coracao { width: 17px; height: 17px; fill: none; stroke: #4B5563; stroke-width: 2; }
+.card-acoes .favoritar.ativo .icon-coracao { fill: #EF4444; stroke: #EF4444; }
+.card-acoes .icon-whatsapp { width: 17px; height: 17px; fill: #25D366; }
+
+.product-card.indisponivel { opacity: 0.55; }
+
+.product-card.indisponivel .card-media img { filter: grayscale(60%); }
+
+.tag-indisponivel {
+    display: inline-block;
+    background: var(--cor-texto);
+    color: var(--cor-fundo);
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    padding: 3px 9px;
+    border-radius: 999px;
+    margin-top: 4px;
+}
+
 /* ============ Página de produto ============ */
 
 .produto-carousel {

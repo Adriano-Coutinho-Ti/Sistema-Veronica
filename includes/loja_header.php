@@ -11,10 +11,18 @@ require_once __DIR__ . '/tema.php';
 
 $configLoja = $pdo->query('SELECT nome_loja, logo_arquivo FROM config_loja WHERE id_config = 1')->fetch();
 ?>
+<?php
+// Cache-busting: a versão na URL é o horário de modificação do próprio arquivo,
+// então toda vez que loja.css/loja.js é atualizado no servidor a URL muda
+// sozinha e o navegador busca a versão nova — nunca precisa lembrar de trocar
+// um número de versão manualmente.
+$versaoCss = @filemtime(__DIR__ . '/../assets/css/loja.css') ?: time();
+$versaoJs = @filemtime(__DIR__ . '/../assets/js/loja.js') ?: time();
+?>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap">
-<link rel="stylesheet" href="/assets/css/loja.css">
+<link rel="stylesheet" href="/assets/css/loja.css?v=<?= $versaoCss ?>">
 <?php imprimirVariaveisTema($pdo); ?>
 <header class="site-header">
     <div class="site-header-inner">
@@ -32,6 +40,7 @@ $configLoja = $pdo->query('SELECT nome_loja, logo_arquivo FROM config_loja WHERE
             <a href="/loja/index.php">Catálogo</a>
             <?php if (!empty($_SESSION['id_cliente'])): ?>
                 <a href="/loja/carrinho.php">Carrinho</a>
+                <a href="/loja/favoritos.php">Favoritos</a>
                 <a href="/loja/meus_pedidos.php">Meus pedidos</a>
                 <a href="/loja/minha_divida.php">Meus débitos</a>
                 <span class="site-nav-user">Olá, <?= htmlspecialchars($_SESSION['nome_cliente']) ?></span>
@@ -42,5 +51,5 @@ $configLoja = $pdo->query('SELECT nome_loja, logo_arquivo FROM config_loja WHERE
         </nav>
     </div>
 </header>
-<script src="/assets/js/loja.js" defer></script>
+<script src="/assets/js/loja.js?v=<?= $versaoJs ?>" defer></script>
 <main class="container">

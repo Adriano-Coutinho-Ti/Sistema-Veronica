@@ -8,7 +8,8 @@
  * </body>. Não usar em login.php (ainda não há sessão de usuário ali).
  */
 ?>
-<link rel="stylesheet" href="/assets/css/admin.css">
+<?php $versaoCssAdmin = @filemtime(__DIR__ . '/../assets/css/admin.css') ?: time(); ?>
+<link rel="stylesheet" href="/assets/css/admin.css?v=<?= $versaoCssAdmin ?>">
 <header class="site-header">
     <div class="site-header-inner">
         <a href="/produtos/lista.php" class="site-logo">Sistema Veronica</a>
