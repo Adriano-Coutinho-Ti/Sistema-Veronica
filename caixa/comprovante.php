@@ -27,22 +27,24 @@ $listaPagamentos = $pagamentos->fetchAll();
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Comprovante</title></head>
 <body>
 <?php require __DIR__ . '/../includes/admin_header.php'; ?>
-    <h1>Venda #<?= $id_venda ?> — <?= htmlspecialchars($venda['status']) ?></h1>
-    <ul>
+    <h1>Venda #<?= $id_venda ?> — <span class="status-pill sucesso"><?= htmlspecialchars($venda['status']) ?></span></h1>
+    <div class="card" style="max-width:480px;">
+    <ul class="lista-extrato">
         <?php foreach ($listaItens as $item): ?>
         <li><?= (int) $item['quantidade'] ?>x <?= htmlspecialchars($item['nome_produto']) ?>
             <?= $item['descricao_combinacao'] ? '(' . htmlspecialchars($item['descricao_combinacao']) . ')' : '' ?>
             — R$ <?= number_format($item['subtotal'], 2, ',', '.') ?></li>
         <?php endforeach; ?>
     </ul>
-    <p>Total: R$ <?= number_format($venda['valor_total'], 2, ',', '.') ?></p>
+    <p style="font-weight:700;">Total: R$ <?= number_format($venda['valor_total'], 2, ',', '.') ?></p>
     <h3>Pagamentos</h3>
-    <ul>
+    <ul class="lista-extrato">
         <?php foreach ($listaPagamentos as $pag): ?>
         <li><?= htmlspecialchars($pag['forma_pagamento']) ?>: R$ <?= number_format($pag['valor'], 2, ',', '.') ?></li>
         <?php endforeach; ?>
     </ul>
-    <p><a href="/caixa/index.php">Nova venda</a></p>
+    </div>
+    <p><a href="/caixa/index.php" class="btn">Nova venda</a></p>
 </main>
 </body>
 </html>

@@ -72,7 +72,8 @@ $respondidas = $pdo->query(
     <?php if (empty($pendentes)): ?>
         <p>Nenhuma solicitação pendente.</p>
     <?php else: ?>
-    <table border="1" cellpadding="6">
+    <div class="tabela-wrap">
+    <table>
         <tr><th>Cliente</th><th>WhatsApp</th><th>Limite atual</th><th>Valor pedido</th><th>Data</th><th>Responder</th></tr>
         <?php foreach ($pendentes as $s): ?>
         <tr>
@@ -81,40 +82,43 @@ $respondidas = $pdo->query(
             <td>R$ <?= number_format($s['limite_credito'], 2, ',', '.') ?></td>
             <td>R$ <?= number_format($s['valor_solicitado'], 2, ',', '.') ?></td>
             <td><?= htmlspecialchars(date('d/m/Y', strtotime($s['criado_em']))) ?></td>
-            <td>
-                <form method="post" style="display:inline-flex; gap:6px; align-items:center;">
+            <td class="celula-acoes">
+                <form method="post" class="form-linha-compacta">
                     <input type="hidden" name="id_solicitacao" value="<?= $s['id_solicitacao'] ?>">
                     <input type="hidden" name="acao" value="aprovar">
-                    <input type="text" name="valor_aprovado" value="<?= number_format($s['valor_solicitado'], 2, ',', '') ?>" style="width:100px;">
-                    <button type="submit">Aprovar</button>
+                    <input type="text" name="valor_aprovado" value="<?= number_format($s['valor_solicitado'], 2, ',', '') ?>" class="campo-valor-curto">
+                    <button type="submit" class="btn-sm">Aprovar</button>
                 </form>
-                <form method="post" style="display:inline; margin-left:6px;" onsubmit="return confirm('Rejeitar esta solicitação?');">
+                <form method="post" onsubmit="return confirm('Rejeitar esta solicitação?');">
                     <input type="hidden" name="id_solicitacao" value="<?= $s['id_solicitacao'] ?>">
                     <input type="hidden" name="acao" value="rejeitar">
-                    <button type="submit">Rejeitar</button>
+                    <button type="submit" class="btn-sm btn-perigo">Rejeitar</button>
                 </form>
             </td>
         </tr>
         <?php endforeach; ?>
     </table>
+    </div>
     <?php endif; ?>
 
     <h3>Últimas respondidas</h3>
     <?php if (empty($respondidas)): ?>
         <p>Nenhuma ainda.</p>
     <?php else: ?>
-    <table border="1" cellpadding="6">
+    <div class="tabela-wrap">
+    <table>
         <tr><th>Cliente</th><th>Pedido</th><th>Status</th><th>Aprovado</th><th>Data</th></tr>
         <?php foreach ($respondidas as $s): ?>
         <tr>
             <td><?= htmlspecialchars($s['nome']) ?></td>
             <td>R$ <?= number_format($s['valor_solicitado'], 2, ',', '.') ?></td>
-            <td><?= htmlspecialchars($s['status']) ?></td>
+            <td><span class="status-pill<?= $s['status'] === 'Aprovada' ? ' sucesso' : ' erro' ?>"><?= htmlspecialchars($s['status']) ?></span></td>
             <td><?= $s['valor_aprovado'] !== null ? 'R$ ' . number_format($s['valor_aprovado'], 2, ',', '.') : '—' ?></td>
             <td><?= htmlspecialchars(date('d/m/Y', strtotime($s['respondido_em']))) ?></td>
         </tr>
         <?php endforeach; ?>
     </table>
+    </div>
     <?php endif; ?>
 </main>
 </body>

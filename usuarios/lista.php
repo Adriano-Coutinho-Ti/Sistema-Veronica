@@ -11,19 +11,21 @@ $usuarios = $pdo->query('SELECT id_usuario, nome, email, perfil, ativo FROM usua
 <body>
 <?php require __DIR__ . '/../includes/admin_header.php'; ?>
     <h1>Usuários</h1>
-    <?php if (isset($_GET['criado'])): ?><p style="color:green;">Usuário criado com sucesso.</p><?php endif; ?>
-    <p><a href="/usuarios/novo.php">+ Novo usuário</a></p>
-    <table border="1" cellpadding="6">
+    <?php if (isset($_GET['criado'])): ?><p class="alert alert-sucesso">Usuário criado com sucesso.</p><?php endif; ?>
+    <p><a href="/usuarios/novo.php" class="btn">+ Novo usuário</a></p>
+    <div class="tabela-wrap">
+    <table>
         <tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th>Ativo</th></tr>
         <?php foreach ($usuarios as $u): ?>
         <tr>
             <td><?= htmlspecialchars($u['nome']) ?></td>
             <td><?= htmlspecialchars($u['email']) ?></td>
-            <td><?= htmlspecialchars($u['perfil']) ?></td>
+            <td><span class="status-pill<?= $u['perfil'] === 'Admin' ? ' sucesso' : '' ?>"><?= htmlspecialchars($u['perfil']) ?></span></td>
             <td><?= $u['ativo'] ? 'Sim' : 'Não' ?></td>
         </tr>
         <?php endforeach; ?>
     </table>
+    </div>
 </main>
 </body>
 </html>

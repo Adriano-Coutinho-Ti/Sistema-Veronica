@@ -158,40 +158,47 @@ $creditoDisponivel = (float) $cliente['limite_credito'] - (float) $cliente['sald
 <?php require __DIR__ . '/../includes/admin_header.php'; ?>
     <h1><?= htmlspecialchars($cliente['nome']) ?></h1>
 
-    <?php if ($erro): ?><p style="color:red;"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
-    <?php if ($sucesso): ?><p style="color:green;"><?= htmlspecialchars($sucesso) ?></p><?php endif; ?>
+    <?php if ($erro): ?><p class="alert alert-erro"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
+    <?php if ($sucesso): ?><p class="alert alert-sucesso"><?= htmlspecialchars($sucesso) ?></p><?php endif; ?>
 
+    <div class="grade-2col">
+    <div class="card">
     <h2>Dados</h2>
     <form method="post">
         <input type="hidden" name="acao" value="atualizar_dados">
-        <label>Nome<br><input type="text" name="nome" value="<?= htmlspecialchars($cliente['nome']) ?>" required></label><br>
-        <label>WhatsApp (com DDD)<br><input type="text" name="whatsapp" value="<?= htmlspecialchars($cliente['whatsapp']) ?>" required></label><br>
-        <label>E-mail (obrigatório pro cliente conseguir entrar na loja online)<br><input type="email" name="email" value="<?= htmlspecialchars($cliente['email'] ?? '') ?>"></label><br>
-        <label>Endereço<br><input type="text" name="endereco" value="<?= htmlspecialchars($cliente['endereco'] ?? '') ?>"></label><br>
+        <label>Nome<input type="text" name="nome" value="<?= htmlspecialchars($cliente['nome']) ?>" required></label>
+        <label>WhatsApp (com DDD)<input type="text" name="whatsapp" value="<?= htmlspecialchars($cliente['whatsapp']) ?>" required></label>
+        <label>E-mail (obrigatório pro cliente conseguir entrar na loja online)<input type="email" name="email" value="<?= htmlspecialchars($cliente['email'] ?? '') ?>"></label>
+        <label>Endereço<input type="text" name="endereco" value="<?= htmlspecialchars($cliente['endereco'] ?? '') ?>"></label>
         <button type="submit">Salvar dados</button>
     </form>
+    </div>
 
+    <div class="card">
     <h2>E-mail da loja online</h2>
     <?php if (empty($cliente['email'])): ?>
-    <p>Sem e-mail cadastrado — o cliente não consegue entrar na loja online até ter um e-mail.</p>
+    <p class="alert alert-info">Sem e-mail cadastrado — o cliente não consegue entrar na loja online até ter um e-mail.</p>
     <?php elseif (!empty($cliente['email_verificado_em'])): ?>
-    <p style="color:green;">✓ Verificado em <?= htmlspecialchars(date('d/m/Y H:i', strtotime($cliente['email_verificado_em']))) ?></p>
+    <p class="status-pill sucesso">✓ Verificado em <?= htmlspecialchars(date('d/m/Y H:i', strtotime($cliente['email_verificado_em']))) ?></p>
     <?php else: ?>
-    <p style="color:#b45309;">Ainda não verificado — o cliente não consegue usar o carrinho até confirmar o e-mail (pelo link enviado ou por aqui).</p>
+    <p class="alert alert-erro">Ainda não verificado — o cliente não consegue usar o carrinho até confirmar o e-mail (pelo link enviado ou por aqui).</p>
     <form method="post">
         <input type="hidden" name="acao" value="ativar_email_manual">
         <button type="submit">Ativar e-mail manualmente</button>
     </form>
-    <p style="font-size:0.9em; color:#666;">Use isso quando o cliente não conseguir clicar no link do e-mail sozinho (ex: não sabe mexer no e-mail) — confirme a identidade dele por WhatsApp/telefone antes de ativar.</p>
+    <p style="font-size:0.85rem; color:var(--cor-texto-suave); margin-top:12px;">Use isso quando o cliente não conseguir clicar no link do e-mail sozinho (ex: não sabe mexer no e-mail) — confirme a identidade dele por WhatsApp/telefone antes de ativar.</p>
     <?php endif; ?>
+    </div>
+    </div>
 
+    <div class="card">
     <h2>Linha de Crédito</h2>
     <p>Limite: R$ <?= number_format((float) $cliente['limite_credito'], 2, ',', '.') ?></p>
     <p>Saldo devedor: R$ <?= number_format((float) $cliente['saldo_devedor'], 2, ',', '.') ?></p>
     <p>Crédito disponível: R$ <?= number_format($creditoDisponivel, 2, ',', '.') ?></p>
 
     <?php if (($_SESSION['perfil'] ?? '') === 'Admin'): ?>
-    <form method="post">
+    <form method="post" class="form-linha-compacta">
         <input type="hidden" name="acao" value="atualizar_limite">
         <label>Novo limite de crédito
             <input type="text" name="limite_credito" value="<?= number_format((float) $cliente['limite_credito'], 2, ',', '.') ?>">
@@ -202,8 +209,7 @@ $creditoDisponivel = (float) $cliente['limite_credito'] - (float) $cliente['sald
 
     <?php if ((float) $cliente['saldo_devedor'] > 0): ?>
     <h3>Registrar pagamento da dívida</h3>
-    <form method="post">
-        <input type="hidden" name="acao" value="registrar_pagamento">
+    <form method="post" class="form-linha">
         <label>Valor recebido
             <input type="text" name="valor" placeholder="0,00">
         </label>
@@ -215,15 +221,17 @@ $creditoDisponivel = (float) $cliente['limite_credito'] - (float) $cliente['sald
                 <option value="Pix">Pix</option>
             </select>
         </label>
-        <button type="submit">Registrar pagamento</button>
+        <input type="hidden" name="acao" value="registrar_pagamento">
+        <button type="submit" style="align-self:flex-end; margin-bottom:14px;">Registrar pagamento</button>
     </form>
     <?php endif; ?>
+    </div>
 
     <h2>Extrato</h2>
     <?php if (empty($extrato)): ?>
     <p>Nenhum movimento de crédito ainda.</p>
     <?php else: ?>
-    <ul>
+    <ul class="lista-extrato">
         <?php foreach ($extrato as $mov): ?>
         <li>
             <?= htmlspecialchars($mov['data_movimento']) ?> —

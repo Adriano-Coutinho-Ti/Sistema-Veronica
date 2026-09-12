@@ -43,50 +43,54 @@ $entregas = array_values(array_filter($formas, fn($f) => (int) $f['fixa'] === 0)
 <body>
 <?php require __DIR__ . '/../includes/admin_header.php'; ?>
     <h1>Formas de entrega</h1>
-    <?php if ($erro): ?><p style="color:red;"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
+    <?php if ($erro): ?><p class="alert alert-erro"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
 
     <?php if ($retirada): ?>
+    <div class="card">
     <h3>Retirar na loja (fixa)</h3>
-    <form method="post">
+    <form method="post" class="form-linha-compacta">
         <input type="hidden" name="acao" value="atualizar_retirada">
-        <label>Prazo de tolerância para retirada (dias)<br>
+        <label>Prazo de tolerância para retirada (dias)
             <input type="number" min="0" name="prazo_retirada" value="<?= (int) $retirada['prazo_dias'] ?>">
         </label>
         <button type="submit">Salvar prazo</button>
     </form>
+    </div>
     <?php endif; ?>
 
     <h3>Outras formas de entrega</h3>
-    <form method="post">
+    <form method="post" class="linha-form-rapido" style="max-width:600px;">
         <input type="hidden" name="acao" value="criar">
         <input type="text" name="nome" placeholder="Nome (ex: Motoboy)" required>
         <input type="number" name="prazo_dias" placeholder="Prazo em dias">
         <input type="text" name="custo" placeholder="Custo (R$)">
         <button type="submit">Adicionar</button>
     </form>
-    <table border="1" cellpadding="6">
+    <div class="tabela-wrap">
+    <table>
         <tr><th>Nome</th><th>Prazo (dias)</th><th>Custo</th><th>Ativo</th><th></th></tr>
         <?php foreach ($entregas as $e): ?>
         <tr>
             <td><?= htmlspecialchars($e['nome']) ?></td>
             <td><?= $e['prazo_dias'] !== null ? (int) $e['prazo_dias'] : '—' ?></td>
             <td>R$ <?= number_format($e['custo'], 2, ',', '.') ?></td>
-            <td><?= $e['ativo'] ? 'Sim' : 'Não' ?></td>
-            <td>
-                <form method="post" style="display:inline">
+            <td><span class="status-pill<?= $e['ativo'] ? ' sucesso' : '' ?>"><?= $e['ativo'] ? 'Sim' : 'Não' ?></span></td>
+            <td class="celula-acoes">
+                <form method="post">
                     <input type="hidden" name="acao" value="alternar_ativo">
                     <input type="hidden" name="id_entrega" value="<?= $e['id_entrega'] ?>">
-                    <button type="submit"><?= $e['ativo'] ? 'desativar' : 'ativar' ?></button>
+                    <button type="submit" class="btn-sm btn-outline"><?= $e['ativo'] ? 'desativar' : 'ativar' ?></button>
                 </form>
-                <form method="post" style="display:inline" onsubmit="return confirm('Excluir esta forma de entrega?');">
+                <form method="post" onsubmit="return confirm('Excluir esta forma de entrega?');">
                     <input type="hidden" name="acao" value="deletar">
                     <input type="hidden" name="id_entrega" value="<?= $e['id_entrega'] ?>">
-                    <button type="submit">excluir</button>
+                    <button type="submit" class="btn-sm btn-perigo">excluir</button>
                 </form>
             </td>
         </tr>
         <?php endforeach; ?>
     </table>
+    </div>
 </main>
 </body>
 </html>

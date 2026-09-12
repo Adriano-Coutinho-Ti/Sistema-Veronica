@@ -45,15 +45,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
 <?php require __DIR__ . '/../includes/admin_header.php'; ?>
     <h1>Novo cliente</h1>
-    <?php if ($erro): ?><p style="color:red;"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
+    <?php if ($erro): ?><p class="alert alert-erro"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
+    <div class="card">
     <form method="post">
-        <label>Nome<br><input type="text" name="nome" required></label><br>
-        <label>WhatsApp (com DDD)<br><input type="text" name="whatsapp" required placeholder="11987654321"></label><br>
-        <label>E-mail<br><input type="email" name="email"></label><br>
-        <label>Endereço<br><input type="text" name="endereco"></label><br>
+        <label>Nome<input type="text" name="nome" required></label>
+        <label>WhatsApp (com DDD)<input type="text" name="whatsapp" required placeholder="11987654321"></label>
+        <label>E-mail<input type="email" name="email"></label>
+        <label>Endereço<input type="text" name="endereco"></label>
         <button type="submit">Salvar</button>
     </form>
-    <p><a href="/clientes/lista.php">Ver clientes</a></p>
+    </div>
+    <p><a href="/clientes/lista.php" class="btn-texto">← Ver clientes</a></p>
 </main>
 </body>
 </html>

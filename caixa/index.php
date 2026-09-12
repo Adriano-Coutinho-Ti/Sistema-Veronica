@@ -14,10 +14,10 @@ $id_venda = buscarVendaReservadaDoOperador($pdo, (int) $caixa['id_caixa'], (int)
 <body>
 <?php require __DIR__ . '/../includes/admin_header.php'; ?>
     <h1>PDV — Caixa aberto</h1>
-    <p><a href="/caixa/fechamento.php">Fechar caixa</a></p>
+    <p><a href="/caixa/fechamento.php" class="btn-outline">Fechar caixa</a></p>
 
     <?php if (!$id_venda): ?>
-    <button id="btn-iniciar">Nova venda</button>
+    <button id="btn-iniciar" class="btn-lg">Nova venda</button>
     <script>
     document.getElementById('btn-iniciar').addEventListener('click', function () {
         fetch('/caixa/ajax/iniciar_venda.php', { method: 'POST' })
@@ -34,18 +34,24 @@ $id_venda = buscarVendaReservadaDoOperador($pdo, (int) $caixa['id_caixa'], (int)
     <?php else: ?>
     <h2>Venda #<?= $id_venda ?></h2>
 
-    <input type="text" id="termo-busca" placeholder="Buscar produto por nome...">
+    <div class="card">
+    <label>Buscar produto<input type="text" id="termo-busca" placeholder="Digite o nome do produto..."></label>
     <div id="resultados-busca"></div>
+    </div>
 
+    <div class="card">
     <h3>Carrinho</h3>
     <div id="carrinho"></div>
-    <p>Total: R$ <span id="total-venda">0,00</span></p>
+    <p style="font-weight:700; font-size:1.15rem;">Total: R$ <span id="total-venda">0,00</span></p>
+    </div>
 
-    <div id="cliente-vinculado"></div>
-    <input type="text" id="termo-cliente" placeholder="Buscar cliente (opcional)...">
+    <div class="card">
+    <div id="cliente-vinculado" style="font-weight:600; margin-bottom:10px;"></div>
+    <label>Vincular cliente (opcional)<input type="text" id="termo-cliente" placeholder="Buscar cliente..."></label>
     <div id="resultados-cliente"></div>
+    </div>
 
-    <p><a href="/caixa/pagamento.php?id_venda=<?= $id_venda ?>">Ir para pagamento</a></p>
+    <p><a href="/caixa/pagamento.php?id_venda=<?= $id_venda ?>" class="btn btn-lg">Ir para pagamento →</a></p>
 
 <script>
 const idVenda = <?= $id_venda ?>;

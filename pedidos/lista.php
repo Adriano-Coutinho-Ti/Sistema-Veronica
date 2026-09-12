@@ -29,8 +29,8 @@ $pedidos = $stmt->fetchAll();
 <?php require __DIR__ . '/../includes/admin_header.php'; ?>
     <h1>Pedidos da loja online</h1>
 
-    <form method="get">
-        <label>Filtrar por etapa
+    <form method="get" class="linha-form-rapido">
+        <label style="flex:1;">Filtrar por etapa
             <select name="status_entrega" onchange="this.form.submit()">
                 <option value="">Todas</option>
                 <?php foreach (STATUS_ENTREGA_VALIDOS as $s): ?>
@@ -40,7 +40,8 @@ $pedidos = $stmt->fetchAll();
         </label>
     </form>
 
-    <table border="1" cellpadding="6">
+    <div class="tabela-wrap">
+    <table>
         <tr><th>Pedido</th><th>Cliente</th><th>Data</th><th>Total</th><th>Status</th><th></th></tr>
         <?php foreach ($pedidos as $p): ?>
         <tr>
@@ -48,14 +49,15 @@ $pedidos = $stmt->fetchAll();
             <td><?= htmlspecialchars($p['cliente_nome'] ?? '—') ?></td>
             <td><?= htmlspecialchars(date('d/m/Y H:i', strtotime($p['data_venda']))) ?></td>
             <td>R$ <?= number_format($p['valor_total'], 2, ',', '.') ?></td>
-            <td><?= htmlspecialchars(rotuloStatusPedido($p['status'], $p['status_entrega'])) ?></td>
-            <td><a href="/pedidos/detalhe.php?id_venda=<?= (int) $p['id_venda'] ?>">Ver</a></td>
+            <td><span class="status-pill<?= $p['status'] === 'Cancelado' ? ' erro' : '' ?>"><?= htmlspecialchars(rotuloStatusPedido($p['status'], $p['status_entrega'])) ?></span></td>
+            <td><a href="/pedidos/detalhe.php?id_venda=<?= (int) $p['id_venda'] ?>" class="btn-sm btn-outline">Ver</a></td>
         </tr>
         <?php endforeach; ?>
         <?php if (empty($pedidos)): ?>
         <tr><td colspan="6">Nenhum pedido encontrado.</td></tr>
         <?php endif; ?>
     </table>
+    </div>
 </main>
 </body>
 </html>

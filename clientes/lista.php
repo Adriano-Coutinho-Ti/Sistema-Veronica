@@ -11,9 +11,10 @@ $clientes = $pdo->query('SELECT id_cliente, nome, whatsapp, email, email_verific
 <body>
 <?php require __DIR__ . '/../includes/admin_header.php'; ?>
     <h1>Clientes</h1>
-    <?php if (isset($_GET['criado'])): ?><p style="color:green;">Cliente cadastrado com sucesso.</p><?php endif; ?>
-    <p><a href="/clientes/novo.php">+ Novo cliente</a></p>
-    <table border="1" cellpadding="6">
+    <?php if (isset($_GET['criado'])): ?><p class="alert alert-sucesso">Cliente cadastrado com sucesso.</p><?php endif; ?>
+    <p><a href="/clientes/novo.php" class="btn">+ Novo cliente</a></p>
+    <div class="tabela-wrap">
+    <table>
         <tr><th>Nome</th><th>WhatsApp</th><th>E-mail</th><th>E-mail verificado</th><th></th></tr>
         <?php foreach ($clientes as $c): ?>
         <tr>
@@ -22,14 +23,15 @@ $clientes = $pdo->query('SELECT id_cliente, nome, whatsapp, email, email_verific
             <td><?= htmlspecialchars($c['email'] ?? '') ?></td>
             <td>
                 <?php if (!$c['email']): ?>—
-                <?php elseif ($c['email_verificado_em']): ?><span style="color:green;">✓ Verificado</span>
-                <?php else: ?><span style="color:#b45309;">Não verificado</span>
+                <?php elseif ($c['email_verificado_em']): ?><span class="status-pill sucesso">✓ Verificado</span>
+                <?php else: ?><span class="status-pill alerta">Não verificado</span>
                 <?php endif; ?>
             </td>
-            <td><a href="/clientes/detalhe.php?id=<?= $c['id_cliente'] ?>">ver</a></td>
+            <td><a href="/clientes/detalhe.php?id=<?= $c['id_cliente'] ?>" class="btn-sm btn-outline">ver</a></td>
         </tr>
         <?php endforeach; ?>
     </table>
+    </div>
 </main>
 </body>
 </html>

@@ -92,14 +92,17 @@ $variacoes = $variacoesAtivas->fetchAll();
 <body>
 <?php require __DIR__ . '/../includes/admin_header.php'; ?>
     <h1>Variações de "<?= htmlspecialchars($categoria['nome']) ?>"</h1>
-    <?php if ($erro): ?><p style="color:red;"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
+    <?php if ($erro): ?><p class="alert alert-erro"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
+    <div class="card">
     <form method="post">
         <input type="hidden" name="acao" value="criar_variacao">
-        <label>Nome da variação (ex: Cor)<br><input type="text" name="nome" required></label><br>
-        <label>Valores, separados por vírgula (ex: Azul, Vermelho)<br><input type="text" name="valores" required></label><br>
+        <label>Nome da variação (ex: Cor)<input type="text" name="nome" required></label>
+        <label>Valores, separados por vírgula (ex: Azul, Vermelho)<input type="text" name="valores" required></label>
         <button type="submit">Adicionar / atualizar</button>
     </form>
-    <table border="1" cellpadding="6">
+    </div>
+    <div class="tabela-wrap">
+    <table>
         <tr><th>Variação</th><th>Valores</th><th></th></tr>
         <?php foreach ($variacoes as $v): ?>
         <tr>
@@ -109,13 +112,14 @@ $variacoes = $variacoesAtivas->fetchAll();
                 <form method="post" onsubmit="return confirm('Remover esta variação desta categoria?');">
                     <input type="hidden" name="acao" value="remover_associacao">
                     <input type="hidden" name="id_variacao" value="<?= $v['id_variacao'] ?>">
-                    <button type="submit">remover</button>
+                    <button type="submit" class="btn-sm btn-perigo">remover</button>
                 </form>
             </td>
         </tr>
         <?php endforeach; ?>
     </table>
-    <p><a href="/produtos/categorias.php">Voltar para categorias</a></p>
+    </div>
+    <p><a href="/produtos/categorias.php" class="btn-texto">← Voltar para categorias</a></p>
 </main>
 </body>
 </html>

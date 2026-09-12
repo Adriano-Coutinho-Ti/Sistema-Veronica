@@ -31,11 +31,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'iniciar
     <h1>Mercado Pago</h1>
     <?php if (isset($_GET['conectado'])): ?><p class="alert alert-sucesso">Conectado com sucesso!</p><?php endif; ?>
     <?php if (isset($_GET['erro'])): ?><p class="alert alert-erro"><?= htmlspecialchars($_GET['erro']) ?></p><?php endif; ?>
-    <p>Status: <?= $conectado ? 'Conectado (usuário MP #' . htmlspecialchars((string) $config['mp_user_id']) . ')' : 'Não conectado' ?></p>
+    <div class="card" style="max-width:480px;">
+    <p><span class="status-pill<?= $conectado ? ' sucesso' : '' ?>"><?= $conectado ? 'Conectado (usuário MP #' . htmlspecialchars((string) $config['mp_user_id']) . ')' : 'Não conectado' ?></span></p>
     <form method="post">
         <input type="hidden" name="acao" value="iniciar">
-        <button type="submit"><?= $conectado ? 'Reconectar' : 'Conectar' ?> minha conta Mercado Pago</button>
+        <button type="submit" class="btn-bloco"><?= $conectado ? 'Reconectar' : 'Conectar' ?> minha conta Mercado Pago</button>
     </form>
+    </div>
 </main>
 </body>
 </html>

@@ -341,7 +341,89 @@ td a { font-weight: 600; }
 /* ============ Utilitários ============ */
 
 .grade-2col { display: grid; grid-template-columns: 1fr; gap: 20px; }
+.grade-2col > .card { margin-bottom: 0; }
 .foto-produto-mini { width: 56px; height: 56px; border-radius: var(--raio-sm); object-fit: cover; background: var(--cor-fundo-alt); }
+
+/* Ações lado a lado numa célula de tabela (ex: "editar" + "excluir") */
+.celula-acoes { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.celula-acoes form { display: inline-flex; margin: 0; }
+
+/* Formulário de uma linha só (texto + botão), ex: "adicionar categoria" */
+.linha-form-rapido { display: flex; gap: 10px; margin-bottom: 20px; max-width: 420px; }
+.linha-form-rapido input { margin-top: 0; }
+.linha-form-rapido button { flex-shrink: 0; }
+
+/* Formulário compacto dentro de uma célula de tabela — inputs/botão lado a
+   lado numa linha só, sem os 14px de margem-bottom padrão do label/input. */
+.form-linha-compacta { display: flex; gap: 8px; align-items: center; margin: 0; }
+.form-linha-compacta input { margin: 0; min-height: 38px; padding: 6px 10px; }
+.campo-valor-curto { width: 100px !important; }
+
+/* Checkboxes de variação (produtos/novo.php) — uma por linha, com respiro */
+.lista-checkbox label { display: flex; align-items: center; gap: 8px; font-weight: 400; margin-bottom: 8px; }
+.lista-checkbox input[type="checkbox"] { width: auto; min-height: 0; margin: 0; }
+
+/* Linhas de combinação geradas via JS (produtos/novo.php) */
+#combinacoes-container > div {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    border: 1px solid var(--cor-borda);
+    border-radius: var(--raio-sm);
+    margin-bottom: 8px;
+    font-size: 0.9rem;
+}
+#combinacoes-container input { width: auto; min-height: 38px; margin: 0; padding: 6px 10px; }
+#combinacoes-container .input-estoque { width: 70px !important; }
+#combinacoes-container .input-preco { width: 100px !important; }
+
+/* Grade de fotos do produto (produtos/editar.php) */
+.grade-fotos { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 20px; }
+.foto-item {
+    background: var(--cor-fundo);
+    border: 1px solid var(--cor-borda);
+    border-radius: var(--raio-md);
+    box-shadow: var(--sombra-sm);
+    padding: 10px;
+    text-align: center;
+    width: 140px;
+}
+.foto-item img { width: 120px; height: 120px; object-fit: cover; border-radius: var(--raio-sm); margin-bottom: 8px; }
+.foto-item form { margin: 0; }
+
+/* Extrato de crédito (clientes/detalhe.php) */
+.lista-extrato { list-style: none; margin: 0; padding: 0; }
+.lista-extrato li {
+    background: var(--cor-fundo);
+    border: 1px solid var(--cor-borda);
+    border-radius: var(--raio-sm);
+    padding: 12px 16px;
+    margin-bottom: 8px;
+    font-size: 0.9rem;
+}
+
+/* PDV (caixa/index.php) — os itens de busca/carrinho/cliente são <div> soltos
+   criados via JS, então o alvo aqui é o container por id, não uma classe. */
+#resultados-busca > div, #carrinho > div, #resultados-cliente > div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 14px;
+    border: 1px solid var(--cor-borda);
+    border-radius: var(--raio-sm);
+    margin-bottom: 8px;
+    background: var(--cor-fundo);
+    font-size: 0.92rem;
+}
+#resultados-busca button, #carrinho button, #resultados-cliente button {
+    flex-shrink: 0;
+    padding: 7px 14px;
+    min-height: 34px;
+    font-size: 0.85rem;
+}
 
 @media (min-width: 768px) {
     .container { padding: 0 24px 48px; }

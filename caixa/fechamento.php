@@ -44,13 +44,16 @@ $resumoOperadores = $resumo->fetchAll();
 <body>
 <?php require __DIR__ . '/../includes/admin_header.php'; ?>
     <h1>Fechar caixa</h1>
+    <div class="card">
     <p>Valor inicial: R$ <?= number_format($caixa['valor_inicial'], 2, ',', '.') ?></p>
     <p>Vendas em dinheiro: R$ <?= number_format($total_dinheiro_vendas, 2, ',', '.') ?></p>
     <p>Pagamentos de dívida em dinheiro: R$ <?= number_format($total_dinheiro_divida, 2, ',', '.') ?></p>
-    <p>Esperado no caixa: R$ <?= number_format($valor_esperado, 2, ',', '.') ?></p>
+    <p style="font-weight:700;">Esperado no caixa: R$ <?= number_format($valor_esperado, 2, ',', '.') ?></p>
+    </div>
 
     <h3>Resumo por operador</h3>
-    <table border="1" cellpadding="6">
+    <div class="tabela-wrap">
+    <table>
         <tr><th>Operador</th><th>Vendas</th><th>Total vendido</th></tr>
         <?php foreach ($resumoOperadores as $r): ?>
         <tr>
@@ -60,12 +63,15 @@ $resumoOperadores = $resumo->fetchAll();
         </tr>
         <?php endforeach; ?>
     </table>
+    </div>
 
+    <div class="card">
     <form method="post" action="/caixa/ajax/fechar_caixa.php">
-        <label>Valor contado no caixa (R$)<br><input type="text" name="valor_final_informado" required></label><br>
-        <label>Observação<br><textarea name="observacao_fechamento"></textarea></label><br>
+        <label>Valor contado no caixa (R$)<input type="text" name="valor_final_informado" required></label>
+        <label>Observação<textarea name="observacao_fechamento"></textarea></label>
         <button type="submit">Fechar caixa</button>
     </form>
+    </div>
 </main>
 </body>
 </html>

@@ -30,9 +30,10 @@ if ($venda['id_cliente']) {
 <body>
 <?php require __DIR__ . '/../includes/admin_header.php'; ?>
     <h1>Pagamento — Venda #<?= $id_venda ?></h1>
-    <p>Total: R$ <span id="total-venda"><?= number_format($venda['valor_total'], 2, ',', '.') ?></span></p>
+    <div class="card" style="max-width:520px;">
+    <p style="font-size:1.3rem; font-weight:700;">Total: R$ <span id="total-venda"><?= number_format($venda['valor_total'], 2, ',', '.') ?></span></p>
 
-    <div id="pagamentos-lancados"></div>
+    <div id="pagamentos-lancados" style="margin-bottom:14px; color:var(--cor-texto-suave);"></div>
 
     <label>Forma de pagamento
         <select id="forma-pagamento">
@@ -48,20 +49,21 @@ if ($venda['id_cliente']) {
         </select>
     </label>
 
-    <div id="campos-manual">
+    <div id="campos-manual" class="form-linha-compacta" style="margin-bottom:16px;">
         <input type="text" id="valor-pagamento" placeholder="Valor recebido">
         <button id="btn-adicionar-pagamento">Adicionar pagamento</button>
-        <p id="troco-aviso" style="display:none;"></p>
     </div>
+    <p id="troco-aviso" class="alert alert-sucesso" style="display:none;"></p>
 
-    <div id="campos-pix" style="display:none;">
+    <div id="campos-pix" style="display:none; margin-bottom:16px;">
         <button id="btn-gerar-pix">Gerar QR Code Pix</button>
-        <div id="pix-resultado"></div>
+        <div id="pix-resultado" style="margin-top:14px;"></div>
     </div>
 
-    <p>Pago: R$ <span id="total-pago">0,00</span> / Restante: R$ <span id="total-restante"><?= number_format($venda['valor_total'], 2, ',', '.') ?></span></p>
+    <p style="font-weight:600;">Pago: R$ <span id="total-pago">0,00</span> / Restante: R$ <span id="total-restante"><?= number_format($venda['valor_total'], 2, ',', '.') ?></span></p>
 
-    <button id="btn-finalizar" style="display:none;">Finalizar venda</button>
+    <button id="btn-finalizar" class="btn-bloco" style="display:none;">Finalizar venda</button>
+    </div>
 
 <script>
 const idVenda = <?= $id_venda ?>;

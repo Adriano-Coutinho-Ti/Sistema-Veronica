@@ -70,27 +70,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
 <?php require __DIR__ . '/../includes/admin_header.php'; ?>
     <h1>Novo produto</h1>
-    <?php if ($erro): ?><p style="color:red;"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
+    <?php if ($erro): ?><p class="alert alert-erro"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
+    <div class="card">
     <form method="post" id="form-produto">
-        <label>Nome<br><input type="text" name="nome" required></label><br>
-        <label>Descrição<br><textarea name="descricao"></textarea></label><br>
-        <label>Categoria<br>
+        <label>Nome<input type="text" name="nome" required></label>
+        <label>Descrição<textarea name="descricao"></textarea></label>
+        <label>Categoria
             <select name="id_categoria" id="id_categoria" required>
                 <option value="">Selecione</option>
                 <?php foreach ($categorias as $c): ?>
                 <option value="<?= $c['id_categoria'] ?>"><?= htmlspecialchars($c['nome']) ?></option>
                 <?php endforeach; ?>
             </select>
-        </label><br>
-        <label>Condição<br>
+        </label>
+        <label>Condição
             <select name="condicao">
                 <option value="usado">Usado</option>
                 <option value="novo">Novo</option>
             </select>
-        </label><br>
-        <label>Preço base (R$)<br><input type="text" name="preco_base" required></label><br>
+        </label>
+        <label>Preço base (R$)<input type="text" name="preco_base" required></label>
 
-        <div id="variacoes-disponiveis"></div>
+        <div id="variacoes-disponiveis" class="lista-checkbox"></div>
 
         <h3>Combinações e estoque</h3>
         <div id="combinacoes-container"></div>
@@ -98,6 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <button type="submit">Salvar produto</button>
     </form>
+    </div>
 
 <script>
 document.getElementById('id_categoria').addEventListener('change', carregarVariacoes);

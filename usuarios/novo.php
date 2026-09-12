@@ -34,20 +34,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
 <?php require __DIR__ . '/../includes/admin_header.php'; ?>
     <h1>Novo usuário</h1>
-    <?php if ($erro): ?><p style="color:red;"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
+    <?php if ($erro): ?><p class="alert alert-erro"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
+    <div class="card">
     <form method="post">
-        <label>Nome<br><input type="text" name="nome" required></label><br>
-        <label>E-mail<br><input type="email" name="email" required></label><br>
-        <label>Senha<br><input type="password" name="senha" required minlength="6"></label><br>
-        <label>Perfil<br>
+        <label>Nome<input type="text" name="nome" required></label>
+        <label>E-mail<input type="email" name="email" required></label>
+        <label>Senha<input type="password" name="senha" required minlength="6"></label>
+        <label>Perfil
             <select name="perfil">
                 <option value="Funcionario">Funcionário</option>
                 <option value="Admin">Admin</option>
             </select>
-        </label><br>
+        </label>
         <button type="submit">Salvar</button>
     </form>
-    <p><a href="/usuarios/lista.php">Ver usuários</a></p>
+    </div>
+    <p><a href="/usuarios/lista.php" class="btn-texto">← Ver usuários</a></p>
 </main>
 </body>
 </html>

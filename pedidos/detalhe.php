@@ -33,8 +33,10 @@ $listaItens = $itens->fetchAll();
 <body>
 <?php require __DIR__ . '/../includes/admin_header.php'; ?>
     <h1>Pedido #<?= $id_venda ?></h1>
-    <p>Status: <strong><?= htmlspecialchars(rotuloStatusPedido($pedido['status'], $pedido['status_entrega'], $pedido['entrega_tipo'])) ?></strong></p>
+    <p><span class="status-pill"><?= htmlspecialchars(rotuloStatusPedido($pedido['status'], $pedido['status_entrega'], $pedido['entrega_tipo'])) ?></span></p>
 
+    <div class="grade-2col">
+    <div class="card">
     <h3>Cliente</h3>
     <p>
         <?= htmlspecialchars($pedido['cliente_nome'] ?? '—') ?><br>
@@ -44,9 +46,17 @@ $listaItens = $itens->fetchAll();
         <?php endif; ?>
         Entrega: <?= htmlspecialchars($pedido['entrega_nome'] ?? '—') ?>
     </p>
+    </div>
+
+    <div class="card">
+    <p style="font-weight:700; font-size:1.1rem;">Total: R$ <?= number_format($pedido['valor_total'], 2, ',', '.') ?></p>
+    <p>Pagamento: <?= htmlspecialchars($pedido['forma_pagamento'] ?? '—') ?></p>
+    </div>
+    </div>
 
     <h3>Itens</h3>
-    <table border="1" cellpadding="6">
+    <div class="tabela-wrap">
+    <table>
         <tr><th>Produto</th><th>Variação</th><th>Qtd</th><th>Preço</th><th>Subtotal</th></tr>
         <?php foreach ($listaItens as $it): ?>
         <tr>
@@ -58,11 +68,12 @@ $listaItens = $itens->fetchAll();
         </tr>
         <?php endforeach; ?>
     </table>
-    <p>Total: R$ <?= number_format($pedido['valor_total'], 2, ',', '.') ?> — pagamento: <?= htmlspecialchars($pedido['forma_pagamento'] ?? '—') ?></p>
+    </div>
 
     <?php if ($pedido['status'] === 'Pago'): ?>
+    <div class="card">
     <h3>Avançar etapa do pedido</h3>
-    <form id="form-status">
+    <form id="form-status" class="form-linha-compacta">
         <select id="select-status">
             <?php foreach (STATUS_ENTREGA_VALIDOS as $s): ?>
                 <option value="<?= htmlspecialchars($s) ?>" <?= $pedido['status_entrega'] === $s ? 'selected' : '' ?>><?= htmlspecialchars($s) ?></option>
@@ -71,12 +82,15 @@ $listaItens = $itens->fetchAll();
         <button type="submit">Salvar status</button>
     </form>
     <p id="status-msg"></p>
+    </div>
 
         <?php if (($_SESSION['perfil'] ?? '') === 'Admin'): ?>
+        <div class="card">
         <h3>Cancelar pedido</h3>
-        <p>Devolve o estoque dos itens e, se parte do pagamento foi em Linha de Crédito, estorna o saldo devedor do cliente. Pagamento em dinheiro/cartão/Pix precisa ser reembolsado por fora.</p>
-        <button id="btn-cancelar">Cancelar este pedido</button>
+        <p style="color:var(--cor-texto-suave); font-size:0.9rem;">Devolve o estoque dos itens e, se parte do pagamento foi em Linha de Crédito, estorna o saldo devedor do cliente. Pagamento em dinheiro/cartão/Pix precisa ser reembolsado por fora.</p>
+        <button id="btn-cancelar" class="btn-perigo">Cancelar este pedido</button>
         <p id="cancelar-msg"></p>
+        </div>
         <?php endif; ?>
     <?php endif; ?>
 

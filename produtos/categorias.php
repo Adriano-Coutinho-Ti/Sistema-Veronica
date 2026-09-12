@@ -39,27 +39,29 @@ $categorias = $pdo->query('SELECT id_categoria, nome FROM categorias ORDER BY no
 <body>
 <?php require __DIR__ . '/../includes/admin_header.php'; ?>
     <h1>Categorias</h1>
-    <?php if ($erro): ?><p style="color:red;"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
-    <form method="post">
+    <?php if ($erro): ?><p class="alert alert-erro"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
+    <form method="post" class="linha-form-rapido">
         <input type="hidden" name="acao" value="criar">
         <input type="text" name="nome" placeholder="Nome da categoria" required>
         <button type="submit">Adicionar</button>
     </form>
-    <table border="1" cellpadding="6">
+    <div class="tabela-wrap">
+    <table>
         <?php foreach ($categorias as $c): ?>
         <tr>
             <td><?= htmlspecialchars($c['nome']) ?></td>
-            <td>
-                <a href="/produtos/variacoes.php?id_categoria=<?= $c['id_categoria'] ?>">variações</a>
-                <form method="post" style="display:inline" onsubmit="return confirm('Excluir esta categoria?');">
+            <td class="celula-acoes">
+                <a href="/produtos/variacoes.php?id_categoria=<?= $c['id_categoria'] ?>" class="btn-sm btn-outline">variações</a>
+                <form method="post" onsubmit="return confirm('Excluir esta categoria?');">
                     <input type="hidden" name="acao" value="deletar">
                     <input type="hidden" name="id_categoria" value="<?= $c['id_categoria'] ?>">
-                    <button type="submit">excluir</button>
+                    <button type="submit" class="btn-sm btn-perigo">excluir</button>
                 </form>
             </td>
         </tr>
         <?php endforeach; ?>
     </table>
+    </div>
 </main>
 </body>
 </html>

@@ -19,7 +19,8 @@ $sessoes = $stmt->fetchAll();
 <?php require __DIR__ . '/../includes/admin_header.php'; ?>
     <h1>Histórico de caixas</h1>
 
-    <table border="1" cellpadding="6">
+    <div class="tabela-wrap">
+    <table>
         <tr>
             <th>#</th><th>Abertura</th><th>Aberto por</th><th>Valor inicial</th>
             <th>Status</th><th>Fechamento</th><th>Fechado por</th>
@@ -31,12 +32,12 @@ $sessoes = $stmt->fetchAll();
             <td><?= htmlspecialchars(date('d/m/Y H:i', strtotime($s['data_abertura']))) ?></td>
             <td><?= htmlspecialchars($s['aberto_por_nome']) ?></td>
             <td>R$ <?= number_format($s['valor_inicial'], 2, ',', '.') ?></td>
-            <td><?= $s['status'] === 'aberto' ? 'Aberto' : 'Fechado' ?></td>
+            <td><span class="status-pill<?= $s['status'] === 'aberto' ? '' : ' sucesso' ?>"><?= $s['status'] === 'aberto' ? 'Aberto' : 'Fechado' ?></span></td>
             <td><?= $s['data_fechamento'] ? htmlspecialchars(date('d/m/Y H:i', strtotime($s['data_fechamento']))) : '—' ?></td>
             <td><?= htmlspecialchars($s['fechado_por_nome'] ?? '—') ?></td>
             <td><?= $s['valor_final_informado'] !== null ? 'R$ ' . number_format($s['valor_final_informado'], 2, ',', '.') : '—' ?></td>
             <td><?= $s['valor_esperado'] !== null ? 'R$ ' . number_format($s['valor_esperado'], 2, ',', '.') : '—' ?></td>
-            <td<?= $s['diferenca'] !== null && (float) $s['diferenca'] !== 0.0 ? ' style="color:red; font-weight:bold;"' : '' ?>>
+            <td<?= $s['diferenca'] !== null && (float) $s['diferenca'] !== 0.0 ? ' style="color:var(--cor-erro); font-weight:700;"' : '' ?>>
                 <?= $s['diferenca'] !== null ? 'R$ ' . number_format($s['diferenca'], 2, ',', '.') : '—' ?>
             </td>
             <td><?= htmlspecialchars($s['observacao_fechamento'] ?? '—') ?></td>
@@ -46,6 +47,7 @@ $sessoes = $stmt->fetchAll();
         <tr><td colspan="11">Nenhum caixa registrado.</td></tr>
         <?php endif; ?>
     </table>
+    </div>
 </main>
 </body>
 </html>

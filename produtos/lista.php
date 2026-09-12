@@ -20,9 +20,10 @@ $produtos = $pdo->query(
 <body>
 <?php require __DIR__ . '/../includes/admin_header.php'; ?>
     <h1>Produtos</h1>
-    <?php if (isset($_GET['criado'])): ?><p style="color:green;">Produto criado com sucesso.</p><?php endif; ?>
-    <p><a href="/produtos/novo.php">+ Novo produto</a> | <a href="/produtos/categorias.php">Categorias</a></p>
-    <table border="1" cellpadding="6">
+    <?php if (isset($_GET['criado'])): ?><p class="alert alert-sucesso">Produto criado com sucesso.</p><?php endif; ?>
+    <p><a href="/produtos/novo.php" class="btn">+ Novo produto</a> <a href="/produtos/categorias.php" class="btn-outline">Categorias</a></p>
+    <div class="tabela-wrap">
+    <table>
         <tr><th>Nome</th><th>Categoria</th><th>Preço base</th><th>Estoque total</th><th>Ativo</th><th></th><th></th></tr>
         <?php foreach ($produtos as $p): ?>
         <?php
@@ -44,6 +45,7 @@ $produtos = $pdo->query(
         </tr>
         <?php endforeach; ?>
     </table>
+    </div>
 </main>
 </body>
 </html>

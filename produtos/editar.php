@@ -69,26 +69,28 @@ $listaCombinacoes = $combinacoes->fetchAll();
 <body>
 <?php require __DIR__ . '/../includes/admin_header.php'; ?>
     <h1>Editar produto</h1>
-    <?php if (isset($_GET['atualizado'])): ?><p style="color:green;">Produto atualizado.</p><?php endif; ?>
-    <?php if (isset($_GET['criado'])): ?><p style="color:green;">Produto criado com sucesso.</p><?php endif; ?>
-    <?php if ($erro): ?><p style="color:red;"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
+    <?php if (isset($_GET['atualizado'])): ?><p class="alert alert-sucesso">Produto atualizado.</p><?php endif; ?>
+    <?php if (isset($_GET['criado'])): ?><p class="alert alert-sucesso">Produto criado com sucesso.</p><?php endif; ?>
+    <?php if ($erro): ?><p class="alert alert-erro"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
 
-    <a href="<?= htmlspecialchars($linkCompartilharWhatsapp) ?>" target="_blank" rel="noopener" class="btn-compartilhar-whatsapp">
+    <p><a href="<?= htmlspecialchars($linkCompartilharWhatsapp) ?>" target="_blank" rel="noopener" class="btn-compartilhar-whatsapp">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.04 2c-5.46 0-9.9 4.44-9.9 9.9 0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.9-4.44 9.9-9.9 0-2.64-1.03-5.12-2.9-6.98A9.82 9.82 0 0 0 12.04 2Zm0 1.67c2.19 0 4.25.85 5.8 2.4a8.2 8.2 0 0 1 2.4 5.83c0 4.54-3.7 8.23-8.24 8.23a8.2 8.2 0 0 1-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.18 8.18 0 0 1-1.26-4.37c0-4.54 3.7-8.23 8.24-8.23h.04Zm-4.6 4.2c-.16 0-.42.06-.64.31-.22.25-.85.83-.85 2.02s.87 2.35.99 2.51c.12.16 1.7 2.7 4.2 3.68 2.07.82 2.49.66 2.94.62.45-.04 1.45-.59 1.65-1.16.2-.57.2-1.06.14-1.16-.06-.1-.22-.16-.46-.28-.24-.12-1.45-.72-1.68-.8-.22-.08-.39-.12-.55.12-.16.24-.63.8-.77.96-.14.16-.28.18-.52.06-.24-.12-1.02-.38-1.94-1.2-.72-.64-1.2-1.44-1.34-1.68-.14-.24-.02-.37.1-.49.11-.11.24-.28.36-.42.12-.14.16-.24.24-.4.08-.16.04-.3-.02-.42-.06-.12-.55-1.35-.76-1.85-.2-.48-.4-.42-.55-.42Z"/></svg>
         Compartilhar no WhatsApp
-    </a>
+    </a></p>
     <?php if (empty($listaFotos)): ?>
-        <p style="color:#6B7280; font-size:0.9rem;">Adicione uma foto abaixo pra ela aparecer na prévia do link quando compartilhar.</p>
+        <p class="alert alert-info">Adicione uma foto abaixo pra ela aparecer na prévia do link quando compartilhar.</p>
     <?php endif; ?>
+    <div class="card">
     <form method="post">
         <input type="hidden" name="acao" value="atualizar">
-        <label>Nome<br><input type="text" name="nome" value="<?= htmlspecialchars($produto['nome']) ?>" required></label><br>
-        <label>Descrição<br><textarea name="descricao"><?= htmlspecialchars($produto['descricao'] ?? '') ?></textarea></label><br>
-        <label>Preço base (R$)<br><input type="text" name="preco_base" value="<?= number_format($produto['preco_base'], 2, ',', '') ?>" required></label><br>
-        <label><input type="checkbox" name="ativo" <?= $produto['ativo'] ? 'checked' : '' ?>> Ativo (visível na loja)</label><br>
+        <label>Nome<input type="text" name="nome" value="<?= htmlspecialchars($produto['nome']) ?>" required></label>
+        <label>Descrição<textarea name="descricao"><?= htmlspecialchars($produto['descricao'] ?? '') ?></textarea></label>
+        <label>Preço base (R$)<input type="text" name="preco_base" value="<?= number_format($produto['preco_base'], 2, ',', '') ?>" required></label>
+        <label><input type="checkbox" name="ativo" style="display:inline-block; width:auto; margin-top:0;" <?= $produto['ativo'] ? 'checked' : '' ?>> Ativo (visível na loja)</label>
 
         <h3>Combinações</h3>
-        <table border="1" cellpadding="6">
+        <div class="tabela-wrap">
+        <table>
             <tr><th>Combinação</th><th>Estoque</th><th>Preço (branco = usa o base)</th></tr>
             <?php foreach ($listaCombinacoes as $c): ?>
             <tr>
@@ -98,40 +100,42 @@ $listaCombinacoes = $combinacoes->fetchAll();
             </tr>
             <?php endforeach; ?>
         </table>
+        </div>
 
         <button type="submit">Salvar alterações</button>
     </form>
+    </div>
 
     <h3>Fotos (<?= count($listaFotos) ?>/5)</h3>
     <?php if (isset($_GET['upload_status']) && $_GET['upload_status'] === 'error'): ?>
-        <p style="color:red;">Falha ao enviar a foto (<?= htmlspecialchars($_GET['msg'] ?? 'erro desconhecido') ?>).</p>
+        <p class="alert alert-erro">Falha ao enviar a foto (<?= htmlspecialchars($_GET['msg'] ?? 'erro desconhecido') ?>).</p>
     <?php endif; ?>
-    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+    <div class="grade-fotos">
         <?php foreach ($listaFotos as $f): ?>
-        <div>
-            <img src="/<?= htmlspecialchars($f['caminho_arquivo']) ?>" width="120" alt="Foto do produto">
+        <div class="foto-item">
+            <img src="/<?= htmlspecialchars($f['caminho_arquivo']) ?>" alt="Foto do produto">
             <form method="post" action="/produtos/ajax/deletar_foto.php" onsubmit="return confirm('Remover esta foto?');">
                 <input type="hidden" name="id_foto" value="<?= $f['id_foto'] ?>">
                 <input type="hidden" name="id_produto" value="<?= $id_produto ?>">
-                <button type="submit">remover</button>
+                <button type="submit" class="btn-sm btn-outline">remover</button>
             </form>
         </div>
         <?php endforeach; ?>
     </div>
     <?php if (count($listaFotos) < 5): ?>
-    <form method="post" action="/produtos/ajax/upload_foto.php" enctype="multipart/form-data">
+    <form method="post" action="/produtos/ajax/upload_foto.php" enctype="multipart/form-data" class="card">
         <input type="hidden" name="id_produto" value="<?= $id_produto ?>">
-        <input type="file" name="foto" accept="image/png,image/jpeg,image/gif" required>
+        <label>Nova foto<input type="file" name="foto" accept="image/png,image/jpeg,image/gif" required></label>
         <button type="submit">Enviar foto</button>
     </form>
     <?php endif; ?>
 
-    <form method="post" action="/produtos/ajax/deletar_produto.php" onsubmit="return confirm('Excluir este produto e suas fotos definitivamente?');">
+    <form method="post" action="/produtos/ajax/deletar_produto.php" onsubmit="return confirm('Excluir este produto e suas fotos definitivamente?');" style="margin-top:20px;">
         <input type="hidden" name="id_produto" value="<?= $id_produto ?>">
-        <button type="submit">Excluir produto</button>
+        <button type="submit" class="btn-perigo">Excluir produto</button>
     </form>
 
-    <p><a href="/produtos/lista.php">Voltar</a></p>
+    <p><a href="/produtos/lista.php" class="btn-texto">← Voltar</a></p>
 </main>
 </body>
 </html>
