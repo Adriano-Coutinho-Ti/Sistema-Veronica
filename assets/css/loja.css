@@ -357,6 +357,7 @@ textarea { min-height: 88px; }
     align-items: center;
     gap: 10px;
 }
+.alert-oportunidade[hidden] { display: none; }
 
 .alert-info {
     background: var(--cor-fundo-alt);

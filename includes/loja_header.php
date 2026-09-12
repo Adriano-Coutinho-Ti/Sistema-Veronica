@@ -29,9 +29,8 @@ $versaoJs = @filemtime(__DIR__ . '/../assets/js/loja.js') ?: time();
         <a href="/loja/index.php" class="site-logo">
             <?php if (!empty($configLoja['logo_arquivo'])): ?>
                 <img src="/<?= htmlspecialchars($configLoja['logo_arquivo']) ?>" alt="<?= htmlspecialchars($configLoja['nome_loja']) ?>">
-            <?php else: ?>
-                <?= htmlspecialchars($configLoja['nome_loja']) ?>
             <?php endif; ?>
+            <?= htmlspecialchars($configLoja['nome_loja']) ?>
         </a>
         <button type="button" class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="site-nav" aria-label="Abrir menu">
             <span></span><span></span><span></span>

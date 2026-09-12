@@ -63,11 +63,22 @@ $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
 $stmt->execute();
 $produtos = $stmt->fetchAll();
 
+// IDs vindos do redirecionamento do carrinho quando o cronômetro zera — ficam
+// destacados como "nova oportunidade" pra quem chegou aqui (e pra qualquer um
+// que reabra esse link).
+$voltouIds = [];
+if (!empty($_GET['voltou'])) {
+    $voltouIds = array_filter(array_map('intval', explode(',', $_GET['voltou'])));
+}
+
 $temReservadoNaPagina = false;
+$temVoltouNaPagina = false;
 foreach ($produtos as $p) {
     if ((int) $p['disponivel'] <= 0) {
         $temReservadoNaPagina = true;
-        break;
+    }
+    if (in_array((int) $p['id_produto'], $voltouIds, true)) {
+        $temVoltouNaPagina = true;
     }
 }
 
@@ -82,14 +93,6 @@ if (!empty($produtos)) {
     foreach ($stmtFotos->fetchAll() as $f) {
         $fotosPorProduto[(int) $f['id_produto']][] = $f['caminho_arquivo'];
     }
-}
-
-// IDs vindos do redirecionamento do carrinho quando o cronômetro zera — ficam
-// destacados como "nova oportunidade" pra quem chegou aqui (e pra qualquer um
-// que reabra esse link).
-$voltouIds = [];
-if (!empty($_GET['voltou'])) {
-    $voltouIds = array_filter(array_map('intval', explode(',', $_GET['voltou'])));
 }
 
 $favoritoIds = [];
@@ -166,9 +169,9 @@ function montarLinkPagina(int $p, int $categoria, string $busca): string
                 <p class="resultado-busca"><?= $totalProdutos ?> resultado<?= $totalProdutos === 1 ? '' : 's' ?> para "<?= htmlspecialchars($busca) ?>"</p>
             <?php endif; ?>
 
-            <?php if ($temReservadoNaPagina): ?>
-                <p class="alert alert-info">Itens com a tag "Em um carrinho" estão reservados no carrinho de outro cliente, mas ainda não foram pagos — podem voltar a ficar disponíveis a qualquer momento.</p>
-            <?php endif; ?>
+            <p class="alert alert-info" id="aviso-reservado"<?= $temReservadoNaPagina ? '' : ' hidden' ?>>Itens com a tag "Em um carrinho" estão reservados no carrinho de outro cliente, mas ainda não foram pagos — podem voltar a ficar disponíveis a qualquer momento.</p>
+
+            <p class="alert alert-oportunidade" id="aviso-voltou-geral"<?= $temVoltouNaPagina ? '' : ' hidden' ?>><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8L12 2Z"/></svg> Peça(s) que estavam no carrinho de outro cliente voltaram pra loja — aproveite antes que sumam de novo!</p>
 
             <div class="product-grid" id="grade-produtos">
                 <?php foreach ($produtos as $p): ?>
@@ -385,8 +388,25 @@ function montarLinkPagina(int $p, int $categoria, string $busca): string
 
                     mostrarPopupOportunidade(data.produtos[0]);
                 }
+
+                // 3) Os avisos no topo da página (explicando "Em um carrinho" e
+                // "voltou pra loja") têm que refletir a tela agora, não o que
+                // era verdade quando a página carregou — senão ficam presos
+                // avisando algo que já não é mais real.
+                atualizarAvisosGerais();
             })
             .catch(function () {});
+    }
+
+    function atualizarAvisosGerais() {
+        const avisoReservado = document.getElementById('aviso-reservado');
+        if (avisoReservado) {
+            avisoReservado.hidden = grade.querySelector('.product-card.reservado') === null;
+        }
+        const avisoVoltou = document.getElementById('aviso-voltou-geral');
+        if (avisoVoltou) {
+            avisoVoltou.hidden = grade.querySelector('.product-card.voltou') === null;
+        }
     }
 
     setInterval(verificarNovidades, 5000);
