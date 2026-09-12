@@ -393,12 +393,12 @@ function montarLinkPagina(int $p, int $categoria, string $busca): string
                 // "voltou pra loja") têm que refletir a tela agora, não o que
                 // era verdade quando a página carregou — senão ficam presos
                 // avisando algo que já não é mais real.
-                atualizarAvisosGerais();
+                atualizarAvisosGerais(grade);
             })
             .catch(function () {});
     }
 
-    function atualizarAvisosGerais() {
+    function atualizarAvisosGerais(grade) {
         const avisoReservado = document.getElementById('aviso-reservado');
         if (avisoReservado) {
             avisoReservado.hidden = grade.querySelector('.product-card.reservado') === null;
