@@ -54,6 +54,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'atualiz
             $cliente['endereco'] = $endereco;
         }
     }
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'ativar_email_manual') {
+    // Alguns clientes (idosos, quem não usa e-mail no dia a dia) não conseguem
+    // clicar no link de confirmação sozinhos — a loja verifica pessoalmente
+    // (WhatsApp, telefone) e ativa por eles.
+    if (empty($cliente['email'])) {
+        $erro = 'Esse cliente não tem e-mail cadastrado. Cadastre o e-mail antes de ativar.';
+    } else {
+        $pdo->prepare('UPDATE clientes SET email_verificado_em = NOW(), token_verificacao_email = NULL, token_verificacao_expira_em = NULL WHERE id_cliente = :id')
+            ->execute([':id' => $id]);
+        $sucesso = 'E-mail ativado manualmente. O cliente já pode usar o carrinho.';
+        $cliente['email_verificado_em'] = date('Y-m-d H:i:s');
+    }
 } elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'atualizar_limite') {
     if (($_SESSION['perfil'] ?? '') !== 'Admin') {
         http_response_code(403);
@@ -158,6 +170,20 @@ $creditoDisponivel = (float) $cliente['limite_credito'] - (float) $cliente['sald
         <label>Endereço<br><input type="text" name="endereco" value="<?= htmlspecialchars($cliente['endereco'] ?? '') ?>"></label><br>
         <button type="submit">Salvar dados</button>
     </form>
+
+    <h2>E-mail da loja online</h2>
+    <?php if (empty($cliente['email'])): ?>
+    <p>Sem e-mail cadastrado — o cliente não consegue entrar na loja online até ter um e-mail.</p>
+    <?php elseif (!empty($cliente['email_verificado_em'])): ?>
+    <p style="color:green;">✓ Verificado em <?= htmlspecialchars(date('d/m/Y H:i', strtotime($cliente['email_verificado_em']))) ?></p>
+    <?php else: ?>
+    <p style="color:#b45309;">Ainda não verificado — o cliente não consegue usar o carrinho até confirmar o e-mail (pelo link enviado ou por aqui).</p>
+    <form method="post">
+        <input type="hidden" name="acao" value="ativar_email_manual">
+        <button type="submit">Ativar e-mail manualmente</button>
+    </form>
+    <p style="font-size:0.9em; color:#666;">Use isso quando o cliente não conseguir clicar no link do e-mail sozinho (ex: não sabe mexer no e-mail) — confirme a identidade dele por WhatsApp/telefone antes de ativar.</p>
+    <?php endif; ?>
 
     <h2>Linha de Crédito</h2>
     <p>Limite: R$ <?= number_format((float) $cliente['limite_credito'], 2, ',', '.') ?></p>
