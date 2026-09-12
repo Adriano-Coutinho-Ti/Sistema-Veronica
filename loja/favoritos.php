@@ -8,6 +8,7 @@ $id_cliente = (int) $_SESSION['id_cliente'];
 $stmt = $pdo->prepare(
     "SELECT f.id_favorito, p.id_produto, p.nome, p.preco_base, p.ativo,
             COALESCE(SUM(pv.estoque - pv.estoque_reservado), 0) AS disponivel,
+            COALESCE(SUM(pv.estoque), 0) AS estoque_fisico,
             (SELECT caminho_arquivo FROM produto_fotos WHERE id_produto = p.id_produto ORDER BY ordem LIMIT 1) AS foto
      FROM favoritos f
      JOIN produtos p ON p.id_produto = f.id_produto
@@ -18,6 +19,8 @@ $stmt = $pdo->prepare(
 );
 $stmt->execute([':ic' => $id_cliente]);
 $favoritos = $stmt->fetchAll();
+
+$agoraServidor = $pdo->query('SELECT NOW()')->fetchColumn();
 ?>
 <!DOCTYPE html>
 <html lang="pt-br">
@@ -34,8 +37,17 @@ $favoritos = $stmt->fetchAll();
     <?php else: ?>
     <div class="product-grid" id="grade-favoritos">
         <?php foreach ($favoritos as $f): ?>
-        <?php $disponivel = (int) $f['ativo'] === 1 && (int) $f['disponivel'] > 0; ?>
-        <a href="/loja/produto.php?id=<?= $f['id_produto'] ?>" class="product-card<?= !$disponivel ? ' indisponivel' : '' ?>" data-id-produto="<?= $f['id_produto'] ?>">
+        <?php
+            $disp = (int) $f['disponivel'];
+            $ativo = (int) $f['ativo'] === 1;
+            // Esgotado de verdade (não volta mais) é diferente de só estar preso no
+            // carrinho de outro cliente (pode voltar a qualquer momento) — mesma
+            // distinção já usada no catálogo e na página do produto.
+            $reservado = $ativo && $disp <= 0 && (int) $f['estoque_fisico'] > 0;
+            $indisponivel = !$ativo || (int) $f['estoque_fisico'] <= 0;
+        ?>
+        <a href="/loja/produto.php?id=<?= $f['id_produto'] ?>" class="product-card<?= $indisponivel ? ' indisponivel' : '' ?><?= $reservado ? ' reservado' : '' ?>" data-id-produto="<?= $f['id_produto'] ?>">
+            <?php if ($reservado): ?><span class="tag-reservado">Em um carrinho</span><?php endif; ?>
             <div class="card-acoes">
                 <button type="button" class="botao-acao favoritar ativo" data-id-produto="<?= $f['id_produto'] ?>" aria-label="Remover dos favoritos">
                     <svg class="icon-coracao" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7.5-4.6-10-9.1C.3 8.9 1.5 5 5 4c2.4-.7 4.8.3 6.2 2.3L12 7.6l.8-1.3C14.2 4.3 16.6 3.3 19 4c3.5 1 4.7 4.9 3 7.9-2.5 4.5-10 9.1-10 9.1Z"/></svg>
@@ -46,7 +58,13 @@ $favoritos = $stmt->fetchAll();
             </div>
             <div class="nome"><?= htmlspecialchars($f['nome']) ?></div>
             <div class="price">R$ <?= number_format($f['preco_base'], 2, ',', '.') ?></div>
-            <?php if (!$disponivel): ?><div class="tag-indisponivel">Já vendido</div><?php endif; ?>
+            <?php if ($indisponivel): ?>
+                <div class="tag-indisponivel">Já vendido</div>
+            <?php elseif ($reservado): ?>
+                <div class="disponibilidade card disponibilidade-baixa">Aguardando pagamento de outro cliente</div>
+            <?php else: ?>
+                <div class="disponibilidade card<?= $disp <= 3 ? ' disponibilidade-baixa' : '' ?>"><?= $disp ?> disponíve<?= $disp === 1 ? 'l' : 'is' ?></div>
+            <?php endif; ?>
         </a>
         <?php endforeach; ?>
     </div>
@@ -68,6 +86,62 @@ document.getElementById('grade-favoritos')?.addEventListener('click', function (
         }
     }).catch(function () {});
 });
+
+// Mesmo princípio do catálogo: reafirma o estado real de cada favorito a cada
+// checagem, pra nunca ficar preso mostrando "em um carrinho" (ou o contrário)
+// depois de já ter mudado. Esta página não mostra "Nova oportunidade" nem
+// popup — só corrige a etiqueta de disponibilidade de cada cartão.
+(function () {
+    const grade = document.getElementById('grade-favoritos');
+    if (!grade) { return; }
+    let ultimaChecagem = <?= json_encode($agoraServidor) ?>;
+
+    function sincronizarFavorito(card, disponivel) {
+        if (card.classList.contains('indisponivel')) { return; }
+        const reservado = disponivel <= 0;
+        card.classList.toggle('reservado', reservado);
+
+        let tag = card.querySelector('.tag-reservado');
+        if (reservado && !tag) {
+            tag = document.createElement('span');
+            tag.className = 'tag-reservado';
+            tag.textContent = 'Em um carrinho';
+            card.prepend(tag);
+        } else if (!reservado && tag) {
+            tag.remove();
+        }
+
+        const dispEl = card.querySelector('.disponibilidade.card');
+        if (dispEl) {
+            if (reservado) {
+                dispEl.className = 'disponibilidade card disponibilidade-baixa';
+                dispEl.textContent = 'Aguardando pagamento de outro cliente';
+            } else {
+                dispEl.className = 'disponibilidade card' + (disponivel <= 3 ? ' disponibilidade-baixa' : '');
+                dispEl.textContent = disponivel + (disponivel === 1 ? ' disponível' : ' disponíveis');
+            }
+        }
+    }
+
+    function verificarFavoritos() {
+        const ids = Array.from(grade.querySelectorAll('[data-id-produto]')).map(function (el) { return el.dataset.idProduto; });
+        if (ids.length === 0) { return; }
+        const params = new URLSearchParams({ desde: ultimaChecagem, categoria: 0, ids: ids.join(',') });
+        fetch('/loja/ajax/verificar_novidades.php?' + params.toString())
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (!data.success) { return; }
+                ultimaChecagem = data.agora;
+                (data.status || []).forEach(function (s) {
+                    const card = grade.querySelector('[data-id-produto="' + s.id_produto + '"]');
+                    if (card) { sincronizarFavorito(card, s.disponivel); }
+                });
+            })
+            .catch(function () {});
+    }
+
+    setInterval(verificarFavoritos, 5000);
+})();
 </script>
 </main>
 <?php require __DIR__ . '/../includes/loja_footer.php'; ?>

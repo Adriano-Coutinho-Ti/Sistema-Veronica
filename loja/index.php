@@ -290,12 +290,20 @@ function montarLinkPagina(int $p, int $categoria, string $busca): string
         card.classList.toggle('reservado', reservado);
 
         let tagReservado = card.querySelector('.tag-reservado');
-        if (reservado && !tagReservado && !card.querySelector('.tag-oportunidade')) {
-            tagReservado = document.createElement('span');
-            tagReservado.className = 'tag-reservado';
-            tagReservado.textContent = 'Em um carrinho';
-            card.prepend(tagReservado);
-        } else if (!reservado && tagReservado) {
+        if (reservado) {
+            // Alguém já colocou de novo no carrinho antes da pessoa aproveitar —
+            // "Em um carrinho" manda mais que "Nova oportunidade" agora, então a
+            // festa dourada sai e a tag cinza toma o lugar dela.
+            card.classList.remove('voltou');
+            const tagOportunidade = card.querySelector('.tag-oportunidade');
+            if (tagOportunidade) { tagOportunidade.remove(); }
+            if (!tagReservado) {
+                tagReservado = document.createElement('span');
+                tagReservado.className = 'tag-reservado';
+                tagReservado.textContent = 'Em um carrinho';
+                card.prepend(tagReservado);
+            }
+        } else if (tagReservado) {
             tagReservado.remove();
         }
 

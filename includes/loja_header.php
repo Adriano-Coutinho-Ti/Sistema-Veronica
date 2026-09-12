@@ -43,8 +43,8 @@ $versaoJs = @filemtime(__DIR__ . '/../assets/js/loja.js') ?: time();
                 <a href="/loja/favoritos.php">Favoritos</a>
                 <a href="/loja/meus_pedidos.php">Meus pedidos</a>
                 <a href="/loja/minha_divida.php">Meus débitos</a>
-                <span class="site-nav-user">Olá, <?= htmlspecialchars($_SESSION['nome_cliente']) ?></span>
-                <a href="/loja/logout.php" class="link-sair">Sair</a>
+                <a href="/loja/minha_conta.php" class="site-nav-user">Olá, <?= htmlspecialchars($_SESSION['nome_cliente']) ?></a>
+                <a href="/loja/logout.php" class="link-sair" onclick="return confirm('Tem certeza que quer sair da sua conta?');">Sair</a>
             <?php else: ?>
                 <a href="/loja/cadastro.php">Entrar / Cadastrar</a>
             <?php endif; ?>
