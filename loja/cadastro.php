@@ -21,6 +21,13 @@ function normalizarEmail(string $email): string
     return mb_strtolower(trim($email));
 }
 
+// Só primeiro nome não identifica ninguém direito pra loja — exige nome
+// completo (pelo menos duas palavras).
+function nomeCompleto(string $nome): bool
+{
+    return count(array_filter(preg_split('/\s+/', trim($nome)))) >= 2;
+}
+
 $erro = '';
 $etapa = 'email';
 $emailNormalizado = '';
@@ -60,8 +67,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!filter_var($emailNormalizado, FILTER_VALIDATE_EMAIL)) {
             $erro = 'E-mail inválido. Volte e informe um e-mail válido.';
             $etapa = 'email';
-        } elseif ($nome === '' || strlen($whatsappNormalizado) < 12 || strlen($senha) < 6) {
-            $erro = 'Informe seu nome, um WhatsApp válido (com DDD) e uma senha com pelo menos 6 caracteres.';
+        } elseif (!nomeCompleto($nome)) {
+            $erro = 'Informe seu nome completo (nome e sobrenome).';
+            $etapa = 'cadastro';
+        } elseif (strlen($whatsappNormalizado) < 12) {
+            $erro = 'Informe um WhatsApp válido, com DDD.';
+            $etapa = 'cadastro';
+        } elseif (strlen($senha) < 6) {
+            $erro = 'A senha precisa ter pelo menos 6 caracteres.';
             $etapa = 'cadastro';
         } else {
             // Checagem prévia (em vez de só confiar na constraint UNIQUE do banco) pra
@@ -166,14 +179,70 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </form>
     <?php elseif ($etapa === 'cadastro'): ?>
     <h2>Complete seu cadastro</h2>
-    <form method="post">
+    <p class="alert alert-erro" id="erro-cadastro" hidden></p>
+    <form method="post" id="form-cadastro">
         <input type="hidden" name="acao" value="cadastro">
         <input type="hidden" name="email" value="<?= htmlspecialchars($emailNormalizado) ?>">
-        <label>Nome<input type="text" name="nome" required></label>
-        <label>WhatsApp (com DDD)<input type="text" name="whatsapp" required placeholder="11987654321"></label>
-        <label>Crie uma senha<input type="password" name="senha" required minlength="6"></label>
+        <label>Nome completo<input type="text" name="nome" id="campo-nome" required></label>
+        <label>WhatsApp (com DDD)<input type="text" name="whatsapp" id="campo-whatsapp" required placeholder="(11) 98765-4321" inputmode="numeric" maxlength="16"></label>
+        <label>Crie uma senha<input type="password" name="senha" id="campo-senha" required minlength="6"></label>
         <button type="submit" class="btn-bloco">Cadastrar</button>
     </form>
+    <script>
+    (function () {
+        function formatarTelefone(valorBruto) {
+            const digitos = valorBruto.replace(/\D/g, '').slice(0, 11);
+            if (digitos.length === 0) { return ''; }
+            if (digitos.length <= 2) { return '(' + digitos; }
+            const ddd = digitos.slice(0, 2);
+            const resto = digitos.slice(2);
+            const tamanhoParte1 = digitos.length > 10 ? 5 : 4;
+            const parte1 = resto.slice(0, tamanhoParte1);
+            const parte2 = resto.slice(tamanhoParte1);
+            let formatado = '(' + ddd + ') ' + parte1;
+            if (parte2) { formatado += '-' + parte2; }
+            return formatado;
+        }
+
+        const campoWhatsapp = document.getElementById('campo-whatsapp');
+        campoWhatsapp.addEventListener('input', function () {
+            campoWhatsapp.value = formatarTelefone(campoWhatsapp.value);
+        });
+
+        const campoSenha = document.getElementById('campo-senha');
+        campoSenha.addEventListener('input', function () {
+            campoSenha.classList.toggle('senha-valida', campoSenha.value.length >= 6);
+        });
+
+        function contarNomes(nome) {
+            return nome.trim().split(/\s+/).filter(Boolean).length;
+        }
+
+        const erroEl = document.getElementById('erro-cadastro');
+        document.getElementById('form-cadastro').addEventListener('submit', function (e) {
+            const nome = document.getElementById('campo-nome').value;
+            const digitosWhatsapp = campoWhatsapp.value.replace(/\D/g, '');
+            const senha = campoSenha.value;
+            let mensagem = '';
+
+            if (contarNomes(nome) < 2) {
+                mensagem = 'Informe seu nome completo (nome e sobrenome).';
+            } else if (digitosWhatsapp.length < 10) {
+                mensagem = 'Informe um WhatsApp válido, com DDD.';
+            } else if (senha.length < 6) {
+                mensagem = 'A senha precisa ter pelo menos 6 caracteres.';
+            }
+
+            if (mensagem) {
+                e.preventDefault();
+                erroEl.textContent = mensagem;
+                erroEl.hidden = false;
+            } else {
+                erroEl.hidden = true;
+            }
+        });
+    })();
+    </script>
     <?php elseif ($etapa === 'ativar'): ?>
     <h2>Ativar minha conta</h2>
     <p>Encontramos seu cadastro. Crie uma senha pra acessar a loja online.</p>

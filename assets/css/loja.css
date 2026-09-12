@@ -348,6 +348,15 @@ input:focus, select:focus, textarea:focus {
 
 textarea { min-height: 88px; }
 
+/* Feedback ao vivo de senha válida (6+ caracteres) no cadastro da loja */
+input.senha-valida {
+    border-color: var(--cor-sucesso);
+    background: var(--cor-sucesso-fundo);
+}
+input.senha-valida:focus {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--cor-sucesso) 20%, transparent);
+}
+
 /* Cartão de autenticação — cadastro/login/ativar conta, centralizado */
 .auth-card {
     max-width: 420px;
