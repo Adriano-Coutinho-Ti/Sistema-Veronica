@@ -7,7 +7,8 @@ exigirClienteLogado();
 liberarReservasExpiradas($pdo);
 
 $id_cliente = (int) $_SESSION['id_cliente'];
-$id_venda = buscarCarrinhoDoCliente($pdo, $id_cliente);
+$emailVerificado = clienteEmailVerificado($pdo, $id_cliente);
+$id_venda = $emailVerificado ? buscarCarrinhoDoCliente($pdo, $id_cliente) : null;
 
 $itens = [];
 $total = 0;
@@ -64,7 +65,35 @@ if ($id_venda) {
         <p>Confira os itens antes de finalizar sua compra.</p>
     </div>
 
-    <?php if (empty($itens)): ?>
+    <?php if (!$emailVerificado): ?>
+    <div class="resumo-card" id="bloqueio-verificacao" style="max-width:460px; margin:0 auto; text-align:center;">
+        <h2>Confirme seu e-mail pra continuar</h2>
+        <p style="color:var(--cor-texto-suave); margin-bottom:18px;">Por segurança, o carrinho só libera depois que você confirma seu e-mail — enviamos um link de confirmação assim que você se cadastrou.</p>
+        <p class="alert alert-sucesso" id="msg-reenvio" hidden></p>
+        <button type="button" class="btn btn-bloco" id="btn-reenviar-verificacao">Reenviar e-mail de verificação</button>
+    </div>
+    <script>
+    document.getElementById('btn-reenviar-verificacao').addEventListener('click', function () {
+        const btn = this;
+        const msg = document.getElementById('msg-reenvio');
+        btn.disabled = true;
+        fetch('/loja/ajax/reenviar_verificacao.php', { method: 'POST' })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                msg.textContent = data.message;
+                msg.className = 'alert ' + (data.success ? 'alert-sucesso' : 'alert-erro');
+                msg.hidden = false;
+                btn.disabled = false;
+            })
+            .catch(function () {
+                msg.textContent = 'Erro de conexão. Tente novamente.';
+                msg.className = 'alert alert-erro';
+                msg.hidden = false;
+                btn.disabled = false;
+            });
+    });
+    </script>
+    <?php elseif (empty($itens)): ?>
     <p>Seu carrinho está vazio. <a href="/loja/index.php">Ver catálogo</a></p>
     <?php else: ?>
 

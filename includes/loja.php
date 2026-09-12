@@ -1,6 +1,7 @@
 <?php
 // definirEntregaDaVenda() usa recalcularTotalVenda(), definida em caixa.php.
 require_once __DIR__ . '/caixa.php';
+require_once __DIR__ . '/email_smtp.php';
 
 /**
  * Libera reservas de carrinho da loja online que passaram do prazo — devolve
@@ -149,4 +150,80 @@ function formatarWhatsappExibicao(string $whatsapp): string
         return '+55 (' . $m[1] . ') ' . $m[2] . '-' . $m[3];
     }
     return $whatsapp;
+}
+
+/**
+ * Mesmo formato que formatarTelefoneBr() (assets/js/loja.js) produz enquanto o
+ * cliente digita — usado pra pré-preencher um campo EDITÁVEL de WhatsApp
+ * (ex: Minha conta) sem o "+55" do formatarWhatsappExibicao() acima, que
+ * quebraria a máscara JS se ficasse no valor inicial do campo (o "55" do
+ * "+55" seria lido como dois dígitos do número pela máscara).
+ */
+function formatarWhatsappParaEdicao(string $whatsapp): string
+{
+    $digitos = preg_replace('/\D/', '', $whatsapp);
+    if (strlen($digitos) > 11 && str_starts_with($digitos, '55')) {
+        $digitos = substr($digitos, 2);
+    }
+    if (strlen($digitos) < 10) {
+        return $whatsapp;
+    }
+    $ddd = substr($digitos, 0, 2);
+    $resto = substr($digitos, 2);
+    $tamanhoParte1 = strlen($digitos) > 10 ? 5 : 4;
+    $parte1 = substr($resto, 0, $tamanhoParte1);
+    $parte2 = substr($resto, $tamanhoParte1);
+    return '(' . $ddd . ') ' . $parte1 . ($parte2 !== '' ? '-' . $parte2 : '');
+}
+
+/**
+ * True só quando o cliente já clicou no link do e-mail de verificação. Usado
+ * pra bloquear carrinho/adicionar-ao-carrinho de contas com e-mail ainda não
+ * confirmado — evita cadastro com e-mail falso ("conta fantasma").
+ */
+function clienteEmailVerificado(PDO $pdo, int $id_cliente): bool
+{
+    $stmt = $pdo->prepare('SELECT email_verificado_em FROM clientes WHERE id_cliente = :id');
+    $stmt->execute([':id' => $id_cliente]);
+    return $stmt->fetchColumn() !== null;
+}
+
+/**
+ * Gera um token de verificação (válido por 24h), salva no cliente e manda o
+ * e-mail com o link de confirmação. Chamada tanto no cadastro novo quanto na
+ * ativação de conta existente (e de novo sempre que o cliente troca de
+ * e-mail em "Minha conta") — em todos os casos o e-mail está, até esse
+ * ponto, um dado não confirmado.
+ */
+function dispararVerificacaoEmail(PDO $pdo, int $id_cliente, string $email, string $nome): array
+{
+    $token = bin2hex(random_bytes(32));
+    $expiraEm = date('Y-m-d H:i:s', time() + 86400); // 24h
+
+    $pdo->prepare('UPDATE clientes SET token_verificacao_email = :t, token_verificacao_expira_em = :e WHERE id_cliente = :id')
+        ->execute([':t' => $token, ':e' => $expiraEm, ':id' => $id_cliente]);
+
+    $configLoja = $pdo->query('SELECT nome_loja FROM config_loja WHERE id_config = 1')->fetch();
+    $nomeLoja = $configLoja['nome_loja'] ?? 'a loja';
+
+    $link = 'https://brechodaveve.codernex.com.br/loja/verificar_email.php?token=' . $token;
+    $primeiroNome = explode(' ', trim($nome))[0];
+
+    $corpo = montarEmailHtmlLoja(
+        $pdo,
+        'Confirme seu e-mail',
+        [
+            'Olá, ' . htmlspecialchars($primeiroNome) . '!',
+            'Recebemos esse e-mail como o seu de contato na <strong>' . htmlspecialchars($nomeLoja) . '</strong>. Confirme clicando no botão abaixo — assim garantimos que é você mesmo, e você já pode usar o carrinho de compras.',
+            'Este link é válido por <strong>24 horas</strong>.',
+        ],
+        'Confirmar meu e-mail',
+        $link
+    );
+
+    $resultado = enviarEmailSMTP($email, 'Confirme seu e-mail — ' . $nomeLoja, $corpo);
+    if (!$resultado['success']) {
+        error_log('Falha ao enviar e-mail de verificação (cliente ' . $id_cliente . '): ' . $resultado['message']);
+    }
+    return $resultado;
 }

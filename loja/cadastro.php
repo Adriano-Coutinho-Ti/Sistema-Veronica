@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../conecta_bd.php';
 require_once __DIR__ . '/../includes/auth_cliente.php';
+require_once __DIR__ . '/../includes/loja.php';
 
 if (!empty($_SESSION['id_cliente'])) {
     header('Location: /loja/index.php');
@@ -96,9 +97,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $hash = password_hash($senha, PASSWORD_DEFAULT);
                     $stmt = $pdo->prepare('INSERT INTO clientes (nome, whatsapp, email, senha_hash) VALUES (:nome, :whatsapp, :email, :senha)');
                     $stmt->execute([':nome' => $nome, ':whatsapp' => $whatsappNormalizado, ':email' => $emailNormalizado, ':senha' => $hash]);
-                    $_SESSION['id_cliente'] = (int) $pdo->lastInsertId();
+                    $idClienteNovo = (int) $pdo->lastInsertId();
+                    $_SESSION['id_cliente'] = $idClienteNovo;
                     $_SESSION['nome_cliente'] = $nome;
                     session_regenerate_id(true);
+                    // Cliente já entra navegando normalmente — só fica sem poder usar o
+                    // carrinho até confirmar que o e-mail é de verdade dele.
+                    dispararVerificacaoEmail($pdo, $idClienteNovo, $emailNormalizado, $nome);
                     header('Location: /loja/index.php');
                     exit;
                 } catch (PDOException $e) {
@@ -131,6 +136,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['id_cliente'] = (int) $cliente['id_cliente'];
                 $_SESSION['nome_cliente'] = $cliente['nome'];
                 session_regenerate_id(true);
+                // Esse e-mail foi digitado pelo lojista no PDV, nunca confirmado pelo
+                // próprio dono da caixa de entrada — mesma regra do cadastro novo.
+                dispararVerificacaoEmail($pdo, (int) $cliente['id_cliente'], $emailNormalizado, $cliente['nome']);
                 header('Location: /loja/index.php');
                 exit;
             } else {
@@ -189,30 +197,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <button type="submit" class="btn-bloco">Cadastrar</button>
     </form>
     <script>
-    (function () {
-        function formatarTelefone(valorBruto) {
-            const digitos = valorBruto.replace(/\D/g, '').slice(0, 11);
-            if (digitos.length === 0) { return ''; }
-            if (digitos.length <= 2) { return '(' + digitos; }
-            const ddd = digitos.slice(0, 2);
-            const resto = digitos.slice(2);
-            const tamanhoParte1 = digitos.length > 10 ? 5 : 4;
-            const parte1 = resto.slice(0, tamanhoParte1);
-            const parte2 = resto.slice(tamanhoParte1);
-            let formatado = '(' + ddd + ') ' + parte1;
-            if (parte2) { formatado += '-' + parte2; }
-            return formatado;
-        }
-
+    // Este script roda inline (sem defer) durante o parse do HTML, então
+    // executa ANTES do loja.js (carregado com defer) — sem esperar
+    // DOMContentLoaded, ativarMascaraTelefone()/ativarFeedbackSenha() ainda
+    // não existiriam nesse ponto.
+    document.addEventListener('DOMContentLoaded', function () {
         const campoWhatsapp = document.getElementById('campo-whatsapp');
-        campoWhatsapp.addEventListener('input', function () {
-            campoWhatsapp.value = formatarTelefone(campoWhatsapp.value);
-        });
+        ativarMascaraTelefone(campoWhatsapp);
 
         const campoSenha = document.getElementById('campo-senha');
-        campoSenha.addEventListener('input', function () {
-            campoSenha.classList.toggle('senha-valida', campoSenha.value.length >= 6);
-        });
+        ativarFeedbackSenha(campoSenha);
 
         function contarNomes(nome) {
             return nome.trim().split(/\s+/).filter(Boolean).length;
@@ -241,7 +235,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 erroEl.hidden = true;
             }
         });
-    })();
+    });
     </script>
     <?php elseif ($etapa === 'ativar'): ?>
     <h2>Ativar minha conta</h2>

@@ -124,6 +124,38 @@ function iniciarModalSair() {
     });
 }
 
+// Máscara de telefone BR progressiva — usada tanto no cadastro quanto em
+// "Minha conta" (troca de WhatsApp), então vive aqui em vez de duplicada.
+function formatarTelefoneBr(valorBruto) {
+    const digitos = valorBruto.replace(/\D/g, '').slice(0, 11);
+    if (digitos.length === 0) { return ''; }
+    if (digitos.length <= 2) { return '(' + digitos; }
+    const ddd = digitos.slice(0, 2);
+    const resto = digitos.slice(2);
+    const tamanhoParte1 = digitos.length > 10 ? 5 : 4;
+    const parte1 = resto.slice(0, tamanhoParte1);
+    const parte2 = resto.slice(tamanhoParte1);
+    let formatado = '(' + ddd + ') ' + parte1;
+    if (parte2) { formatado += '-' + parte2; }
+    return formatado;
+}
+
+function ativarMascaraTelefone(input) {
+    if (!input) { return; }
+    input.addEventListener('input', function () {
+        input.value = formatarTelefoneBr(input.value);
+    });
+}
+
+// Feedback visual (fica verde) quando a senha atinge o mínimo de 6 caracteres
+// — usado no cadastro e na troca de senha em "Minha conta".
+function ativarFeedbackSenha(input) {
+    if (!input) { return; }
+    input.addEventListener('input', function () {
+        input.classList.toggle('senha-valida', input.value.length >= 6);
+    });
+}
+
 document.addEventListener('DOMContentLoaded', function () {
     iniciarMenuMobile();
     iniciarCarrosseis();

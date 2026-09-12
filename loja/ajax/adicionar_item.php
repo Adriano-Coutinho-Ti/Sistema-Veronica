@@ -26,6 +26,11 @@ $id_produto_variacao = (int) ($_POST['id_produto_variacao'] ?? 0);
 $quantidade = max(1, (int) ($_POST['quantidade'] ?? 1));
 $id_cliente = (int) $_SESSION['id_cliente'];
 
+if (!clienteEmailVerificado($pdo, $id_cliente)) {
+    echo json_encode(['success' => false, 'message' => 'Confirme seu e-mail antes de adicionar itens ao carrinho. Vá em "Minha conta" pra reenviar o e-mail de verificação.']);
+    exit;
+}
+
 $pdo->beginTransaction();
 try {
     $reservou = $pdo->prepare(
