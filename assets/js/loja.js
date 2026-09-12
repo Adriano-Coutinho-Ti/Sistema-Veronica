@@ -69,6 +69,28 @@ function iniciarCarrosseis() {
                 agendado = false;
             });
         });
+
+        // Avanço automático (ex: cartão do catálogo) — desliga se o visitante preferir
+        // menos movimento na tela, e reinicia a contagem sempre que ele mexe manualmente.
+        const intervaloAuto = parseInt(carousel.dataset.carouselAuto || '0', 10);
+        const semAnimacao = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (intervaloAuto > 0 && !semAnimacao) {
+            let temporizador = null;
+
+            function agendarProximo() {
+                if (temporizador) {
+                    clearInterval(temporizador);
+                }
+                temporizador = setInterval(function () {
+                    const atual = Math.round(track.scrollLeft / track.clientWidth);
+                    irPara((atual + 1) % dots.length);
+                }, intervaloAuto);
+            }
+
+            track.addEventListener('pointerdown', agendarProximo);
+            dots.forEach(function (dot) { dot.addEventListener('click', agendarProximo); });
+            agendarProximo();
+        }
     });
 }
 

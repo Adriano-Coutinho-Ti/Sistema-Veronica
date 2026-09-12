@@ -75,7 +75,7 @@ if (!empty($_GET['voltou'])) {
             <?php if ($ehOportunidade): ?><span class="tag-oportunidade">Nova oportunidade</span><?php endif; ?>
             <div class="card-media">
                 <?php if (count($fotos) > 1): ?>
-                <div class="carousel" data-carousel>
+                <div class="carousel" data-carousel data-carousel-auto="1000">
                     <div class="carousel-track">
                         <?php foreach ($fotos as $foto): ?>
                             <img src="/<?= htmlspecialchars($foto) ?>" alt="<?= htmlspecialchars($p['nome']) ?>">
