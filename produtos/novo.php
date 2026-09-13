@@ -69,36 +69,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Novo produto</title></head>
 <body>
 <?php require __DIR__ . '/../includes/admin_header.php'; ?>
-    <h1>Novo produto</h1>
+    <div class="page-title">
+        <span class="icone-titulo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.4 12.2a2 2 0 0 0 2 1.8h7.2a2 2 0 0 0 2-1.6L20 8H6M9 21a1 1 0 1 0 0-2 1 1 0 0 0 0 2Zm8 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <div>
+            <h1>Novo produto</h1>
+            <span class="subtitulo">Cadastre um produto novo pro catálogo</span>
+        </div>
+    </div>
+
+    <p class="acoes-topo">
+        <a href="/produtos/lista.php" class="btn-outline btn-sm">
+            <svg viewBox="0 0 24 24" aria-hidden="true" width="14" height="14"><path d="M15 6 9 12l6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Voltar
+        </a>
+    </p>
+
     <?php if ($erro): ?><p class="alert alert-erro"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
+
     <div class="card">
-    <form method="post" id="form-produto">
-        <label>Nome<input type="text" name="nome" required></label>
-        <label>Descrição<textarea name="descricao"></textarea></label>
-        <label>Categoria
-            <select name="id_categoria" id="id_categoria" required>
-                <option value="">Selecione</option>
-                <?php foreach ($categorias as $c): ?>
-                <option value="<?= $c['id_categoria'] ?>"><?= htmlspecialchars($c['nome']) ?></option>
-                <?php endforeach; ?>
-            </select>
-        </label>
-        <label>Condição
-            <select name="condicao">
-                <option value="usado">Usado</option>
-                <option value="novo">Novo</option>
-            </select>
-        </label>
-        <label>Preço base (R$)<input type="text" name="preco_base" required></label>
+        <h2>Dados do produto</h2>
+        <form method="post" id="form-produto">
+            <label>Nome<input type="text" name="nome" required></label>
+            <label>Descrição<textarea name="descricao"></textarea></label>
+            <label>Categoria
+                <select name="id_categoria" id="id_categoria" required>
+                    <option value="">Selecione</option>
+                    <?php foreach ($categorias as $c): ?>
+                    <option value="<?= $c['id_categoria'] ?>"><?= htmlspecialchars($c['nome']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </label>
+            <label>Condição
+                <select name="condicao">
+                    <option value="usado">Usado</option>
+                    <option value="novo">Novo</option>
+                </select>
+            </label>
+            <label>Preço base (R$)<input type="text" name="preco_base" required></label>
 
-        <div id="variacoes-disponiveis" class="lista-checkbox"></div>
+            <h3 style="margin-top:28px;">Variações do produto</h3>
+            <p style="color:var(--cor-texto-suave); font-size:0.9rem; margin-bottom:14px;">Escolha a categoria pra ver as variações disponíveis (opcional — sem marcar nenhuma, o produto usa a combinação Padrão).</p>
+            <div id="variacoes-disponiveis" class="lista-checkbox"></div>
 
-        <h3>Combinações e estoque</h3>
-        <div id="combinacoes-container"></div>
-        <input type="hidden" name="combinacoes" id="combinacoes-input">
+            <h3 style="margin-top:28px;">Combinações e estoque</h3>
+            <div id="combinacoes-container"></div>
+            <input type="hidden" name="combinacoes" id="combinacoes-input">
 
-        <button type="submit">Salvar produto</button>
-    </form>
+            <button type="submit" class="btn-bloco" style="margin-top:20px;">Salvar produto</button>
+        </form>
     </div>
 
 <script>
