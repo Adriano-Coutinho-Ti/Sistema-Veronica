@@ -289,7 +289,7 @@ $idsValoresEmUso = $stmtValoresEmUso->fetchAll(PDO::FETCH_COLUMN);
     <div class="modal-overlay" id="modal-variacoes" hidden>
         <div class="modal-card modal-card-lg">
             <h3>Variações do produto</h3>
-            <p style="color:var(--cor-texto-suave); font-size:0.9rem; margin-bottom:14px;">Marque os valores que esse produto usa. As combinações novas (inclusive de valores que você acabou de cadastrar na categoria) aparecem em "Combinações" prontas pra receber estoque e preço.</p>
+            <p style="color:var(--cor-texto-suave); font-size:0.9rem; margin-bottom:14px;">Marque os valores que esse produto usa. As combinações novas (inclusive de valores que você acabou de cadastrar na categoria) aparecem em "Combinações" prontas pra receber estoque e preço. Desmarcar um valor aqui ainda não remove uma combinação que já existe — isso é outra funcionalidade, ainda não construída.</p>
             <form method="post" id="form-variacoes">
                 <input type="hidden" name="acao" value="sincronizar_variacoes">
                 <div class="lista-grupos-variacao">
@@ -300,8 +300,7 @@ $idsValoresEmUso = $stmtValoresEmUso->fetchAll(PDO::FETCH_COLUMN);
                             <?php foreach ($valoresDoGrupo as $vv): ?>
                             <?php $emUso = in_array((int) $vv['id_valor'], $idsValoresEmUso, true); ?>
                             <label>
-                                <input type="checkbox" name="valores[]" value="<?= $vv['id_valor'] ?>" <?= $emUso ? 'checked disabled' : '' ?>>
-                                <?php if ($emUso): ?><input type="hidden" name="valores[]" value="<?= $vv['id_valor'] ?>"><?php endif; ?>
+                                <input type="checkbox" name="valores[]" value="<?= $vv['id_valor'] ?>" <?= $emUso ? 'checked' : '' ?>>
                                 <?= htmlspecialchars($vv['valor']) ?>
                             </label>
                             <?php endforeach; ?>
