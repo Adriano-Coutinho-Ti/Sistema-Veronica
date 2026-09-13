@@ -205,14 +205,29 @@ $creditoDisponivel = (float) $cliente['limite_credito'] - (float) $cliente['sald
     </div>
     </div>
 
-    <div class="card">
-    <h2>Linha de Crédito</h2>
-    <p>Limite: <strong>R$ <?= number_format((float) $cliente['limite_credito'], 2, ',', '.') ?></strong></p>
-    <p>Saldo devedor: <strong>R$ <?= number_format((float) $cliente['saldo_devedor'], 2, ',', '.') ?></strong></p>
-    <p>Crédito disponível: <strong>R$ <?= number_format($creditoDisponivel, 2, ',', '.') ?></strong></p>
+    <div class="card" style="margin-top:32px;">
+    <div class="card-cabecalho">
+        <h2>Linha de Crédito</h2>
+        <span class="status-pill<?= (float) $cliente['saldo_devedor'] > 0 ? ' erro' : ' sucesso' ?>"><?= (float) $cliente['saldo_devedor'] > 0 ? 'Com pendência' : 'Em dia' ?></span>
+    </div>
+
+    <div class="stats-credito">
+        <div class="stat-credito">
+            <span class="stat-label">Limite</span>
+            <span class="stat-valor">R$ <?= number_format((float) $cliente['limite_credito'], 2, ',', '.') ?></span>
+        </div>
+        <div class="stat-credito">
+            <span class="stat-label">Saldo devedor</span>
+            <span class="stat-valor<?= (float) $cliente['saldo_devedor'] > 0 ? ' erro' : '' ?>">R$ <?= number_format((float) $cliente['saldo_devedor'], 2, ',', '.') ?></span>
+        </div>
+        <div class="stat-credito">
+            <span class="stat-label">Crédito disponível</span>
+            <span class="stat-valor<?= $creditoDisponivel > 0 ? ' sucesso' : '' ?>">R$ <?= number_format($creditoDisponivel, 2, ',', '.') ?></span>
+        </div>
+    </div>
 
     <?php if (($_SESSION['perfil'] ?? '') === 'Admin'): ?>
-    <form method="post" class="form-linha-compacta" style="margin-top:14px;">
+    <form method="post" class="form-linha-compacta">
         <input type="hidden" name="acao" value="atualizar_limite">
         <label>Novo limite de crédito
             <input type="text" name="limite_credito" value="<?= number_format((float) $cliente['limite_credito'], 2, ',', '.') ?>">
