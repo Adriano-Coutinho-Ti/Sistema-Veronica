@@ -48,7 +48,13 @@ $estoqueFisicoTotal = (int) $stmtEstoqueFisico->fetchColumn();
 $reservadoEmCarrinho = $disponivelTotal <= 0 && $estoqueFisicoTotal > 0;
 
 $urlProdutoAbsoluta = 'https://brechodaveve.codernex.com.br/loja/produto.php?id=' . $id_produto;
-$fotoOgAbsoluta = !empty($listaFotos) ? 'https://brechodaveve.codernex.com.br/' . fotoComVersao($listaFotos[0]) : null;
+// og:image de propósito NÃO leva o "?v=..." do cache-busting: quem lê essa
+// tag é o rastreador do WhatsApp/Facebook, não o navegador de quem visita —
+// o cache do lado deles é resolvido pela ferramenta de "Scrape Again" deles
+// mesmos (developers.facebook.com/tools/debug/), nunca por variar a URL.
+// Adicionar query string aqui só arrisca compatibilidade com o rastreador
+// sem resolver problema nenhum de cache no nosso lado.
+$fotoOgAbsoluta = !empty($listaFotos) ? 'https://brechodaveve.codernex.com.br/' . $listaFotos[0] : null;
 $linkCompartilharWhatsapp = montarLinkCompartilharWhatsapp($produto['nome'], (float) $produto['preco_base'], $urlProdutoAbsoluta);
 
 $ehFavorito = false;
