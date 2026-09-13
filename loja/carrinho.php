@@ -111,7 +111,7 @@ if ($id_venda) {
             <div class="carrinho-item" data-id-item="<?= $item['id_item'] ?>">
                 <div class="foto">
                     <?php if ($item['foto']): ?>
-                        <img src="/<?= htmlspecialchars($item['foto']) ?>" alt="<?= htmlspecialchars($item['nome_produto']) ?>">
+                        <img src="/<?= htmlspecialchars(fotoComVersao($item['foto'])) ?>" alt="<?= htmlspecialchars($item['nome_produto']) ?>">
                     <?php endif; ?>
                 </div>
                 <div class="info">

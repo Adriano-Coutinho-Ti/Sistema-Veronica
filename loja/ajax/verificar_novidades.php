@@ -70,7 +70,7 @@ if (!empty($produtos)) {
     );
     $stmtFotos->execute($ids);
     foreach ($stmtFotos->fetchAll() as $f) {
-        $fotosPorProduto[(int) $f['id_produto']][] = $f['caminho_arquivo'];
+        $fotosPorProduto[(int) $f['id_produto']][] = fotoComVersao($f['caminho_arquivo']);
     }
 }
 

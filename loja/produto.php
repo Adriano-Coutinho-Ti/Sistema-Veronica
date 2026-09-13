@@ -48,7 +48,7 @@ $estoqueFisicoTotal = (int) $stmtEstoqueFisico->fetchColumn();
 $reservadoEmCarrinho = $disponivelTotal <= 0 && $estoqueFisicoTotal > 0;
 
 $urlProdutoAbsoluta = 'https://brechodaveve.codernex.com.br/loja/produto.php?id=' . $id_produto;
-$fotoOgAbsoluta = !empty($listaFotos) ? 'https://brechodaveve.codernex.com.br/' . $listaFotos[0] : null;
+$fotoOgAbsoluta = !empty($listaFotos) ? 'https://brechodaveve.codernex.com.br/' . fotoComVersao($listaFotos[0]) : null;
 $linkCompartilharWhatsapp = montarLinkCompartilharWhatsapp($produto['nome'], (float) $produto['preco_base'], $urlProdutoAbsoluta);
 
 $ehFavorito = false;
@@ -117,7 +117,7 @@ if (!empty($listaRelacionados)) {
     <div class="produto-carousel carousel" data-carousel>
         <div class="carousel-track">
             <?php foreach ($listaFotos as $foto): ?>
-                <img src="/<?= htmlspecialchars($foto) ?>" alt="<?= htmlspecialchars($produto['nome']) ?>">
+                <img src="/<?= htmlspecialchars(fotoComVersao($foto)) ?>" alt="<?= htmlspecialchars($produto['nome']) ?>">
             <?php endforeach; ?>
         </div>
         <div class="carousel-dots">
@@ -130,7 +130,7 @@ if (!empty($listaRelacionados)) {
     </div>
     <?php elseif (count($listaFotos) === 1): ?>
     <div class="produto-carousel">
-        <img src="/<?= htmlspecialchars($listaFotos[0]) ?>" alt="<?= htmlspecialchars($produto['nome']) ?>" style="width:100%; height:100%; object-fit:cover;">
+        <img src="/<?= htmlspecialchars(fotoComVersao($listaFotos[0])) ?>" alt="<?= htmlspecialchars($produto['nome']) ?>" style="width:100%; height:100%; object-fit:cover;">
     </div>
     <?php else: ?>
     <div class="produto-carousel"></div>
@@ -225,7 +225,7 @@ if (!empty($listaRelacionados)) {
             <a href="/loja/produto.php?id=<?= $rp['id_produto'] ?>" class="product-card">
                 <div class="card-media">
                     <?php if (!empty($fotosRp)): ?>
-                        <img src="/<?= htmlspecialchars($fotosRp[0]) ?>" alt="<?= htmlspecialchars($rp['nome']) ?>">
+                        <img src="/<?= htmlspecialchars(fotoComVersao($fotosRp[0])) ?>" alt="<?= htmlspecialchars($rp['nome']) ?>">
                     <?php endif; ?>
                 </div>
                 <div class="nome"><?= htmlspecialchars($rp['nome']) ?></div>

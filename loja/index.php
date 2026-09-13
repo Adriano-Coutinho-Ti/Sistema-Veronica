@@ -199,7 +199,7 @@ function montarLinkPagina(int $p, int $categoria, string $busca): string
                         <div class="carousel" data-carousel data-carousel-auto="2000">
                             <div class="carousel-track">
                                 <?php foreach ($fotos as $foto): ?>
-                                    <img src="/<?= htmlspecialchars($foto) ?>" alt="<?= htmlspecialchars($p['nome']) ?>">
+                                    <img src="/<?= htmlspecialchars(fotoComVersao($foto)) ?>" alt="<?= htmlspecialchars($p['nome']) ?>">
                                 <?php endforeach; ?>
                             </div>
                             <div class="carousel-dots">
@@ -209,7 +209,7 @@ function montarLinkPagina(int $p, int $categoria, string $busca): string
                             </div>
                         </div>
                         <?php elseif (count($fotos) === 1): ?>
-                            <img src="/<?= htmlspecialchars($fotos[0]) ?>" alt="<?= htmlspecialchars($p['nome']) ?>">
+                            <img src="/<?= htmlspecialchars(fotoComVersao($fotos[0])) ?>" alt="<?= htmlspecialchars($p['nome']) ?>">
                         <?php endif; ?>
                     </div>
                     <div class="nome"><?= htmlspecialchars($p['nome']) ?></div>

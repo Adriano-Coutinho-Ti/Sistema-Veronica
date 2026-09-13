@@ -136,7 +136,7 @@ function montarLinkFiltroProdutos(int $pagina, int $categoria, string $status, s
                 <tr>
                     <td>
                         <?php if ($p['foto']): ?>
-                            <img src="/<?= htmlspecialchars($p['foto']) ?>" alt="" class="foto-produto-mini">
+                            <img src="/<?= htmlspecialchars(fotoComVersao($p['foto'])) ?>" alt="" class="foto-produto-mini">
                         <?php else: ?>
                             <img src="/assets/img/produto-indisponivel.svg" alt="" class="foto-produto-mini">
                         <?php endif; ?>

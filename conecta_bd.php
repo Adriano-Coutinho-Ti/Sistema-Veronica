@@ -16,3 +16,25 @@ $options = [
 $options[class_exists('Pdo\\Mysql') ? \Pdo\Mysql::ATTR_INIT_COMMAND : PDO::MYSQL_ATTR_INIT_COMMAND] = "SET NAMES utf8mb4";
 
 $pdo = new PDO($dsn, $username, $password, $options);
+
+// Raiz do projeto — todo caminho relativo salvo no banco (fotos de produto,
+// logo da loja) é resolvido a partir daqui, não de __DIR__ do arquivo que
+// está chamando (que muda de página pra página).
+define('CAMINHO_RAIZ', __DIR__);
+
+/**
+ * Acrescenta "?v=<data de modificação do arquivo>" num caminho de foto —
+ * mesmo truque já usado pro CSS/JS (includes/loja_header.php,
+ * includes/admin_header.php). Sem isso, trocar a foto de um produto
+ * (o arquivo final continua com o mesmo nome) não atualizava pra quem já
+ * tinha a página aberta: o navegador seguia servindo a versão antiga do
+ * cache porque a URL nunca mudava.
+ */
+function fotoComVersao(?string $caminhoRelativo): ?string
+{
+    if (!$caminhoRelativo) {
+        return $caminhoRelativo;
+    }
+    $versao = @filemtime(CAMINHO_RAIZ . '/' . $caminhoRelativo) ?: time();
+    return $caminhoRelativo . '?v=' . $versao;
+}

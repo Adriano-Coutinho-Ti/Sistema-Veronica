@@ -98,7 +98,7 @@ $agoraServidor = $pdo->query('SELECT NOW()')->fetchColumn();
                 </button>
             </div>
             <div class="card-media">
-                <?php if ($f['foto']): ?><img src="/<?= htmlspecialchars($f['foto']) ?>" alt="<?= htmlspecialchars($f['nome']) ?>"><?php endif; ?>
+                <?php if ($f['foto']): ?><img src="/<?= htmlspecialchars(fotoComVersao($f['foto'])) ?>" alt="<?= htmlspecialchars($f['nome']) ?>"><?php endif; ?>
             </div>
             <div class="nome"><?= htmlspecialchars($f['nome']) ?></div>
             <div class="price">R$ <?= number_format($f['preco_base'], 2, ',', '.') ?></div>
@@ -133,7 +133,7 @@ $agoraServidor = $pdo->query('SELECT NOW()')->fetchColumn();
             <a href="/loja/produto.php?id=<?= $rp['id_produto'] ?>" class="product-card">
                 <div class="card-media">
                     <?php if (!empty($fotosRp)): ?>
-                        <img src="/<?= htmlspecialchars($fotosRp[0]) ?>" alt="<?= htmlspecialchars($rp['nome']) ?>">
+                        <img src="/<?= htmlspecialchars(fotoComVersao($fotosRp[0])) ?>" alt="<?= htmlspecialchars($rp['nome']) ?>">
                     <?php endif; ?>
                 </div>
                 <div class="nome"><?= htmlspecialchars($rp['nome']) ?></div>

@@ -65,7 +65,9 @@ $listaCombinacoes = $combinacoes->fetchAll();
 ?>
 <!DOCTYPE html>
 <html lang="pt-br">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Editar produto</title></head>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Editar produto</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
+</head>
 <body>
 <?php require __DIR__ . '/../includes/admin_header.php'; ?>
     <h1>Editar produto</h1>
@@ -113,7 +115,7 @@ $listaCombinacoes = $combinacoes->fetchAll();
     <div class="grade-fotos">
         <?php foreach ($listaFotos as $f): ?>
         <div class="foto-item">
-            <img src="/<?= htmlspecialchars($f['caminho_arquivo']) ?>" alt="Foto do produto">
+            <img src="/<?= htmlspecialchars(fotoComVersao($f['caminho_arquivo'])) ?>" alt="Foto do produto">
             <form method="post" action="/produtos/ajax/deletar_foto.php" onsubmit="return confirm('Remover esta foto?');">
                 <input type="hidden" name="id_foto" value="<?= $f['id_foto'] ?>">
                 <input type="hidden" name="id_produto" value="<?= $id_produto ?>">
@@ -123,12 +125,23 @@ $listaCombinacoes = $combinacoes->fetchAll();
         <?php endforeach; ?>
     </div>
     <?php if (count($listaFotos) < 5): ?>
-    <form method="post" action="/produtos/ajax/upload_foto.php" enctype="multipart/form-data" class="card">
-        <input type="hidden" name="id_produto" value="<?= $id_produto ?>">
-        <label>Nova foto<input type="file" name="foto" accept="image/png,image/jpeg,image/gif" required></label>
-        <button type="submit">Enviar foto</button>
-    </form>
+    <div class="card">
+        <button type="button" class="btn" id="btn-abrir-upload">+ Adicionar foto</button>
+        <input type="file" id="input-nova-foto" accept="image/png,image/jpeg,image/webp" style="display:none;">
+        <p id="msg-upload-foto" class="alert alert-erro" style="display:none; margin-top:14px;"></p>
+    </div>
     <?php endif; ?>
+
+    <div class="modal-overlay" id="modal-recorte" hidden>
+        <div class="modal-card">
+            <h3>Ajustar foto</h3>
+            <div class="area-corte"><img id="imagem-recorte" alt=""></div>
+            <div class="modal-acoes">
+                <button type="button" class="btn-outline" id="btn-cancelar-recorte">Cancelar</button>
+                <button type="button" class="btn" id="btn-confirmar-recorte">Cortar e enviar</button>
+            </div>
+        </div>
+    </div>
 
     <form method="post" action="/produtos/ajax/deletar_produto.php" onsubmit="return confirm('Excluir este produto e suas fotos definitivamente?');" style="margin-top:20px;">
         <input type="hidden" name="id_produto" value="<?= $id_produto ?>">
@@ -136,6 +149,82 @@ $listaCombinacoes = $combinacoes->fetchAll();
     </form>
 
     <p><a href="/produtos/lista.php" class="btn-texto">← Voltar</a></p>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
+<script>
+(function () {
+    const idProduto = <?= (int) $id_produto ?>;
+    let cropper = null;
+
+    const inputFoto = document.getElementById('input-nova-foto');
+    const modal = document.getElementById('modal-recorte');
+    const imagem = document.getElementById('imagem-recorte');
+    const msgErro = document.getElementById('msg-upload-foto');
+
+    document.getElementById('btn-abrir-upload')?.addEventListener('click', function () {
+        inputFoto.click();
+    });
+
+    inputFoto?.addEventListener('change', function () {
+        const arquivo = inputFoto.files && inputFoto.files[0];
+        if (!arquivo) { return; }
+
+        const leitor = new FileReader();
+        leitor.onload = function (e) {
+            imagem.src = e.target.result;
+            modal.hidden = false;
+            if (cropper) { cropper.destroy(); }
+            cropper = new Cropper(imagem, {
+                aspectRatio: 1,
+                viewMode: 1,
+                autoCropArea: 1,
+                background: false,
+            });
+        };
+        leitor.readAsDataURL(arquivo);
+    });
+
+    function fecharModalRecorte() {
+        modal.hidden = true;
+        if (cropper) { cropper.destroy(); cropper = null; }
+        inputFoto.value = '';
+    }
+
+    document.getElementById('btn-cancelar-recorte').addEventListener('click', fecharModalRecorte);
+    modal.addEventListener('click', function (e) { if (e.target === modal) { fecharModalRecorte(); } });
+
+    document.getElementById('btn-confirmar-recorte').addEventListener('click', function () {
+        if (!cropper) { return; }
+        const botao = this;
+        botao.disabled = true;
+        msgErro.style.display = 'none';
+
+        cropper.getCroppedCanvas({ width: 500, height: 500 }).toBlob(function (blob) {
+            const formData = new FormData();
+            formData.append('id_produto', idProduto);
+            formData.append('foto', blob, 'foto.jpg');
+
+            fetch('/produtos/ajax/upload_foto.php', { method: 'POST', body: formData })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (data.success) {
+                        window.location.reload();
+                    } else {
+                        msgErro.textContent = data.message || 'Erro ao enviar a foto.';
+                        msgErro.style.display = '';
+                        botao.disabled = false;
+                    }
+                })
+                .catch(function () {
+                    msgErro.textContent = 'Erro de conexão. Tente novamente.';
+                    msgErro.style.display = '';
+                    botao.disabled = false;
+                })
+                .finally(function () { fecharModalRecorte(); });
+        }, 'image/jpeg', 0.9);
+    });
+})();
+</script>
 </main>
 </body>
 </html>

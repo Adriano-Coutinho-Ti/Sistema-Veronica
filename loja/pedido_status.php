@@ -99,7 +99,7 @@ if (!empty($listaRelacionados)) {
             <div class="carrinho-item">
                 <div class="foto">
                     <?php if ($it['foto']): ?>
-                        <img src="/<?= htmlspecialchars($it['foto']) ?>" alt="<?= htmlspecialchars($it['nome_produto']) ?>">
+                        <img src="/<?= htmlspecialchars(fotoComVersao($it['foto'])) ?>" alt="<?= htmlspecialchars($it['nome_produto']) ?>">
                     <?php else: ?>
                         <img src="/assets/img/produto-indisponivel.svg" alt="Produto indisponível">
                     <?php endif; ?>
@@ -165,7 +165,7 @@ if (!empty($listaRelacionados)) {
             <a href="/loja/produto.php?id=<?= $rp['id_produto'] ?>" class="product-card">
                 <div class="card-media">
                     <?php if (!empty($fotosRp)): ?>
-                        <img src="/<?= htmlspecialchars($fotosRp[0]) ?>" alt="<?= htmlspecialchars($rp['nome']) ?>">
+                        <img src="/<?= htmlspecialchars(fotoComVersao($fotosRp[0])) ?>" alt="<?= htmlspecialchars($rp['nome']) ?>">
                     <?php endif; ?>
                 </div>
                 <div class="nome"><?= htmlspecialchars($rp['nome']) ?></div>

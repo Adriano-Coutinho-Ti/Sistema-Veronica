@@ -112,7 +112,7 @@ function montarLinkFiltro(string $status, int $pagina = 1): string
                     <a href="/loja/pedido_status.php?id_venda=<?= (int) $p['id_venda'] ?>" class="pedido-card">
                         <div class="foto">
                             <?php if ($p['foto']): ?>
-                                <img src="/<?= htmlspecialchars($p['foto']) ?>" alt="Pedido #<?= (int) $p['id_venda'] ?>">
+                                <img src="/<?= htmlspecialchars(fotoComVersao($p['foto'])) ?>" alt="Pedido #<?= (int) $p['id_venda'] ?>">
                             <?php else: ?>
                                 <img src="/assets/img/produto-indisponivel.svg" alt="Produto indisponível">
                             <?php endif; ?>
