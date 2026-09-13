@@ -346,7 +346,22 @@ td a { font-weight: 600; }
 
 .grade-2col { display: grid; grid-template-columns: 1fr; gap: 20px; }
 .grade-2col > .card { margin-bottom: 0; }
-.foto-produto-mini { width: 56px; height: 56px; border-radius: var(--raio-sm); object-fit: cover; background: var(--cor-fundo-alt); }
+/* width sozinho não bastava: a regra geral "img { max-width: 100% }" (lá em
+   cima, pra nenhuma foto normal estourar o layout) ainda podia encolher a
+   miniatura pra menos de 56px de LARGURA quando a coluna da tabela apertava
+   (nome de produto comprido competindo por espaço) — a altura ficava fixa
+   em 56px mas a largura minguava, virando uma "pílula" vertical em vez de
+   quadrado. min-width/max-width iguais à largura travam isso de vez. */
+.foto-produto-mini {
+    display: block;
+    width: 56px;
+    height: 56px;
+    min-width: 56px;
+    max-width: 56px;
+    border-radius: var(--raio-sm);
+    object-fit: cover;
+    background: var(--cor-fundo-alt);
+}
 
 /* Ações lado a lado numa célula de tabela (ex: "editar" + "excluir") */
 .celula-acoes { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
