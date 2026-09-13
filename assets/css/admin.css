@@ -258,6 +258,19 @@ textarea { min-height: 88px; }
     padding: 20px;
     margin-bottom: 20px;
 }
+.card h2 { margin-bottom: 16px; }
+
+/* "Zona de risco" — mesmo cartão, borda e título em vermelho, pra deixar
+   claro que ali dentro só tem ação destrutiva (excluir produto). */
+.card-perigo { border-color: var(--cor-erro); }
+.card-perigo h2 { color: var(--cor-erro); }
+
+/* Ações de topo da página (voltar, compartilhar) lado a lado */
+.acoes-topo { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin-bottom: 20px; }
+
+/* Checkbox junto do texto, não empilhado como os outros campos de formulário */
+.linha-checkbox { display: flex; align-items: center; gap: 8px; }
+.linha-checkbox input[type="checkbox"] { width: auto; min-height: 0; margin: 0; }
 
 .auth-card {
     max-width: 400px;
@@ -377,7 +390,12 @@ td a { font-weight: 600; }
 /* ============ Utilitários ============ */
 
 .grade-2col { display: grid; grid-template-columns: 1fr; gap: 20px; }
-.grade-2col > .card { margin-bottom: 0; }
+/* min-width:0 desfaz o comportamento padrão de coluna "1fr" do CSS Grid,
+   que por padrão nunca encolhe abaixo do conteúdo mínimo de dentro — sem
+   isso, um conteúdo largo (ex: a grade de fotos com itens de tamanho fixo)
+   estourava a coluna pra fora da tela inteira no mobile, em vez de quebrar
+   linha normalmente. */
+.grade-2col > * { min-width: 0; margin-bottom: 0; }
 /* width sozinho não bastava: a regra geral "img { max-width: 100% }" (lá em
    cima, pra nenhuma foto normal estourar o layout) ainda podia encolher a
    miniatura pra menos de 56px de LARGURA quando a coluna da tabela apertava
@@ -433,6 +451,7 @@ td a { font-weight: 600; }
 /* Grade de fotos do produto (produtos/editar.php) */
 .grade-fotos { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 20px; }
 .foto-item {
+    position: relative;
     background: var(--cor-fundo);
     border: 1px solid var(--cor-borda);
     border-radius: var(--raio-md);
@@ -441,8 +460,46 @@ td a { font-weight: 600; }
     text-align: center;
     width: 140px;
 }
-.foto-item img { width: 120px; height: 120px; object-fit: cover; border-radius: var(--raio-sm); margin-bottom: 8px; }
+.foto-item img { width: 120px; height: 120px; min-width: 120px; max-width: 120px; object-fit: cover; border-radius: var(--raio-sm); margin-bottom: 8px; display: block; }
 .foto-item form { margin: 0; }
+
+.foto-capa {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    background: var(--cor-primaria);
+    color: #fff;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    padding: 3px 8px;
+    border-radius: 999px;
+    z-index: 1;
+}
+
+/* Botão "adicionar foto" — vive dentro da mesma grade das fotos já
+   enviadas, do mesmo tamanho, com borda tracejada (mesmo padrão visual
+   de "adicionar mídia" usado em painéis de vendedor tipo Mercado Livre). */
+.foto-item-adicionar {
+    width: 140px;
+    height: 158px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: var(--cor-fundo-alt);
+    border: 2px dashed var(--cor-borda);
+    border-radius: var(--raio-md);
+    color: var(--cor-texto-suave);
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0;
+    min-height: 0;
+}
+.foto-item-adicionar:hover { border-color: var(--cor-primaria); color: var(--cor-primaria); background: var(--cor-primaria-suave); }
 
 /* Extrato de crédito (clientes/detalhe.php) */
 .lista-extrato { list-style: none; margin: 0; padding: 0; }
