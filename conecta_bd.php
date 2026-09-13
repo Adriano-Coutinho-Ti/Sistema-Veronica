@@ -51,10 +51,17 @@ function fotoComVersao(?string $caminhoRelativo): ?string
  * está em uso, repetindo até achar um livre, pra não dar pra adivinhar
  * o próximo código só de olhar o anterior.
  */
+// Códigos que o sistema nunca pode sortear/atribuir a um produto — pedido
+// explícito do lojista (ex: "666"), fora da lógica normal de duplicidade.
+const CODIGOS_PRODUTO_BLOQUEADOS = ['666', '013', '012', '022'];
+
 function gerarCodigoProdutoUnico(PDO $pdo): string
 {
     for ($tentativas = 0; $tentativas < 300; $tentativas++) {
         $codigo = str_pad((string) random_int(0, 999), 3, '0', STR_PAD_LEFT);
+        if (in_array($codigo, CODIGOS_PRODUTO_BLOQUEADOS, true)) {
+            continue;
+        }
         $existe = $pdo->prepare('SELECT 1 FROM produtos WHERE codigo = :c');
         $existe->execute([':c' => $codigo]);
         if (!$existe->fetch()) {

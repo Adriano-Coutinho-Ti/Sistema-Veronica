@@ -693,6 +693,17 @@ td a { font-weight: 600; }
 /* Lista de "chips" genérica (ex: pagamentos já lançados em caixa/pagamento.php) */
 .lista-pills { display: flex; flex-wrap: wrap; gap: 8px; }
 
+/* Pagamento já lançado (caixa/pagamento.php) — pode ser removido caso o
+   operador tenha escolhido a forma errada ou digitado o valor errado. */
+.pill-removivel { gap: 8px; padding-right: 8px; }
+.pill-removivel button {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 16px; height: 16px; min-height: 0; padding: 0;
+    border: none; border-radius: 50%; background: rgba(0,0,0,0.12); color: inherit;
+    font-size: 0.85rem; line-height: 1; cursor: pointer;
+}
+.pill-removivel button:hover { background: rgba(0,0,0,0.22); }
+
 /* Categorias em cards (produtos/categorias.php) */
 .grade-categorias { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
 .card-categoria {

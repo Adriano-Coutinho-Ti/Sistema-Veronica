@@ -24,7 +24,13 @@ if (!$pedido) {
     exit;
 }
 
-$itens = $pdo->prepare('SELECT nome_produto, descricao_combinacao, quantidade, preco_unit, subtotal FROM itens_venda WHERE id_venda = :id');
+$itens = $pdo->prepare(
+    'SELECT iv.nome_produto, iv.descricao_combinacao, iv.quantidade, iv.preco_unit, iv.subtotal, p.codigo
+     FROM itens_venda iv
+     LEFT JOIN produto_variacoes pv ON pv.id_produto_variacao = iv.id_produto_variacao
+     LEFT JOIN produtos p ON p.id_produto = pv.id_produto
+     WHERE iv.id_venda = :id'
+);
 $itens->execute([':id' => $id_venda]);
 $listaItens = $itens->fetchAll();
 ?>
@@ -58,12 +64,14 @@ $listaItens = $itens->fetchAll();
     </div>
     </div>
 
+    <div class="card" style="margin-top:20px;">
     <h3>Itens</h3>
     <div class="tabela-wrap">
     <table>
-        <tr><th>Produto</th><th>Variação</th><th>Qtd</th><th>Preço</th><th>Subtotal</th></tr>
+        <tr><th>Código</th><th>Produto</th><th>Variação</th><th>Qtd</th><th>Preço</th><th>Subtotal</th></tr>
         <?php foreach ($listaItens as $it): ?>
         <tr>
+            <td><?= $it['codigo'] ? '<span class="codigo-produto-mini">' . htmlspecialchars($it['codigo']) . '</span>' : '—' ?></td>
             <td><?= htmlspecialchars($it['nome_produto']) ?></td>
             <td><?= htmlspecialchars($it['descricao_combinacao'] ?? '—') ?></td>
             <td><?= (int) $it['quantidade'] ?></td>
@@ -73,9 +81,10 @@ $listaItens = $itens->fetchAll();
         <?php endforeach; ?>
     </table>
     </div>
+    </div>
 
     <?php if ($pedido['status'] === 'Pago'): ?>
-    <div class="card">
+    <div class="card" style="margin-top:20px;">
     <h3>Avançar etapa do pedido</h3>
     <form id="form-status" class="form-linha-compacta">
         <select id="select-status">
@@ -89,7 +98,7 @@ $listaItens = $itens->fetchAll();
     </div>
 
         <?php if (($_SESSION['perfil'] ?? '') === 'Admin'): ?>
-        <div class="card">
+        <div class="card" style="margin-top:20px;">
         <h3>Cancelar pedido</h3>
         <p style="color:var(--cor-texto-suave); font-size:0.9rem;">Devolve o estoque dos itens e, se parte do pagamento foi em Linha de Crédito, estorna o saldo devedor do cliente. Pagamento em dinheiro/cartão/Pix precisa ser reembolsado por fora.</p>
         <button id="btn-cancelar" class="btn-perigo">Cancelar este pedido</button>

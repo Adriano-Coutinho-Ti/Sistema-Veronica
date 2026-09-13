@@ -105,6 +105,8 @@ document.getElementById('forma-pagamento').addEventListener('change', function (
 });
 
 document.getElementById('btn-adicionar-pagamento').addEventListener('click', function () {
+    document.getElementById('msg-pagamento').style.display = 'none';
+
     const forma = document.getElementById('forma-pagamento').value;
     const valorRecebido = parseFloat(document.getElementById('valor-pagamento').value.replace(',', '.'));
     if (!valorRecebido || valorRecebido <= 0) { mostrarErroPagamento('Informe um valor válido.'); return; }
@@ -121,6 +123,13 @@ document.getElementById('btn-adicionar-pagamento').addEventListener('click', fun
         pagamentos.push({ forma: forma, valor: valorAplicado });
         trocoAviso.textContent = 'Troco a devolver: R$ ' + troco.toFixed(2).replace('.', ',');
         trocoAviso.style.display = '';
+    } else if (valorRecebido > restante + 0.001) {
+        // Só dinheiro pode "sobrar" (vira troco) — cartão/Pix/Linha de Crédito
+        // não tem troco: cobrar mais que o restante da venda é sempre um erro
+        // de digitação e nunca deveria ser aceito (ex: lançar R$100 de Linha
+        // de Crédito numa venda de R$32 criaria uma dívida sem motivo real).
+        mostrarErroPagamento('Esse valor passa do restante da venda (R$ ' + restante.toFixed(2).replace('.', ',') + '). Só dinheiro pode receber um valor maior — o troco é calculado sozinho.');
+        return;
     } else {
         pagamentos.push({ forma: forma, valor: valorRecebido });
         trocoAviso.style.display = 'none';
@@ -129,6 +138,12 @@ document.getElementById('btn-adicionar-pagamento').addEventListener('click', fun
     document.getElementById('valor-pagamento').value = '';
     atualizarResumo();
 });
+
+function removerPagamento(indice) {
+    pagamentos.splice(indice, 1);
+    document.getElementById('troco-aviso').style.display = 'none';
+    atualizarResumo();
+}
 
 function atualizarResumo() {
     const totalPago = pagamentos.reduce((acc, p) => acc + p.valor, 0);
@@ -139,10 +154,18 @@ function atualizarResumo() {
 
     const painel = document.getElementById('pagamentos-lancados');
     painel.innerHTML = '';
-    pagamentos.forEach(p => {
+    pagamentos.forEach((p, indice) => {
         const pill = document.createElement('span');
-        pill.className = 'status-pill';
-        pill.textContent = p.forma + ': R$ ' + p.valor.toFixed(2).replace('.', ',');
+        pill.className = 'status-pill pill-removivel';
+        const texto = document.createElement('span');
+        texto.textContent = p.forma + ': R$ ' + p.valor.toFixed(2).replace('.', ',');
+        const btnRemover = document.createElement('button');
+        btnRemover.type = 'button';
+        btnRemover.setAttribute('aria-label', 'Remover este pagamento');
+        btnRemover.textContent = '×';
+        btnRemover.addEventListener('click', function () { removerPagamento(indice); });
+        pill.appendChild(texto);
+        pill.appendChild(btnRemover);
         painel.appendChild(pill);
     });
 
