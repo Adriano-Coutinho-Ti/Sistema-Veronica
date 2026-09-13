@@ -126,19 +126,17 @@ $listaCombinacoes = $combinacoes->fetchAll();
         </div>
 
         <div class="card">
-            <h2>Dados do produto</h2>
             <form method="post">
+                <div class="card-cabecalho">
+                    <h2>Dados do produto</h2>
+                    <label class="toggle-switch" title="Visível na loja online. Desmarcado, fica escondido da vitrine sem apagar nada.">
+                        <input type="checkbox" name="ativo" <?= $produto['ativo'] ? 'checked' : '' ?>>
+                        <span class="toggle-slider"></span>
+                        <span class="toggle-texto">Ativo</span>
+                    </label>
+                </div>
                 <input type="hidden" name="acao" value="atualizar">
                 <label>Nome<input type="text" name="nome" value="<?= htmlspecialchars($produto['nome']) ?>" required></label>
-
-                <label class="linha-checkbox">
-                    <input type="checkbox" name="ativo" <?= $produto['ativo'] ? 'checked' : '' ?>>
-                    <span>
-                        <strong>Produto ativo</strong>
-                        <small>Visível na loja online. Desmarcado, fica escondido da vitrine sem apagar nada.</small>
-                    </span>
-                </label>
-
                 <label>Descrição<textarea name="descricao"><?= htmlspecialchars($produto['descricao'] ?? '') ?></textarea></label>
                 <label>Preço base (R$)<input type="text" name="preco_base" value="<?= number_format($produto['preco_base'], 2, ',', '') ?>" required></label>
 
