@@ -117,7 +117,9 @@ $listaCombinacoes = $combinacoes->fetchAll();
                         <form method="post" action="/produtos/ajax/deletar_foto.php" onsubmit="return confirm('Remover esta foto?');">
                             <input type="hidden" name="id_foto" value="<?= $f['id_foto'] ?>">
                             <input type="hidden" name="id_produto" value="<?= $id_produto ?>">
-                            <button type="submit" class="btn-sm btn-outline">remover</button>
+                            <button type="submit" class="btn-sm btn-perigo btn-icone" title="Remover foto" aria-label="Remover foto">
+                                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3m-8 0 1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13M10 11v6M14 11v6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            </button>
                         </form>
                     </div>
                 </div>

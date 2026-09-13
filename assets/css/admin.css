@@ -489,12 +489,14 @@ td a { font-weight: 600; }
     box-shadow: var(--sombra-sm);
     padding: 10px;
     text-align: center;
-    width: 140px;
+    width: 168px;
 }
-.foto-item img { width: 120px; height: 120px; min-width: 120px; max-width: 120px; object-fit: cover; border-radius: var(--raio-sm); margin-bottom: 8px; display: block; }
+.foto-item img { width: 120px; height: 120px; min-width: 120px; max-width: 120px; object-fit: cover; border-radius: var(--raio-sm); margin: 0 auto 8px; display: block; }
 .foto-item form { margin: 0; }
-.foto-item-acoes { display: flex; flex-direction: column; gap: 6px; }
-.foto-item-acoes .btn-sm { width: 100%; }
+.foto-item-acoes { display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 6px; }
+.foto-item-acoes .btn-sm { white-space: nowrap; }
+.btn-icone { flex: 0 0 auto; width: 34px; padding: 0; }
+.btn-icone svg { width: 16px; height: 16px; }
 
 .foto-capa {
     position: absolute;
