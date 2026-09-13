@@ -338,12 +338,30 @@ textarea { min-height: 88px; }
     width: 100%;
 }
 .modal-card h3 { text-align: center; margin-bottom: 16px; }
+.modal-card-lg { max-width: 620px; }
 
 .modal-acoes { display: flex; gap: 10px; margin-top: 16px; }
 .modal-acoes .btn, .modal-acoes .btn-outline, .modal-acoes .btn-perigo { flex: 1; margin: 0; }
 
 .area-corte { max-height: 60vh; overflow: hidden; background: #000; border-radius: var(--raio-sm); }
 .area-corte img { display: block; max-width: 100%; }
+
+/* Lista de variações dentro do popup de "Editar Variações do produto" — uma
+   caixa por variação (Cor, Tamanho...), com um checkbox por VALOR dentro.
+   Rolagem própria pra não empurrar os botões Cancelar/Atualizar pra fora
+   da tela quando a categoria tem muitas variações. */
+.lista-grupos-variacao { max-height: 50vh; overflow-y: auto; padding-right: 4px; margin-bottom: 4px; }
+.grupo-variacao {
+    border: 1px solid var(--cor-borda);
+    border-radius: var(--raio-md);
+    padding: 14px 16px;
+    margin-bottom: 12px;
+}
+.grupo-variacao:last-child { margin-bottom: 0; }
+.grupo-variacao h4 { margin: 0 0 10px; font-size: 0.95rem; }
+.valores-checkbox { display: flex; flex-wrap: wrap; gap: 8px 18px; }
+.valores-checkbox label { display: flex; align-items: center; gap: 6px; font-weight: 400; margin: 0; font-size: 0.9rem; }
+.valores-checkbox input[type="checkbox"] { width: auto; min-height: 0; margin: 0; }
 
 /* ============ Alertas ============ */
 
