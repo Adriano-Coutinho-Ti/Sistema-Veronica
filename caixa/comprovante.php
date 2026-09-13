@@ -31,7 +31,12 @@ $listaPagamentos = $pagamentos->fetchAll();
 $linkRecibo = 'https://' . $_SERVER['HTTP_HOST'] . '/caixa/recibo.php?id_venda=' . $id_venda . '&t=' . $venda['token_recibo'];
 $whatsappPreenchido = $venda['cliente_whatsapp'] ? preg_replace('/\D/', '', $venda['cliente_whatsapp']) : '';
 
-$imprimirAutomatico = (bool) $pdo->query('SELECT imprimir_automatico FROM config_loja WHERE id_config = 1')->fetchColumn();
+// Impressão automática só faz sentido chegando direto de uma venda que
+// acabou de ser finalizada (redirect de finalizarVenda() traz &novo=1) —
+// olhar uma venda antiga na lista (caixa/vendas.php) nunca deve disparar
+// impressão sozinha.
+$ehVendaNova = isset($_GET['novo']);
+$imprimirAutomatico = $ehVendaNova && (bool) $pdo->query('SELECT imprimir_automatico FROM config_loja WHERE id_config = 1')->fetchColumn();
 ?>
 <!DOCTYPE html>
 <html lang="pt-br">
@@ -41,10 +46,19 @@ $imprimirAutomatico = (bool) $pdo->query('SELECT imprimir_automatico FROM config
     <div class="page-title">
         <span class="icone-titulo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm-1.5 14.5-4-4 1.4-1.4 2.6 2.6 6.6-6.6 1.4 1.4Z" fill="currentColor"/></svg></span>
         <div>
-            <h1>Venda #<?= $id_venda ?> finalizada</h1>
+            <h1><?= $ehVendaNova ? 'Venda #' . $id_venda . ' finalizada' : 'Comprovante — Venda #' . $id_venda ?></h1>
             <span class="subtitulo"><?= htmlspecialchars(date('d/m/Y H:i', strtotime($venda['data_venda']))) ?><?= $venda['cliente_nome'] ? ' · ' . htmlspecialchars($venda['cliente_nome']) : ' · Consumidor' ?></span>
         </div>
     </div>
+
+    <?php if (!$ehVendaNova): ?>
+    <p class="acoes-topo">
+        <a href="/caixa/vendas.php" class="btn-outline btn-sm">
+            <svg viewBox="0 0 24 24" aria-hidden="true" width="14" height="14"><path d="M15 6 9 12l6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Voltar pra Vendas do caixa
+        </a>
+    </p>
+    <?php endif; ?>
 
     <div class="card" style="max-width:520px;">
         <h2>Resumo da venda</h2>

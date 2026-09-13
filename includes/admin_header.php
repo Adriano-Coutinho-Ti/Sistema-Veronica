@@ -23,19 +23,44 @@ $versaoJsAdmin = @filemtime(__DIR__ . '/../assets/js/admin.js') ?: time();
             <span></span><span></span><span></span>
         </button>
         <nav class="site-nav" id="site-nav">
-            <a href="/produtos/lista.php">Produtos</a>
-            <a href="/produtos/categorias.php">Categorias</a>
-            <a href="/clientes/lista.php">Clientes</a>
-            <a href="/caixa/index.php">Caixa</a>
+            <div class="nav-grupo">
+                <button type="button" class="nav-grupo-trigger">Produtos</button>
+                <div class="nav-submenu">
+                    <a href="/produtos/lista.php">Todos os produtos</a>
+                    <a href="/produtos/categorias.php">Categorias</a>
+                </div>
+            </div>
+            <div class="nav-grupo">
+                <button type="button" class="nav-grupo-trigger">Clientes</button>
+                <div class="nav-submenu">
+                    <a href="/clientes/lista.php">Todos os clientes</a>
+                    <?php if (($_SESSION['perfil'] ?? '') === 'Admin'): ?>
+                    <a href="/clientes/solicitacoes_credito.php">Solicitações de crédito</a>
+                    <?php endif; ?>
+                </div>
+            </div>
+            <div class="nav-grupo">
+                <button type="button" class="nav-grupo-trigger">Caixa</button>
+                <div class="nav-submenu">
+                    <a href="/caixa/index.php">PDV</a>
+                    <a href="/caixa/vendas.php">Vendas do caixa</a>
+                    <?php if (($_SESSION['perfil'] ?? '') === 'Admin'): ?>
+                    <a href="/caixa/historico.php">Histórico de caixas</a>
+                    <?php endif; ?>
+                </div>
+            </div>
             <a href="/pedidos/lista.php">Pedidos</a>
             <?php if (($_SESSION['perfil'] ?? '') === 'Admin'): ?>
-                <a href="/caixa/historico.php">Histórico de Caixas</a>
-                <a href="/clientes/solicitacoes_credito.php">Solicitações de Crédito</a>
-                <a href="/usuarios/lista.php">Usuários</a>
-                <a href="/config_sistema/aparencia.php">Aparência</a>
-                <a href="/config_sistema/entrega.php">Entrega</a>
-                <a href="/config_sistema/pdv.php">PDV</a>
-                <a href="/integracoes/mercado_pago/conectar.php">Mercado Pago</a>
+            <div class="nav-grupo">
+                <button type="button" class="nav-grupo-trigger">Configurações</button>
+                <div class="nav-submenu">
+                    <a href="/usuarios/lista.php">Usuários</a>
+                    <a href="/config_sistema/aparencia.php">Aparência</a>
+                    <a href="/config_sistema/entrega.php">Entrega</a>
+                    <a href="/config_sistema/pdv.php">PDV</a>
+                    <a href="/integracoes/mercado_pago/conectar.php">Mercado Pago</a>
+                </div>
+            </div>
             <?php endif; ?>
             <span class="site-nav-user">Olá, <?= htmlspecialchars($_SESSION['nome'] ?? '') ?></span>
             <a href="/sair.php">Sair</a>

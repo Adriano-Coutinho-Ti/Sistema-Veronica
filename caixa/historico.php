@@ -42,6 +42,7 @@ $sessoes = $stmt->fetchAll();
             <svg viewBox="0 0 24 24" aria-hidden="true" width="14" height="14"><path d="M15 6 9 12l6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             Voltar ao PDV
         </a>
+        <a href="/caixa/vendas.php" class="btn-outline btn-sm">Vendas do caixa</a>
     </p>
 
     <div class="card">
@@ -53,7 +54,7 @@ $sessoes = $stmt->fetchAll();
             <tr>
                 <th>#</th><th>Abertura</th><th>Aberto por</th><th>Valor inicial</th>
                 <th>Status</th><th>Fechamento</th><th>Fechado por</th>
-                <th>Valor informado</th><th>Esperado</th><th>Diferença</th><th>Obs.</th>
+                <th>Valor informado</th><th>Esperado</th><th>Diferença</th><th>Obs.</th><th></th>
             </tr>
             <?php foreach ($sessoes as $s): ?>
             <tr>
@@ -70,6 +71,7 @@ $sessoes = $stmt->fetchAll();
                     <?= $s['diferenca'] !== null ? 'R$ ' . number_format($s['diferenca'], 2, ',', '.') : '—' ?>
                 </td>
                 <td><?= htmlspecialchars($s['observacao_fechamento'] ?? '—') ?></td>
+                <td><a href="/caixa/historico_detalhe.php?id_caixa=<?= (int) $s['id_caixa'] ?>" class="btn-sm btn-outline">Ver vendas</a></td>
             </tr>
             <?php endforeach; ?>
         </table>

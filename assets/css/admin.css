@@ -138,6 +138,21 @@ h3 { font-size: 1.05rem; }
 .site-nav a:hover { color: var(--cor-primaria); }
 .site-nav .site-nav-user { color: var(--cor-texto-suave); }
 
+/* Grupo de menu com submenu (ex: "Caixa" agrupando PDV/Vendas/Histórico) —
+   no mobile é só uma seção que expande dentro do próprio dropdown; no
+   desktop (ver media query abaixo) vira um menu flutuante ao passar o
+   mouse ou clicar. */
+.nav-grupo-trigger {
+    display: flex; align-items: center; justify-content: flex-start; gap: 4px; width: 100%; text-align: left;
+    background: none; border: none; font: inherit; color: var(--cor-texto); cursor: pointer;
+    padding: 13px 4px; border-bottom: 1px solid var(--cor-borda); font-size: 0.95rem;
+}
+.nav-grupo-trigger:hover { color: var(--cor-primaria); }
+.nav-grupo-trigger::after { content: '▾'; font-size: 0.7em; opacity: 0.6; }
+.nav-submenu { display: none; flex-direction: column; padding-left: 16px; }
+.nav-grupo.aberto .nav-submenu { display: flex; }
+.nav-submenu a { padding: 11px 4px; border-bottom: 1px solid var(--cor-borda); font-size: 0.92rem; }
+
 @media (min-width: 900px) {
     .nav-toggle { display: none; }
     .site-nav {
@@ -155,6 +170,18 @@ h3 { font-size: 1.05rem; }
     }
     .site-nav a, .site-nav .site-nav-user { border-bottom: none; padding: 6px 8px; border-radius: var(--raio-sm); }
     .site-nav a:hover { background: var(--cor-primaria-suave); }
+
+    .nav-grupo { position: relative; }
+    .nav-grupo-trigger { width: auto; justify-content: center; border-bottom: none; padding: 6px 8px; border-radius: var(--raio-sm); }
+    .nav-grupo-trigger:hover { background: var(--cor-primaria-suave); }
+    .nav-submenu {
+        position: absolute; top: 100%; left: 0; z-index: 60;
+        background: var(--cor-fundo); border: 1px solid var(--cor-borda); border-radius: var(--raio-sm);
+        box-shadow: var(--sombra-md); padding: 6px; min-width: 210px; padding-left: 6px;
+    }
+    .nav-grupo:hover .nav-submenu, .nav-grupo:focus-within .nav-submenu { display: flex; }
+    .nav-submenu a { border-bottom: none; padding: 8px 12px; border-radius: var(--raio-sm); white-space: nowrap; }
+    .nav-submenu a:hover { background: var(--cor-primaria-suave); }
 }
 
 /* ============ Título de página ============ */

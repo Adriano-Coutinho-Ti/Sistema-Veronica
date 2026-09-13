@@ -183,7 +183,7 @@ function finalizarVenda(PDO $pdo, int $id_venda, array $pagamentos, ?string $id_
         return [
             'success' => true,
             'message' => 'Venda finalizada com sucesso.',
-            'redirect' => '/caixa/comprovante.php?id_venda=' . $id_venda,
+            'redirect' => '/caixa/comprovante.php?id_venda=' . $id_venda . '&novo=1',
         ];
     } catch (Throwable $e) {
         if ($pdo->inTransaction()) {

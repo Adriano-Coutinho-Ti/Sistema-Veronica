@@ -24,6 +24,39 @@ function iniciarMenuMobileAdmin() {
 }
 
 /**
+ * Menu agrupado (ex: "Caixa" reunindo PDV/Vendas/Histórico) — clicar no
+ * grupo abre/fecha o submenu; no desktop o CSS também abre no hover
+ * (:hover/:focus-within), isso aqui só cobre o clique (mobile e quem
+ * prefere clicar em vez de passar o mouse).
+ */
+function iniciarSubmenusAdmin() {
+    const grupos = document.querySelectorAll('.nav-grupo');
+    grupos.forEach(function (grupo) {
+        const trigger = grupo.querySelector('.nav-grupo-trigger');
+        if (!trigger) { return; }
+        trigger.setAttribute('aria-expanded', 'false');
+        trigger.addEventListener('click', function (e) {
+            e.stopPropagation();
+            const abrir = !grupo.classList.contains('aberto');
+            grupos.forEach(function (g) {
+                g.classList.remove('aberto');
+                g.querySelector('.nav-grupo-trigger')?.setAttribute('aria-expanded', 'false');
+            });
+            if (abrir) {
+                grupo.classList.add('aberto');
+                trigger.setAttribute('aria-expanded', 'true');
+            }
+        });
+    });
+    document.addEventListener('click', function () {
+        grupos.forEach(function (g) {
+            g.classList.remove('aberto');
+            g.querySelector('.nav-grupo-trigger')?.setAttribute('aria-expanded', 'false');
+        });
+    });
+}
+
+/**
  * Substitui window.confirm() nativo por um popup no padrão visual do
  * sistema (.modal-overlay/.modal-card, mesmo componente usado no recorte
  * de foto) — nunca usar confirm()/alert() do navegador neste sistema.
@@ -137,4 +170,5 @@ document.addEventListener('DOMContentLoaded', function () {
     iniciarMenuMobileAdmin();
     iniciarConfirmacoesFormulario();
     iniciarAlternadoresVisualizacao();
+    iniciarSubmenusAdmin();
 });

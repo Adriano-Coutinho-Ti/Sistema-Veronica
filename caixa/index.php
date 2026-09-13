@@ -23,6 +23,8 @@ $id_venda = buscarVendaReservadaDoOperador($pdo, (int) $caixa['id_caixa'], (int)
 
     <p class="acoes-topo">
         <a href="/caixa/fechamento.php" class="btn-outline btn-sm">Fechar caixa</a>
+        <a href="/caixa/vendas.php" class="btn-outline btn-sm">Vendas do caixa</a>
+        <?php if (($_SESSION['perfil'] ?? '') === 'Admin'): ?><a href="/caixa/historico.php" class="btn-outline btn-sm">Histórico de caixas</a><?php endif; ?>
         <?php if ($id_venda): ?><span class="status-pill">Venda #<?= $id_venda ?></span><?php endif; ?>
     </p>
 
