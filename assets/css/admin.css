@@ -655,6 +655,9 @@ td a { font-weight: 600; }
     margin-bottom: 14px;
 }
 
+/* Lista de "chips" genérica (ex: pagamentos já lançados em caixa/pagamento.php) */
+.lista-pills { display: flex; flex-wrap: wrap; gap: 8px; }
+
 /* ============ Layout com coluna lateral (listas com filtro — ex: Produtos) ============ */
 /* Mesmo padrão do catalogo-layout da loja: barra de pills no mobile, coluna
    fixa lateral a partir do desktop. */

@@ -29,40 +29,61 @@ if ($venda['id_cliente']) {
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Pagamento</title></head>
 <body>
 <?php require __DIR__ . '/../includes/admin_header.php'; ?>
-    <h1>Pagamento — Venda #<?= $id_venda ?></h1>
-    <div class="card" style="max-width:520px;">
-    <p style="font-size:1.3rem; font-weight:700;">Total: R$ <span id="total-venda"><?= number_format($venda['valor_total'], 2, ',', '.') ?></span></p>
-
-    <div id="pagamentos-lancados" style="margin-bottom:14px; color:var(--cor-texto-suave);"></div>
-
-    <label>Forma de pagamento
-        <select id="forma-pagamento">
-            <option value="Dinheiro">Dinheiro</option>
-            <option value="Débito">Débito</option>
-            <option value="Crédito">Crédito</option>
-            <option value="Pix">Pix (QR Code)</option>
-            <option value="Linha de Crédito" <?= !$clienteVinculado ? 'disabled' : '' ?>>
-                Linha de Crédito<?= $clienteVinculado
-                    ? ' (disponível: R$ ' . number_format($creditoDisponivel, 2, ',', '.') . ')'
-                    : ' (vincule um cliente primeiro)' ?>
-            </option>
-        </select>
-    </label>
-
-    <div id="campos-manual" class="form-linha-compacta" style="margin-bottom:16px;">
-        <input type="text" id="valor-pagamento" placeholder="Valor recebido">
-        <button id="btn-adicionar-pagamento">Adicionar pagamento</button>
-    </div>
-    <p id="troco-aviso" class="alert alert-sucesso" style="display:none;"></p>
-
-    <div id="campos-pix" style="display:none; margin-bottom:16px;">
-        <button id="btn-gerar-pix">Gerar QR Code Pix</button>
-        <div id="pix-resultado" style="margin-top:14px;"></div>
+    <div class="page-title">
+        <span class="icone-titulo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16M6 20V10a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v10M9 8V6a3 3 0 0 1 6 0v2M10 14h4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <div>
+            <h1>Pagamento</h1>
+            <span class="subtitulo">Venda #<?= $id_venda ?><?= $clienteVinculado ? ' · ' . htmlspecialchars($clienteVinculado['nome']) : '' ?></span>
+        </div>
     </div>
 
-    <p style="font-weight:600;">Pago: R$ <span id="total-pago">0,00</span> / Restante: R$ <span id="total-restante"><?= number_format($venda['valor_total'], 2, ',', '.') ?></span></p>
+    <div class="card" style="max-width:560px;">
+        <div class="carrinho-rodape" style="padding-top:0; margin-top:0; border-top:none;">
+            <span>Total da venda</span>
+            <strong>R$ <span id="total-venda"><?= number_format($venda['valor_total'], 2, ',', '.') ?></span></strong>
+        </div>
 
-    <button id="btn-finalizar" class="btn-bloco" style="display:none;">Finalizar venda</button>
+        <p id="msg-pagamento" class="alert alert-erro" style="display:none; margin-top:16px;"></p>
+
+        <div id="pagamentos-lancados" class="lista-pills" style="margin-top:16px;"></div>
+
+        <label style="margin-top:16px;">Forma de pagamento
+            <select id="forma-pagamento">
+                <option value="Dinheiro">Dinheiro</option>
+                <option value="Débito">Débito</option>
+                <option value="Crédito">Crédito</option>
+                <option value="Pix">Pix (QR Code)</option>
+                <option value="Linha de Crédito" <?= !$clienteVinculado ? 'disabled' : '' ?>>
+                    Linha de Crédito<?= $clienteVinculado
+                        ? ' (disponível: R$ ' . number_format($creditoDisponivel, 2, ',', '.') . ')'
+                        : ' (vincule um cliente primeiro)' ?>
+                </option>
+            </select>
+        </label>
+
+        <div id="campos-manual" class="form-linha-compacta" style="margin-top:14px;">
+            <input type="text" id="valor-pagamento" placeholder="Valor recebido">
+            <button type="button" id="btn-adicionar-pagamento" class="btn-outline">Adicionar</button>
+        </div>
+        <p id="troco-aviso" class="alert alert-sucesso" style="display:none; margin-top:12px;"></p>
+
+        <div id="campos-pix" style="display:none; margin-top:14px;">
+            <button type="button" id="btn-gerar-pix" class="btn-outline">Gerar QR Code Pix</button>
+            <div id="pix-resultado" style="margin-top:14px;"></div>
+        </div>
+
+        <div class="stats-credito" style="margin-top:20px;">
+            <div class="stat-credito">
+                <span class="stat-label">Pago</span>
+                <span class="stat-valor sucesso">R$ <span id="total-pago">0,00</span></span>
+            </div>
+            <div class="stat-credito">
+                <span class="stat-label">Restante</span>
+                <span class="stat-valor" id="stat-restante">R$ <span id="total-restante"><?= number_format($venda['valor_total'], 2, ',', '.') ?></span></span>
+            </div>
+        </div>
+
+        <button type="button" id="btn-finalizar" class="btn-bloco btn-lg" style="display:none; margin-top:20px;">Finalizar venda</button>
     </div>
 
 <script>
@@ -70,6 +91,12 @@ const idVenda = <?= $id_venda ?>;
 const totalVenda = <?= (float) $venda['valor_total'] ?>;
 let pagamentos = [];
 let pollingInterval = null;
+
+function mostrarErroPagamento(mensagem) {
+    const msg = document.getElementById('msg-pagamento');
+    msg.textContent = mensagem;
+    msg.style.display = '';
+}
 
 document.getElementById('forma-pagamento').addEventListener('change', function () {
     const ehPix = this.value === 'Pix';
@@ -80,7 +107,7 @@ document.getElementById('forma-pagamento').addEventListener('change', function (
 document.getElementById('btn-adicionar-pagamento').addEventListener('click', function () {
     const forma = document.getElementById('forma-pagamento').value;
     const valorRecebido = parseFloat(document.getElementById('valor-pagamento').value.replace(',', '.'));
-    if (!valorRecebido || valorRecebido <= 0) { alert('Valor inválido'); return; }
+    if (!valorRecebido || valorRecebido <= 0) { mostrarErroPagamento('Informe um valor válido.'); return; }
 
     const totalPagoAtual = pagamentos.reduce((acc, p) => acc + p.valor, 0);
     const restante = Math.max(0, totalVenda - totalPagoAtual);
@@ -105,9 +132,20 @@ document.getElementById('btn-adicionar-pagamento').addEventListener('click', fun
 
 function atualizarResumo() {
     const totalPago = pagamentos.reduce((acc, p) => acc + p.valor, 0);
+    const restante = Math.max(0, totalVenda - totalPago);
     document.getElementById('total-pago').textContent = totalPago.toFixed(2).replace('.', ',');
-    document.getElementById('total-restante').textContent = Math.max(0, totalVenda - totalPago).toFixed(2).replace('.', ',');
-    document.getElementById('pagamentos-lancados').textContent = pagamentos.map(p => p.forma + ': R$ ' + p.valor.toFixed(2).replace('.', ',')).join(' | ');
+    document.getElementById('total-restante').textContent = restante.toFixed(2).replace('.', ',');
+    document.getElementById('stat-restante').className = 'stat-valor' + (restante > 0 ? ' erro' : ' sucesso');
+
+    const painel = document.getElementById('pagamentos-lancados');
+    painel.innerHTML = '';
+    pagamentos.forEach(p => {
+        const pill = document.createElement('span');
+        pill.className = 'status-pill';
+        pill.textContent = p.forma + ': R$ ' + p.valor.toFixed(2).replace('.', ',');
+        painel.appendChild(pill);
+    });
+
     document.getElementById('btn-finalizar').style.display = totalPago >= totalVenda - 0.001 ? '' : 'none';
 }
 
@@ -120,7 +158,7 @@ document.getElementById('btn-finalizar').addEventListener('click', function () {
         if (data.success) {
             window.location.href = data.redirect;
         } else {
-            alert(data.message);
+            mostrarErroPagamento(data.message);
         }
     });
 });
@@ -132,7 +170,7 @@ document.getElementById('btn-gerar-pix').addEventListener('click', function () {
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: 'id_venda=' + idVenda
     }).then(r => r.json()).then(data => {
-        if (!data.success) { alert(data.message); document.getElementById('btn-gerar-pix').disabled = false; return; }
+        if (!data.success) { mostrarErroPagamento(data.message); document.getElementById('btn-gerar-pix').disabled = false; return; }
         const div = document.getElementById('pix-resultado');
         div.innerHTML = '';
         const img = document.createElement('img');
@@ -141,10 +179,12 @@ document.getElementById('btn-gerar-pix').addEventListener('click', function () {
         div.appendChild(img);
         const textarea = document.createElement('textarea');
         textarea.readOnly = true;
-        textarea.style.width = '300px';
+        textarea.style.width = '100%';
+        textarea.style.marginTop = '10px';
         textarea.value = data.qr_code;
         div.appendChild(textarea);
         const p = document.createElement('p');
+        p.className = 'lista-vazia';
         p.textContent = 'Aguardando pagamento...';
         div.appendChild(p);
         iniciarPolling();
@@ -165,7 +205,7 @@ function iniciarPolling() {
             } else if (!data.success) {
                 clearInterval(pollingInterval);
                 pollingInterval = null;
-                alert(data.message);
+                mostrarErroPagamento(data.message);
             }
         });
     }, 4000);

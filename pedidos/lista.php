@@ -8,13 +8,18 @@ $busca = trim($_GET['busca'] ?? '');
 $filtro = $_GET['status_entrega'] ?? '';
 $filtroValido = $filtro === 'cancelados' || in_array($filtro, STATUS_ENTREGA_VALIDOS, true) ? $filtro : '';
 
-$where = "v.origem = 'loja' AND v.status IN ('Pago', 'Cancelado')";
+// Cancelado só aparece quando o filtro "Cancelados" é escolhido de propósito
+// — a lista principal (sem filtro) mostra só os pedidos pagos, pra não
+// misturar pedido ativo com pedido cancelado na mesma tela.
+$where = "v.origem = 'loja'";
 $params = [];
 if ($filtroValido === 'cancelados') {
     $where .= " AND v.status = 'Cancelado'";
 } elseif ($filtroValido !== '') {
-    $where .= " AND v.status <> 'Cancelado' AND v.status_entrega = :se";
+    $where .= " AND v.status = 'Pago' AND v.status_entrega = :se";
     $params[':se'] = $filtroValido;
+} else {
+    $where .= " AND v.status = 'Pago'";
 }
 if ($busca !== '') {
     $where .= ' AND (c.nome LIKE :busca OR v.id_venda = :buscaId)';
