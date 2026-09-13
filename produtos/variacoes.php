@@ -109,7 +109,7 @@ $variacoes = $variacoesAtivas->fetchAll();
             <td><?= htmlspecialchars($v['nome']) ?></td>
             <td><?= htmlspecialchars($v['valores'] ?? '') ?></td>
             <td>
-                <form method="post" onsubmit="return confirm('Remover esta variação desta categoria?');">
+                <form method="post" data-confirm="Remover esta variação desta categoria?">
                     <input type="hidden" name="acao" value="remover_associacao">
                     <input type="hidden" name="id_variacao" value="<?= $v['id_variacao'] ?>">
                     <button type="submit" class="btn-sm btn-perigo">remover</button>

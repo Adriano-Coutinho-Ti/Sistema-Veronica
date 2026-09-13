@@ -89,7 +89,7 @@ $respondidas = $pdo->query(
                     <input type="text" name="valor_aprovado" value="<?= number_format($s['valor_solicitado'], 2, ',', '') ?>" class="campo-valor-curto">
                     <button type="submit" class="btn-sm">Aprovar</button>
                 </form>
-                <form method="post" onsubmit="return confirm('Rejeitar esta solicitação?');">
+                <form method="post" data-confirm="Rejeitar esta solicitação?">
                     <input type="hidden" name="id_solicitacao" value="<?= $s['id_solicitacao'] ?>">
                     <input type="hidden" name="acao" value="rejeitar">
                     <button type="submit" class="btn-sm btn-perigo">Rejeitar</button>

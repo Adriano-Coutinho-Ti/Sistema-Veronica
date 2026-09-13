@@ -52,7 +52,7 @@ $categorias = $pdo->query('SELECT id_categoria, nome FROM categorias ORDER BY no
             <td><?= htmlspecialchars($c['nome']) ?></td>
             <td class="celula-acoes">
                 <a href="/produtos/variacoes.php?id_categoria=<?= $c['id_categoria'] ?>" class="btn-sm btn-outline">variações</a>
-                <form method="post" onsubmit="return confirm('Excluir esta categoria?');">
+                <form method="post" data-confirm="Excluir esta categoria?">
                     <input type="hidden" name="acao" value="deletar">
                     <input type="hidden" name="id_categoria" value="<?= $c['id_categoria'] ?>">
                     <button type="submit" class="btn-sm btn-perigo">excluir</button>

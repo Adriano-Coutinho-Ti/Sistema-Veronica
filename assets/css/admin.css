@@ -340,7 +340,7 @@ textarea { min-height: 88px; }
 .modal-card h3 { text-align: center; margin-bottom: 16px; }
 
 .modal-acoes { display: flex; gap: 10px; margin-top: 16px; }
-.modal-acoes .btn, .modal-acoes .btn-outline { flex: 1; margin: 0; }
+.modal-acoes .btn, .modal-acoes .btn-outline, .modal-acoes .btn-perigo { flex: 1; margin: 0; }
 
 .area-corte { max-height: 60vh; overflow: hidden; background: #000; border-radius: var(--raio-sm); }
 .area-corte img { display: block; max-width: 100%; }

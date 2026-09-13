@@ -116,14 +116,16 @@ if (formStatus) {
 const btnCancelar = document.getElementById('btn-cancelar');
 if (btnCancelar) {
     btnCancelar.addEventListener('click', function () {
-        if (!confirm('Cancelar este pedido? Estoque e crédito (se houver) serão estornados.')) { return; }
-        fetch('/pedidos/ajax/cancelar.php', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-            body: 'id_venda=' + idVenda
-        }).then(r => r.json()).then(data => {
-            document.getElementById('cancelar-msg').textContent = data.message;
-            if (data.success) { window.location.reload(); }
+        confirmarAcao('Cancelar este pedido? Estoque e crédito (se houver) serão estornados.').then(function (ok) {
+            if (!ok) { return; }
+            fetch('/pedidos/ajax/cancelar.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'id_venda=' + idVenda
+            }).then(r => r.json()).then(data => {
+                document.getElementById('cancelar-msg').textContent = data.message;
+                if (data.success) { window.location.reload(); }
+            });
         });
     });
 }

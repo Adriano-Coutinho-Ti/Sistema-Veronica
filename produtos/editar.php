@@ -114,7 +114,7 @@ $listaCombinacoes = $combinacoes->fetchAll();
                             <button type="submit" class="btn-sm btn-outline">Tornar capa</button>
                         </form>
                         <?php endif; ?>
-                        <form method="post" action="/produtos/ajax/deletar_foto.php" onsubmit="return confirm('Remover esta foto?');">
+                        <form method="post" action="/produtos/ajax/deletar_foto.php" data-confirm="Remover esta foto?">
                             <input type="hidden" name="id_foto" value="<?= $f['id_foto'] ?>">
                             <input type="hidden" name="id_produto" value="<?= $id_produto ?>">
                             <button type="submit" class="btn-sm btn-perigo btn-icone" title="Remover foto" aria-label="Remover foto">
@@ -184,7 +184,7 @@ $listaCombinacoes = $combinacoes->fetchAll();
     <div class="card card-perigo">
         <h2>Zona de risco</h2>
         <p>Excluir este produto remove também todas as fotos dele, definitivamente. Essa ação não pode ser desfeita.</p>
-        <form method="post" action="/produtos/ajax/deletar_produto.php" onsubmit="return confirm('Excluir este produto e suas fotos definitivamente?');">
+        <form method="post" action="/produtos/ajax/deletar_produto.php" data-confirm="Excluir este produto e suas fotos definitivamente?">
             <input type="hidden" name="id_produto" value="<?= $id_produto ?>">
             <button type="submit" class="btn-perigo">Excluir produto</button>
         </form>

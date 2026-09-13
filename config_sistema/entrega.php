@@ -81,7 +81,7 @@ $entregas = array_values(array_filter($formas, fn($f) => (int) $f['fixa'] === 0)
                     <input type="hidden" name="id_entrega" value="<?= $e['id_entrega'] ?>">
                     <button type="submit" class="btn-sm btn-outline"><?= $e['ativo'] ? 'desativar' : 'ativar' ?></button>
                 </form>
-                <form method="post" onsubmit="return confirm('Excluir esta forma de entrega?');">
+                <form method="post" data-confirm="Excluir esta forma de entrega?">
                     <input type="hidden" name="acao" value="deletar">
                     <input type="hidden" name="id_entrega" value="<?= $e['id_entrega'] ?>">
                     <button type="submit" class="btn-sm btn-perigo">excluir</button>
