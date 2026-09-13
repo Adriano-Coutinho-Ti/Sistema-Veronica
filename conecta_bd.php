@@ -22,6 +22,11 @@ $pdo = new PDO($dsn, $username, $password, $options);
 // está chamando (que muda de página pra página).
 define('CAMINHO_RAIZ', __DIR__);
 
+// Limite de fotos por produto — só regra da aplicação (produtos/editar.php,
+// produtos/ajax/upload_foto.php), a coluna produto_fotos.ordem aceita até
+// 255. Pra mudar o limite, só troca esse número.
+define('MAX_FOTOS_PRODUTO', 6);
+
 /**
  * Acrescenta "?v=<data de modificação do arquivo>" num caminho de foto —
  * mesmo truque já usado pro CSS/JS (includes/loja_header.php,

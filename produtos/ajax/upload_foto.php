@@ -38,8 +38,8 @@ $stmtCount = $pdo->prepare('SELECT COUNT(*), COALESCE(MAX(ordem), 0) FROM produt
 $stmtCount->execute([':id' => $id_produto]);
 [$totalFotos, $maiorOrdem] = $stmtCount->fetch(PDO::FETCH_NUM);
 
-if ($totalFotos >= 5) {
-    responderUpload(false, 'Esse produto já tem o máximo de 5 fotos.');
+if ($totalFotos >= MAX_FOTOS_PRODUTO) {
+    responderUpload(false, 'Esse produto já tem o máximo de ' . MAX_FOTOS_PRODUTO . ' fotos.');
 }
 
 $info = getimagesize($_FILES['foto']['tmp_name']);

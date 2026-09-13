@@ -100,7 +100,7 @@ $listaCombinacoes = $combinacoes->fetchAll();
 
     <div class="grade-2col">
         <div class="card">
-            <h2>Fotos (<?= count($listaFotos) ?>/5)</h2>
+            <h2>Fotos (<?= count($listaFotos) ?>/<?= MAX_FOTOS_PRODUTO ?>)</h2>
             <div class="grade-fotos">
                 <?php foreach ($listaFotos as $i => $f): ?>
                 <div class="foto-item">
@@ -113,7 +113,7 @@ $listaCombinacoes = $combinacoes->fetchAll();
                     </form>
                 </div>
                 <?php endforeach; ?>
-                <?php if (count($listaFotos) < 5): ?>
+                <?php if (count($listaFotos) < MAX_FOTOS_PRODUTO): ?>
                 <button type="button" class="foto-item-adicionar" id="btn-abrir-upload">
                     <svg viewBox="0 0 24 24" aria-hidden="true" width="28" height="28"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
                     <span>Adicionar foto</span>
