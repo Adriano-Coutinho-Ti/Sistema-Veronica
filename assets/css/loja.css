@@ -834,6 +834,11 @@ input.senha-valida:focus {
 .pedido-card .data { color: var(--cor-texto-suave); font-size: 0.85rem; }
 .pedido-card .total { font-weight: 700; margin-top: 4px; }
 
+/* Distingue compra feita no PDV (presencial) de compra pela loja online —
+   mesmo cliente, mesmo histórico, mas a origem é bem diferente pra ele. */
+.origem-pedido { display: flex; align-items: center; gap: 4px; font-size: 0.78rem; color: var(--cor-texto-suave); margin-top: 6px; }
+.origem-pedido svg { width: 13px; height: 13px; flex-shrink: 0; }
+
 .status-pill {
     display: inline-flex;
     align-items: center;

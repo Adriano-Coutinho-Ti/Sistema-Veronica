@@ -12,7 +12,11 @@ if (!in_array($filtro, $filtrosValidos, true)) {
     $filtro = '';
 }
 
-$where = 'v.id_cliente = :ic AND v.origem = \'loja\'';
+// Inclui compras feitas presencialmente no PDV (origem='pdv') junto com as
+// da loja online — o cliente identificado na venda de balcão também deve
+// ver essa compra aqui, só marcada visualmente como "comprada na loja"
+// (mais abaixo, no card de cada pedido).
+$where = 'v.id_cliente = :ic AND v.origem IN (\'loja\', \'pdv\')';
 $params = [':ic' => $id_cliente];
 if ($filtro === '') {
     // Padrão: só pedidos ativos, sem os cancelados atrapalhando a visão geral.
@@ -37,7 +41,7 @@ $pagina = min($pagina, $totalPaginas);
 $offset = ($pagina - 1) * PEDIDOS_POR_PAGINA;
 
 $stmt = $pdo->prepare(
-    "SELECT v.id_venda, v.data_venda, v.valor_total, v.status, v.status_entrega, fe.tipo AS entrega_tipo,
+    "SELECT v.id_venda, v.data_venda, v.valor_total, v.status, v.status_entrega, v.origem, v.token_recibo, fe.tipo AS entrega_tipo,
             (SELECT pf.caminho_arquivo
              FROM itens_venda iv
              JOIN produto_variacoes pv ON pv.id_produto_variacao = iv.id_produto_variacao
@@ -106,10 +110,18 @@ function montarLinkFiltro(string $status, int $pagina = 1): string
             <div class="pedidos-grid">
                 <?php foreach ($pedidos as $p): ?>
                     <?php
-                        $rotulo = rotuloStatusPedido($p['status'], $p['status_entrega'], $p['entrega_tipo']);
-                        $classePill = classePillStatusPedido($p['status'], $p['status_entrega']);
+                        $ehPdv = $p['origem'] === 'pdv';
+                        if ($ehPdv) {
+                            $rotulo = 'Concluída';
+                            $classePill = 'concluido';
+                            $linkPedido = '/caixa/recibo.php?id_venda=' . (int) $p['id_venda'] . '&t=' . urlencode((string) $p['token_recibo']);
+                        } else {
+                            $rotulo = rotuloStatusPedido($p['status'], $p['status_entrega'], $p['entrega_tipo']);
+                            $classePill = classePillStatusPedido($p['status'], $p['status_entrega']);
+                            $linkPedido = '/loja/pedido_status.php?id_venda=' . (int) $p['id_venda'];
+                        }
                     ?>
-                    <a href="/loja/pedido_status.php?id_venda=<?= (int) $p['id_venda'] ?>" class="pedido-card">
+                    <a href="<?= htmlspecialchars($linkPedido) ?>" class="pedido-card" target="<?= $ehPdv ? '_blank' : '_self' ?>">
                         <div class="foto">
                             <?php if ($p['foto']): ?>
                                 <img src="/<?= htmlspecialchars(fotoComVersao($p['foto'])) ?>" alt="Pedido #<?= (int) $p['id_venda'] ?>">
@@ -122,6 +134,15 @@ function montarLinkFiltro(string $status, int $pagina = 1): string
                             <div class="data"><?= htmlspecialchars(date('d/m/Y', strtotime($p['data_venda']))) ?></div>
                             <div class="total">R$ <?= number_format($p['valor_total'], 2, ',', '.') ?></div>
                             <span class="status-pill<?= $classePill ? ' ' . $classePill : '' ?>"><?= htmlspecialchars($rotulo) ?></span>
+                            <span class="origem-pedido">
+                                <?php if ($ehPdv): ?>
+                                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v9a1 1 0 0 0 1 1h4v-6h6v6h4a1 1 0 0 0 1-1v-9M2 10l1.4-6.2A2 2 0 0 1 5.35 2h13.3a2 2 0 0 1 1.95 1.8L22 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                Comprado na loja
+                                <?php else: ?>
+                                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+                                Comprado online
+                                <?php endif; ?>
+                            </span>
                         </div>
                     </a>
                 <?php endforeach; ?>

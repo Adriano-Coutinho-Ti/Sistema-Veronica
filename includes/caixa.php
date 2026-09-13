@@ -172,8 +172,11 @@ function finalizarVenda(PDO $pdo, int $id_venda, array $pagamentos, ?string $id_
         // status_entrega só existe pra pedidos da loja online (pra acompanhar preparo/envio) —
         // venda de balcão no PDV já sai pronta, não tem etapa de preparo pra rastrear.
         $statusEntrega = $venda['origem'] === 'loja' ? 'Aguardando preparo' : null;
-        $pdo->prepare('UPDATE vendas SET status = "Pago", forma_pagamento = :forma, id_pagamento_mp = :idmp, status_entrega = :se WHERE id_venda = :id')
-            ->execute([':forma' => $forma_pagamento, ':idmp' => $id_pagamento_mp, ':se' => $statusEntrega, ':id' => $id_venda]);
+        // Token do comprovante público (caixa/recibo.php) — gerado aqui, na hora que a venda
+        // vira "Pago" de verdade, pra já estar pronto assim que o operador for compartilhar.
+        $tokenRecibo = bin2hex(random_bytes(20));
+        $pdo->prepare('UPDATE vendas SET status = "Pago", forma_pagamento = :forma, id_pagamento_mp = :idmp, status_entrega = :se, token_recibo = :token WHERE id_venda = :id')
+            ->execute([':forma' => $forma_pagamento, ':idmp' => $id_pagamento_mp, ':se' => $statusEntrega, ':token' => $tokenRecibo, ':id' => $id_venda]);
 
         $pdo->commit();
 
