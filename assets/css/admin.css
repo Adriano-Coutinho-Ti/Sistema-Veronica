@@ -159,7 +159,7 @@ h3 { font-size: 1.05rem; }
 
 /* ============ Título de página ============ */
 
-.page-title { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
+.page-title { display: flex; align-items: center; flex-wrap: wrap; gap: 14px; margin-bottom: 22px; }
 .page-title .icone-titulo {
     width: 42px; height: 42px; border-radius: var(--raio-sm);
     background: var(--cor-primaria-suave); color: var(--cor-primaria);
@@ -168,6 +168,39 @@ h3 { font-size: 1.05rem; }
 .page-title .icone-titulo svg { width: 22px; height: 22px; }
 .page-title h1 { margin: 0; }
 .page-title .subtitulo { color: var(--cor-texto-suave); font-size: 0.9rem; }
+
+/* Código único do produto (igual uma etiqueta/código de barras física) —
+   precisa ser bem visível, é o que o operador digita no PDV pra achar a
+   peça rápido. */
+.codigo-produto {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--cor-primaria-suave);
+    color: var(--cor-primaria);
+    border: 1.5px dashed var(--cor-primaria);
+    border-radius: var(--raio-sm);
+    padding: 6px 14px;
+    font-family: var(--fonte-titulo);
+    font-weight: 700;
+    font-size: 1.15rem;
+    letter-spacing: 0.08em;
+}
+.codigo-produto .codigo-rotulo { font-family: var(--fonte-corpo); font-weight: 600; font-size: 0.72rem; letter-spacing: 0.04em; text-transform: uppercase; opacity: 0.75; }
+
+/* Mesma etiqueta, versão compacta pra caber numa célula de tabela (produtos/lista.php) */
+.codigo-produto-mini {
+    display: inline-block;
+    background: var(--cor-primaria-suave);
+    color: var(--cor-primaria);
+    border-radius: var(--raio-sm);
+    padding: 3px 9px;
+    font-family: var(--fonte-titulo);
+    font-weight: 700;
+    font-size: 0.85rem;
+    letter-spacing: 0.06em;
+}
 
 /* ============ Botões ============ */
 
@@ -655,6 +688,7 @@ td a { font-weight: 600; }
     font-size: 0.9rem;
     margin-bottom: 14px;
 }
+.cliente-vinculado-pill-neutro { background: var(--cor-fundo-alt); color: var(--cor-texto-suave); justify-content: flex-start; }
 
 /* Lista de "chips" genérica (ex: pagamentos já lançados em caixa/pagamento.php) */
 .lista-pills { display: flex; flex-wrap: wrap; gap: 8px; }

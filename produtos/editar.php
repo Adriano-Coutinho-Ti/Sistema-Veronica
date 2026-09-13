@@ -26,6 +26,18 @@ $linkCompartilharWhatsapp = montarLinkCompartilharWhatsapp($produto['nome'], (fl
 
 $erro = '';
 
+// Backfill pra produto cadastrado antes do código existir no sistema.
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'gerar_codigo') {
+    if (empty($produto['codigo'])) {
+        $novoCodigo = gerarCodigoProdutoUnico($pdo);
+        $pdo->prepare('UPDATE produtos SET codigo = :c WHERE id_produto = :id')
+            ->execute([':c' => $novoCodigo, ':id' => $id_produto]);
+        $produto['codigo'] = $novoCodigo;
+    }
+    header('Location: /produtos/editar.php?id=' . $id_produto . '&codigo_gerado=1');
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'atualizar_dados') {
     $nome = trim($_POST['nome'] ?? '');
     $descricao = trim($_POST['descricao'] ?? '') ?: null;
@@ -202,6 +214,14 @@ $idsValoresEmUso = $stmtValoresEmUso->fetchAll(PDO::FETCH_COLUMN);
             <h1><?= htmlspecialchars($produto['nome']) ?></h1>
             <span class="subtitulo"><?= htmlspecialchars($produto['categoria'] ?? '') ?> · <span class="status-pill<?= $produto['ativo'] ? ' sucesso' : ' erro' ?>"><?= $produto['ativo'] ? 'Ativo' : 'Inativo' ?></span></span>
         </div>
+        <?php if (!empty($produto['codigo'])): ?>
+        <span class="codigo-produto"><span class="codigo-rotulo">Código</span> <?= htmlspecialchars($produto['codigo']) ?></span>
+        <?php else: ?>
+        <form method="post" style="margin-left:auto;">
+            <input type="hidden" name="acao" value="gerar_codigo">
+            <button type="submit" class="btn-outline btn-sm">Gerar código do produto</button>
+        </form>
+        <?php endif; ?>
     </div>
 
     <p class="acoes-topo">
@@ -214,6 +234,7 @@ $idsValoresEmUso = $stmtValoresEmUso->fetchAll(PDO::FETCH_COLUMN);
 
     <?php if (isset($_GET['atualizado'])): ?><p class="alert alert-sucesso">Produto atualizado.</p><?php endif; ?>
     <?php if (isset($_GET['criado'])): ?><p class="alert alert-sucesso">Produto criado com sucesso.</p><?php endif; ?>
+    <?php if (isset($_GET['codigo_gerado'])): ?><p class="alert alert-sucesso">Código <strong><?= htmlspecialchars($produto['codigo']) ?></strong> gerado pra este produto.</p><?php endif; ?>
     <?php if (isset($_GET['variacoes_atualizadas'])): ?><p class="alert alert-sucesso">Variações atualizadas — defina estoque e preço das combinações novas em "Combinações".</p><?php endif; ?>
     <?php if (isset($_GET['variacoes_parcial'])): ?><p class="alert alert-erro">Variações atualizadas, mas uma ou mais combinações desmarcadas não foram removidas por estarem reservadas agora no carrinho de um cliente — tente de novo daqui a pouco.</p><?php endif; ?>
     <?php if (isset($_GET['combinacoes_atualizadas'])): ?><p class="alert alert-sucesso">Combinações salvas.</p><?php endif; ?>

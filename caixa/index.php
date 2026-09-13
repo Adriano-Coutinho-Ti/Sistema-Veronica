@@ -55,8 +55,9 @@ document.getElementById('btn-iniciar').addEventListener('click', function () {
     <div class="grade-2col">
         <div class="card">
             <h2>Buscar produto</h2>
-            <input type="text" id="termo-busca" aria-label="Buscar produto" placeholder="Digite o nome do produto...">
+            <input type="text" id="termo-busca" aria-label="Buscar produto" placeholder="Nome do produto ou código da etiqueta...">
             <div id="resultados-busca" class="lista-resultados"></div>
+            <button type="button" class="btn-outline btn-bloco" id="btn-venda-avulsa" style="margin-top:14px;">Venda avulsa</button>
         </div>
 
         <div>
@@ -72,9 +73,22 @@ document.getElementById('btn-iniciar').addEventListener('click', function () {
 
             <div class="card" style="margin-top:20px;">
                 <h2>Cliente</h2>
-                <div id="cliente-vinculado"></div>
+                <div id="cliente-vinculado"><div class="cliente-vinculado-pill cliente-vinculado-pill-neutro">Consumidor</div></div>
                 <input type="text" id="termo-cliente" aria-label="Buscar cliente" placeholder="Buscar cliente (opcional)...">
                 <div id="resultados-cliente" class="lista-resultados"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modal-avulsa" hidden>
+        <div class="modal-card">
+            <h3>Venda avulsa</h3>
+            <p style="color:var(--cor-texto-suave); font-size:0.9rem; margin-bottom:14px;">Pra vender algo que ainda não está cadastrado no sistema. Informe só o valor.</p>
+            <input type="text" id="valor-avulsa" placeholder="Valor (R$)">
+            <p id="erro-avulsa" class="alert alert-erro" style="display:none; margin-top:10px;"></p>
+            <div class="modal-acoes">
+                <button type="button" class="btn-outline" id="btn-cancelar-avulsa">Cancelar</button>
+                <button type="button" class="btn" id="btn-confirmar-avulsa">Adicionar ao carrinho</button>
             </div>
         </div>
     </div>
@@ -87,6 +101,37 @@ function mostrarErroPdv(mensagem) {
     msg.textContent = mensagem;
     msg.style.display = '';
 }
+
+(function () {
+    const modalAvulsa = document.getElementById('modal-avulsa');
+    const campoValorAvulsa = document.getElementById('valor-avulsa');
+    const erroAvulsa = document.getElementById('erro-avulsa');
+
+    document.getElementById('btn-venda-avulsa').addEventListener('click', function () {
+        campoValorAvulsa.value = '';
+        erroAvulsa.style.display = 'none';
+        modalAvulsa.hidden = false;
+        campoValorAvulsa.focus();
+    });
+    document.getElementById('btn-cancelar-avulsa').addEventListener('click', function () { modalAvulsa.hidden = true; });
+    modalAvulsa.addEventListener('click', function (e) { if (e.target === modalAvulsa) { modalAvulsa.hidden = true; } });
+
+    document.getElementById('btn-confirmar-avulsa').addEventListener('click', function () {
+        fetch('/caixa/ajax/adicionar_item_avulso.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: 'id_venda=' + idVenda + '&valor=' + encodeURIComponent(campoValorAvulsa.value)
+        }).then(r => r.json()).then(data => {
+            if (data.success) {
+                modalAvulsa.hidden = true;
+                carregarCarrinho();
+            } else {
+                erroAvulsa.textContent = data.message;
+                erroAvulsa.style.display = '';
+            }
+        });
+    });
+})();
 
 document.getElementById('termo-busca').addEventListener('input', function () {
     const termo = this.value;

@@ -43,3 +43,23 @@ function fotoComVersao(?string $caminhoRelativo): ?string
     $versao = @filemtime(CAMINHO_RAIZ . '/' . $caminhoRelativo) ?: time();
     return $caminhoRelativo . '?v=' . $versao;
 }
+
+/**
+ * Sorteia um código de 3 dígitos (000-999) ainda não usado por nenhum
+ * produto — funciona como o código de barras/etiqueta física da peça.
+ * De propósito não é sequencial (001, 002...): sorteia e verifica se já
+ * está em uso, repetindo até achar um livre, pra não dar pra adivinhar
+ * o próximo código só de olhar o anterior.
+ */
+function gerarCodigoProdutoUnico(PDO $pdo): string
+{
+    for ($tentativas = 0; $tentativas < 300; $tentativas++) {
+        $codigo = str_pad((string) random_int(0, 999), 3, '0', STR_PAD_LEFT);
+        $existe = $pdo->prepare('SELECT 1 FROM produtos WHERE codigo = :c');
+        $existe->execute([':c' => $codigo]);
+        if (!$existe->fetch()) {
+            return $codigo;
+        }
+    }
+    throw new RuntimeException('Não foi possível gerar um código de produto único — os 1000 códigos possíveis estão todos em uso.');
+}

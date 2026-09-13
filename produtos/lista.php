@@ -16,8 +16,9 @@ if (!in_array($statusFiltro, ['ativos', 'inativos'], true)) {
 $where = '1=1';
 $params = [];
 if ($busca !== '') {
-    $where .= ' AND p.nome LIKE :busca';
+    $where .= ' AND (p.nome LIKE :busca OR p.codigo = :buscaCodigo)';
     $params[':busca'] = '%' . $busca . '%';
+    $params[':buscaCodigo'] = $busca;
 }
 if ($id_categoria > 0) {
     $where .= ' AND p.id_categoria = :ic';
@@ -39,14 +40,14 @@ $totalPaginas = max(1, (int) ceil($totalProdutos / PRODUTOS_POR_PAGINA));
 $pagina = min($pagina, $totalPaginas);
 $offset = ($pagina - 1) * PRODUTOS_POR_PAGINA;
 
-$sql = "SELECT p.id_produto, p.nome, p.preco_base, p.ativo, c.nome AS categoria,
+$sql = "SELECT p.id_produto, p.nome, p.codigo, p.preco_base, p.ativo, c.nome AS categoria,
                COALESCE(SUM(pv.estoque), 0) AS estoque_total,
                (SELECT caminho_arquivo FROM produto_fotos WHERE id_produto = p.id_produto ORDER BY ordem LIMIT 1) AS foto
         FROM produtos p
         JOIN categorias c ON c.id_categoria = p.id_categoria
         LEFT JOIN produto_variacoes pv ON pv.id_produto = p.id_produto
         WHERE $where
-        GROUP BY p.id_produto, p.nome, p.preco_base, p.ativo, c.nome
+        GROUP BY p.id_produto, p.nome, p.codigo, p.preco_base, p.ativo, c.nome
         ORDER BY p.criado_em DESC
         LIMIT :limite OFFSET :offset";
 $stmt = $pdo->prepare($sql);
@@ -118,7 +119,7 @@ function montarLinkFiltroProdutos(int $pagina, int $categoria, string $status, s
             <form method="get" class="busca-lista">
                 <?php if ($id_categoria > 0): ?><input type="hidden" name="categoria" value="<?= $id_categoria ?>"><?php endif; ?>
                 <?php if ($statusFiltro !== ''): ?><input type="hidden" name="status" value="<?= htmlspecialchars($statusFiltro) ?>"><?php endif; ?>
-                <input type="text" name="busca" placeholder="Buscar produto por nome..." value="<?= htmlspecialchars($busca) ?>">
+                <input type="text" name="busca" placeholder="Buscar produto por nome ou código..." value="<?= htmlspecialchars($busca) ?>">
                 <button type="submit">Buscar</button>
             </form>
 
@@ -127,7 +128,7 @@ function montarLinkFiltroProdutos(int $pagina, int $categoria, string $status, s
             <?php else: ?>
             <div class="tabela-wrap">
             <table>
-                <tr><th></th><th>Nome</th><th>Categoria</th><th>Preço</th><th>Estoque</th><th>Status</th><th></th><th></th></tr>
+                <tr><th></th><th>Código</th><th>Nome</th><th>Categoria</th><th>Preço</th><th>Estoque</th><th>Status</th><th></th><th></th></tr>
                 <?php foreach ($produtos as $p): ?>
                 <?php
                     $urlProdutoP = 'https://brechodaveve.codernex.com.br/loja/produto.php?id=' . $p['id_produto'];
@@ -141,6 +142,7 @@ function montarLinkFiltroProdutos(int $pagina, int $categoria, string $status, s
                             <img src="/assets/img/produto-indisponivel.svg" alt="" class="foto-produto-mini">
                         <?php endif; ?>
                     </td>
+                    <td><?= $p['codigo'] ? '<span class="codigo-produto-mini">' . htmlspecialchars($p['codigo']) . '</span>' : '—' ?></td>
                     <td><?= htmlspecialchars($p['nome']) ?></td>
                     <td><?= htmlspecialchars($p['categoria']) ?></td>
                     <td>R$ <?= number_format($p['preco_base'], 2, ',', '.') ?></td>

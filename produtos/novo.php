@@ -23,8 +23,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $pdo->beginTransaction();
         try {
+            $codigo = gerarCodigoProdutoUnico($pdo);
             $stmt = $pdo->prepare(
-                'INSERT INTO produtos (nome, descricao, id_categoria, condicao, preco_base) VALUES (:nome, :descricao, :ic, :condicao, :preco_base)'
+                'INSERT INTO produtos (nome, descricao, id_categoria, condicao, preco_base, codigo) VALUES (:nome, :descricao, :ic, :condicao, :preco_base, :codigo)'
             );
             $stmt->execute([
                 ':nome' => $nome,
@@ -32,6 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ':ic' => $id_categoria,
                 ':condicao' => $condicao,
                 ':preco_base' => $preco_base,
+                ':codigo' => $codigo,
             ]);
             $id_produto = (int) $pdo->lastInsertId();
 
