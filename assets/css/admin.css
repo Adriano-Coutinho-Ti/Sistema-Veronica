@@ -489,14 +489,18 @@ td a { font-weight: 600; }
     box-shadow: var(--sombra-sm);
     padding: 10px;
     text-align: center;
-    width: 168px;
+    width: 148px;
 }
 .foto-item img { width: 120px; height: 120px; min-width: 120px; max-width: 120px; object-fit: cover; border-radius: var(--raio-sm); margin: 0 auto 8px; display: block; }
 .foto-item form { margin: 0; }
-.foto-item-acoes { display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 6px; }
-.foto-item-acoes .btn-sm { white-space: nowrap; }
-.btn-icone { flex: 0 0 auto; width: 34px; padding: 0; }
-.btn-icone svg { width: 16px; height: 16px; }
+/* 3 por linha precisa caber em ~484px de conteúdo do card (container 1100px
+   / 2 colunas do grade-2col / padding do card) — item mais largo que isso
+   quebra pra 2 por linha, por isso o botão de texto e o ícone ficam bem
+   compactos aqui (não é o .btn-sm padrão do resto do painel). */
+.foto-item-acoes { display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 4px; }
+.foto-item-acoes .btn-sm { white-space: nowrap; padding: 6px 8px; font-size: 0.78rem; }
+.btn-icone { flex: 0 0 auto; width: 28px; padding: 0; }
+.btn-icone svg { width: 14px; height: 14px; }
 
 .foto-capa {
     position: absolute;
