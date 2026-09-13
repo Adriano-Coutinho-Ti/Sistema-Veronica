@@ -53,6 +53,74 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'atualiz
     }
 }
 
+// Cria combinações novas (produto_variacoes) a partir das variações marcadas,
+// sem nunca apagar as que já existem — só soma. Assim, quando o lojista
+// cadastra um valor novo numa variação (ex: adiciona "Rosa" em Cor lá em
+// produtos/variacoes.php) e volta pra cá, basta clicar em "Atualizar
+// combinações" de novo pra ela aparecer pronta pra receber estoque.
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'sincronizar_variacoes') {
+    $idsVariacaoSelecionadas = array_unique(array_filter(array_map('intval', $_POST['variacoes'] ?? [])));
+
+    $gruposValores = [];
+    foreach ($idsVariacaoSelecionadas as $idVariacao) {
+        $stmtValores = $pdo->prepare(
+            'SELECT vv.id_valor FROM variacao_valores vv
+             JOIN categoria_variacoes cv ON cv.id_variacao = vv.id_variacao
+             WHERE vv.id_variacao = :iv AND cv.id_categoria = :ic
+             ORDER BY vv.valor'
+        );
+        $stmtValores->execute([':iv' => $idVariacao, ':ic' => $produto['id_categoria']]);
+        $valoresDaVariacao = $stmtValores->fetchAll(PDO::FETCH_COLUMN);
+        if ($valoresDaVariacao) {
+            $gruposValores[] = $valoresDaVariacao;
+        }
+    }
+
+    $combinacoesGeradas = [[]];
+    foreach ($gruposValores as $grupo) {
+        $novasCombinacoes = [];
+        foreach ($combinacoesGeradas as $combinacaoAtual) {
+            foreach ($grupo as $idValor) {
+                $novasCombinacoes[] = array_merge($combinacaoAtual, [$idValor]);
+            }
+        }
+        $combinacoesGeradas = $novasCombinacoes;
+    }
+
+    $stmtExistentes = $pdo->prepare(
+        'SELECT pv.id_produto_variacao, GROUP_CONCAT(pvv.id_valor ORDER BY pvv.id_valor SEPARATOR ",") AS chave
+         FROM produto_variacoes pv
+         LEFT JOIN produto_variacao_valores pvv ON pvv.id_produto_variacao = pv.id_produto_variacao
+         WHERE pv.id_produto = :ip
+         GROUP BY pv.id_produto_variacao'
+    );
+    $stmtExistentes->execute([':ip' => $id_produto]);
+    $chavesExistentes = array_flip(array_column($stmtExistentes->fetchAll(), 'chave'));
+
+    foreach ($combinacoesGeradas as $combinacao) {
+        if (empty($combinacao)) {
+            continue;
+        }
+        sort($combinacao);
+        $chave = implode(',', $combinacao);
+        if (isset($chavesExistentes[$chave])) {
+            continue;
+        }
+
+        $pdo->prepare('INSERT INTO produto_variacoes (id_produto, preco, estoque) VALUES (:ip, NULL, 0)')
+            ->execute([':ip' => $id_produto]);
+        $idNovaCombinacao = (int) $pdo->lastInsertId();
+
+        foreach ($combinacao as $idValor) {
+            $pdo->prepare('INSERT INTO produto_variacao_valores (id_produto_variacao, id_valor) VALUES (:ipv, :iv)')
+                ->execute([':ipv' => $idNovaCombinacao, ':iv' => $idValor]);
+        }
+    }
+
+    header('Location: /produtos/editar.php?id=' . $id_produto . '&variacoes_atualizadas=1');
+    exit;
+}
+
 $combinacoes = $pdo->prepare(
     'SELECT pv.id_produto_variacao, pv.preco, pv.estoque,
             GROUP_CONCAT(vv.valor SEPARATOR " / ") AS descricao
@@ -64,6 +132,29 @@ $combinacoes = $pdo->prepare(
 );
 $combinacoes->execute([':ip' => $id_produto]);
 $listaCombinacoes = $combinacoes->fetchAll();
+
+$stmtVariacoesCategoria = $pdo->prepare(
+    'SELECT v.id_variacao, v.nome, GROUP_CONCAT(vv.valor ORDER BY vv.valor SEPARATOR ", ") AS valores
+     FROM categoria_variacoes cv
+     JOIN variacoes v ON v.id_variacao = cv.id_variacao
+     LEFT JOIN variacao_valores vv ON vv.id_variacao = v.id_variacao
+     WHERE cv.id_categoria = :ic
+     GROUP BY v.id_variacao, v.nome
+     ORDER BY v.nome'
+);
+$stmtVariacoesCategoria->execute([':ic' => $produto['id_categoria']]);
+$listaVariacoesCategoria = $stmtVariacoesCategoria->fetchAll();
+
+$stmtVariacoesEmUso = $pdo->prepare(
+    'SELECT DISTINCT v.id_variacao
+     FROM produto_variacao_valores pvv
+     JOIN variacao_valores vv ON vv.id_valor = pvv.id_valor
+     JOIN variacoes v ON v.id_variacao = vv.id_variacao
+     JOIN produto_variacoes pv ON pv.id_produto_variacao = pvv.id_produto_variacao
+     WHERE pv.id_produto = :ip'
+);
+$stmtVariacoesEmUso->execute([':ip' => $id_produto]);
+$idsVariacoesEmUso = $stmtVariacoesEmUso->fetchAll(PDO::FETCH_COLUMN);
 ?>
 <!DOCTYPE html>
 <html lang="pt-br">
@@ -97,6 +188,29 @@ $listaCombinacoes = $combinacoes->fetchAll();
     <?php if (empty($listaFotos)): ?>
         <p class="alert alert-info">Adicione uma foto pra ela aparecer na prévia do link quando compartilhar e na vitrine da loja.</p>
     <?php endif; ?>
+
+    <div class="card">
+        <h2>Variações do produto</h2>
+        <?php if (empty($listaVariacoesCategoria)): ?>
+        <p class="alert alert-info">A categoria "<?= htmlspecialchars($produto['categoria']) ?>" ainda não tem variações cadastradas. <a href="/produtos/variacoes.php?id_categoria=<?= $produto['id_categoria'] ?>">Cadastrar variações</a>.</p>
+        <?php else: ?>
+        <?php if (isset($_GET['variacoes_atualizadas'])): ?><p class="alert alert-sucesso">Combinações atualizadas — defina estoque e preço delas ali embaixo, em "Combinações".</p><?php endif; ?>
+        <p style="color:var(--cor-texto-suave); font-size:0.9rem; margin-bottom:14px;">Marque as variações que esse produto usa. As combinações novas (inclusive de valores que você acabou de cadastrar na categoria) aparecem em "Combinações" prontas pra receber estoque e preço.</p>
+        <form method="post" class="lista-checkbox">
+            <input type="hidden" name="acao" value="sincronizar_variacoes">
+            <?php foreach ($listaVariacoesCategoria as $v): ?>
+            <?php $emUso = in_array((int) $v['id_variacao'], $idsVariacoesEmUso, true); ?>
+            <label>
+                <input type="checkbox" name="variacoes[]" value="<?= $v['id_variacao'] ?>" <?= $emUso ? 'checked disabled' : '' ?>>
+                <?php if ($emUso): ?><input type="hidden" name="variacoes[]" value="<?= $v['id_variacao'] ?>"><?php endif; ?>
+                <strong><?= htmlspecialchars($v['nome']) ?></strong> — <?= htmlspecialchars($v['valores'] ?? '') ?>
+                <?php if ($emUso): ?><span class="status-pill sucesso">em uso</span><?php endif; ?>
+            </label>
+            <?php endforeach; ?>
+            <button type="submit" class="btn-outline">Atualizar combinações</button>
+        </form>
+        <?php endif; ?>
+    </div>
 
     <div class="grade-2col">
         <div class="card">

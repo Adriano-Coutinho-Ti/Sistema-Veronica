@@ -108,7 +108,8 @@ $variacoes = $variacoesAtivas->fetchAll();
         <tr>
             <td><?= htmlspecialchars($v['nome']) ?></td>
             <td><?= htmlspecialchars($v['valores'] ?? '') ?></td>
-            <td>
+            <td class="celula-acoes">
+                <a href="/produtos/variacao_editar.php?id_variacao=<?= $v['id_variacao'] ?>&id_categoria=<?= $id_categoria ?>" class="btn-sm btn-outline">editar</a>
                 <form method="post" data-confirm="Remover esta variação desta categoria?">
                     <input type="hidden" name="acao" value="remover_associacao">
                     <input type="hidden" name="id_variacao" value="<?= $v['id_variacao'] ?>">
