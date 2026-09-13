@@ -48,7 +48,7 @@ $sql = "SELECT p.id_produto, p.nome, p.codigo, p.preco_base, p.ativo, c.nome AS 
         LEFT JOIN produto_variacoes pv ON pv.id_produto = p.id_produto
         WHERE $where
         GROUP BY p.id_produto, p.nome, p.codigo, p.preco_base, p.ativo, c.nome
-        ORDER BY p.criado_em DESC
+        ORDER BY p.nome ASC
         LIMIT :limite OFFSET :offset";
 $stmt = $pdo->prepare($sql);
 foreach ($params as $chave => $valor) {
