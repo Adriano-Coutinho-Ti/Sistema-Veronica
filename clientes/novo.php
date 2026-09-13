@@ -44,18 +44,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Novo cliente</title></head>
 <body>
 <?php require __DIR__ . '/../includes/admin_header.php'; ?>
-    <h1>Novo cliente</h1>
-    <?php if ($erro): ?><p class="alert alert-erro"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
-    <div class="card">
-    <form method="post">
-        <label>Nome<input type="text" name="nome" required></label>
-        <label>WhatsApp (com DDD)<input type="text" name="whatsapp" required placeholder="11987654321"></label>
-        <label>E-mail<input type="email" name="email"></label>
-        <label>Endereço<input type="text" name="endereco"></label>
-        <button type="submit">Salvar</button>
-    </form>
+    <div class="page-title">
+        <span class="icone-titulo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 8c0-3.31 3.13-6 7-6s7 2.69 7 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <div>
+            <h1>Novo cliente</h1>
+            <span class="subtitulo">Cadastre um cliente novo</span>
+        </div>
     </div>
-    <p><a href="/clientes/lista.php" class="btn-texto">← Ver clientes</a></p>
+
+    <p class="acoes-topo">
+        <a href="/clientes/lista.php" class="btn-outline btn-sm">
+            <svg viewBox="0 0 24 24" aria-hidden="true" width="14" height="14"><path d="M15 6 9 12l6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Voltar
+        </a>
+    </p>
+
+    <?php if ($erro): ?><p class="alert alert-erro"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
+
+    <div class="card">
+        <h2>Dados do cliente</h2>
+        <form method="post">
+            <label>Nome<input type="text" name="nome" required></label>
+            <label>WhatsApp (com DDD)<input type="text" name="whatsapp" required placeholder="11987654321"></label>
+            <label>E-mail<input type="email" name="email"></label>
+            <label>Endereço<input type="text" name="endereco"></label>
+            <button type="submit" class="btn-bloco">Salvar</button>
+        </form>
+    </div>
 </main>
 </body>
 </html>
