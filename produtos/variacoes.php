@@ -85,42 +85,68 @@ $variacoesAtivas = $pdo->prepare(
 );
 $variacoesAtivas->execute([':ic' => $id_categoria]);
 $variacoes = $variacoesAtivas->fetchAll();
+$totalVariacoes = count($variacoes);
 ?>
 <!DOCTYPE html>
 <html lang="pt-br">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Variações — <?= htmlspecialchars($categoria['nome']) ?></title></head>
 <body>
 <?php require __DIR__ . '/../includes/admin_header.php'; ?>
-    <h1>Variações de "<?= htmlspecialchars($categoria['nome']) ?>"</h1>
+    <div class="page-title">
+        <span class="icone-titulo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2 8l10 5 10-5-10-5Zm-10 9 10 5 10-5M2 16l10 5 10-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <div>
+            <h1><?= htmlspecialchars($categoria['nome']) ?></h1>
+            <span class="subtitulo"><?= $totalVariacoes ?> variação<?= $totalVariacoes === 1 ? '' : 'ões' ?> configurada<?= $totalVariacoes === 1 ? '' : 's' ?> nesta categoria</span>
+        </div>
+    </div>
+
+    <p class="acoes-topo">
+        <a href="/produtos/categorias.php" class="btn-outline btn-sm">
+            <svg viewBox="0 0 24 24" aria-hidden="true" width="14" height="14"><path d="M15 6 9 12l6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Voltar
+        </a>
+    </p>
+
     <?php if ($erro): ?><p class="alert alert-erro"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
+
     <div class="card">
-    <form method="post">
-        <input type="hidden" name="acao" value="criar_variacao">
-        <label>Nome da variação (ex: Cor)<input type="text" name="nome" required></label>
-        <label>Valores, separados por vírgula (ex: Azul, Vermelho)<input type="text" name="valores" required></label>
-        <button type="submit">Adicionar / atualizar</button>
-    </form>
+        <h2>Nova variação</h2>
+        <form method="post">
+            <input type="hidden" name="acao" value="criar_variacao">
+            <label>Nome da variação (ex: Cor)<input type="text" name="nome" required></label>
+            <label>Valores, separados por vírgula (ex: Azul, Vermelho)<input type="text" name="valores" required></label>
+            <button type="submit" class="btn">Adicionar / atualizar</button>
+        </form>
     </div>
-    <div class="tabela-wrap">
-    <table>
-        <tr><th>Variação</th><th>Valores</th><th></th></tr>
-        <?php foreach ($variacoes as $v): ?>
-        <tr>
-            <td><?= htmlspecialchars($v['nome']) ?></td>
-            <td><?= htmlspecialchars($v['valores'] ?? '') ?></td>
-            <td class="celula-acoes">
-                <a href="/produtos/variacao_editar.php?id_variacao=<?= $v['id_variacao'] ?>&id_categoria=<?= $id_categoria ?>" class="btn-sm btn-outline">editar</a>
-                <form method="post" data-confirm="Remover esta variação desta categoria?">
-                    <input type="hidden" name="acao" value="remover_associacao">
-                    <input type="hidden" name="id_variacao" value="<?= $v['id_variacao'] ?>">
-                    <button type="submit" class="btn-sm btn-perigo">remover</button>
-                </form>
-            </td>
-        </tr>
-        <?php endforeach; ?>
-    </table>
+
+    <div class="card">
+        <h2>Variações desta categoria</h2>
+        <?php if (empty($variacoes)): ?>
+        <p class="alert alert-info">Nenhuma variação cadastrada ainda pra "<?= htmlspecialchars($categoria['nome']) ?>".</p>
+        <?php else: ?>
+        <div class="tabela-wrap">
+        <table>
+            <tr><th>Variação</th><th>Valores</th><th></th></tr>
+            <?php foreach ($variacoes as $v): ?>
+            <tr>
+                <td><?= htmlspecialchars($v['nome']) ?></td>
+                <td><?= htmlspecialchars($v['valores'] ?? '') ?></td>
+                <td class="celula-acoes">
+                    <a href="/produtos/variacao_editar.php?id_variacao=<?= $v['id_variacao'] ?>&id_categoria=<?= $id_categoria ?>" class="btn-sm btn-outline">editar</a>
+                    <form method="post" data-confirm="Remover esta variação desta categoria?">
+                        <input type="hidden" name="acao" value="remover_associacao">
+                        <input type="hidden" name="id_variacao" value="<?= $v['id_variacao'] ?>">
+                        <button type="submit" class="btn-sm btn-perigo btn-icone" title="Remover variação" aria-label="Remover variação">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3m-8 0 1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13M10 11v6M14 11v6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            <?php endforeach; ?>
+        </table>
+        </div>
+        <?php endif; ?>
     </div>
-    <p><a href="/produtos/categorias.php" class="btn-texto">← Voltar para categorias</a></p>
 </main>
 </body>
 </html>
