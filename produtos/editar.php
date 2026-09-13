@@ -26,7 +26,7 @@ $linkCompartilharWhatsapp = montarLinkCompartilharWhatsapp($produto['nome'], (fl
 
 $erro = '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'atualizar') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'atualizar_dados') {
     $nome = trim($_POST['nome'] ?? '');
     $descricao = trim($_POST['descricao'] ?? '') ?: null;
     $preco_base = (float) str_replace(',', '.', $_POST['preco_base'] ?? '0');
@@ -38,19 +38,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'atualiz
         $pdo->prepare('UPDATE produtos SET nome = :nome, descricao = :descricao, preco_base = :preco_base, ativo = :ativo WHERE id_produto = :id')
             ->execute([':nome' => $nome, ':descricao' => $descricao, ':preco_base' => $preco_base, ':ativo' => $ativo, ':id' => $id_produto]);
 
-        foreach ($_POST['estoque'] ?? [] as $id_pv => $valor) {
-            $pdo->prepare('UPDATE produto_variacoes SET estoque = :estoque WHERE id_produto_variacao = :id AND id_produto = :ip')
-                ->execute([':estoque' => (int) $valor, ':id' => (int) $id_pv, ':ip' => $id_produto]);
-        }
-        foreach ($_POST['preco'] ?? [] as $id_pv => $valor) {
-            $precoCombinacao = $valor === '' ? null : (float) str_replace(',', '.', $valor);
-            $pdo->prepare('UPDATE produto_variacoes SET preco = :preco WHERE id_produto_variacao = :id AND id_produto = :ip')
-                ->execute([':preco' => $precoCombinacao, ':id' => (int) $id_pv, ':ip' => $id_produto]);
-        }
-
         header('Location: /produtos/editar.php?id=' . $id_produto . '&atualizado=1');
         exit;
     }
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'atualizar_combinacoes') {
+    foreach ($_POST['estoque'] ?? [] as $id_pv => $valor) {
+        $pdo->prepare('UPDATE produto_variacoes SET estoque = :estoque WHERE id_produto_variacao = :id AND id_produto = :ip')
+            ->execute([':estoque' => (int) $valor, ':id' => (int) $id_pv, ':ip' => $id_produto]);
+    }
+    foreach ($_POST['preco'] ?? [] as $id_pv => $valor) {
+        $precoCombinacao = $valor === '' ? null : (float) str_replace(',', '.', $valor);
+        $pdo->prepare('UPDATE produto_variacoes SET preco = :preco WHERE id_produto_variacao = :id AND id_produto = :ip')
+            ->execute([':preco' => $precoCombinacao, ':id' => (int) $id_pv, ':ip' => $id_produto]);
+    }
+
+    header('Location: /produtos/editar.php?id=' . $id_produto . '&combinacoes_atualizadas=1');
+    exit;
 }
 
 // Cria combinações novas (produto_variacoes) a partir das variações marcadas,
@@ -181,6 +186,8 @@ $idsVariacoesEmUso = $stmtVariacoesEmUso->fetchAll(PDO::FETCH_COLUMN);
 
     <?php if (isset($_GET['atualizado'])): ?><p class="alert alert-sucesso">Produto atualizado.</p><?php endif; ?>
     <?php if (isset($_GET['criado'])): ?><p class="alert alert-sucesso">Produto criado com sucesso.</p><?php endif; ?>
+    <?php if (isset($_GET['variacoes_atualizadas'])): ?><p class="alert alert-sucesso">Combinações atualizadas — defina estoque e preço delas em "Combinações".</p><?php endif; ?>
+    <?php if (isset($_GET['combinacoes_atualizadas'])): ?><p class="alert alert-sucesso">Combinações salvas.</p><?php endif; ?>
     <?php if ($erro): ?><p class="alert alert-erro"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
     <?php if (isset($_GET['upload_status']) && $_GET['upload_status'] === 'error'): ?>
         <p class="alert alert-erro">Falha ao enviar a foto (<?= htmlspecialchars($_GET['msg'] ?? 'erro desconhecido') ?>).</p>
@@ -188,29 +195,6 @@ $idsVariacoesEmUso = $stmtVariacoesEmUso->fetchAll(PDO::FETCH_COLUMN);
     <?php if (empty($listaFotos)): ?>
         <p class="alert alert-info">Adicione uma foto pra ela aparecer na prévia do link quando compartilhar e na vitrine da loja.</p>
     <?php endif; ?>
-
-    <div class="card">
-        <h2>Variações do produto</h2>
-        <?php if (empty($listaVariacoesCategoria)): ?>
-        <p class="alert alert-info">A categoria "<?= htmlspecialchars($produto['categoria']) ?>" ainda não tem variações cadastradas. <a href="/produtos/variacoes.php?id_categoria=<?= $produto['id_categoria'] ?>">Cadastrar variações</a>.</p>
-        <?php else: ?>
-        <?php if (isset($_GET['variacoes_atualizadas'])): ?><p class="alert alert-sucesso">Combinações atualizadas — defina estoque e preço delas ali embaixo, em "Combinações".</p><?php endif; ?>
-        <p style="color:var(--cor-texto-suave); font-size:0.9rem; margin-bottom:14px;">Marque as variações que esse produto usa. As combinações novas (inclusive de valores que você acabou de cadastrar na categoria) aparecem em "Combinações" prontas pra receber estoque e preço.</p>
-        <form method="post" class="lista-checkbox">
-            <input type="hidden" name="acao" value="sincronizar_variacoes">
-            <?php foreach ($listaVariacoesCategoria as $v): ?>
-            <?php $emUso = in_array((int) $v['id_variacao'], $idsVariacoesEmUso, true); ?>
-            <label>
-                <input type="checkbox" name="variacoes[]" value="<?= $v['id_variacao'] ?>" <?= $emUso ? 'checked disabled' : '' ?>>
-                <?php if ($emUso): ?><input type="hidden" name="variacoes[]" value="<?= $v['id_variacao'] ?>"><?php endif; ?>
-                <strong><?= htmlspecialchars($v['nome']) ?></strong> — <?= htmlspecialchars($v['valores'] ?? '') ?>
-                <?php if ($emUso): ?><span class="status-pill sucesso">em uso</span><?php endif; ?>
-            </label>
-            <?php endforeach; ?>
-            <button type="submit" class="btn-outline">Atualizar combinações</button>
-        </form>
-        <?php endif; ?>
-    </div>
 
     <div class="grade-2col">
         <div class="card">
@@ -260,12 +244,37 @@ $idsVariacoesEmUso = $stmtVariacoesEmUso->fetchAll(PDO::FETCH_COLUMN);
                         <span class="toggle-texto">Ativo</span>
                     </label>
                 </div>
-                <input type="hidden" name="acao" value="atualizar">
+                <input type="hidden" name="acao" value="atualizar_dados">
                 <label>Nome<input type="text" name="nome" value="<?= htmlspecialchars($produto['nome']) ?>" required></label>
                 <label>Descrição<textarea name="descricao"><?= htmlspecialchars($produto['descricao'] ?? '') ?></textarea></label>
                 <label>Preço base (R$)<input type="text" name="preco_base" value="<?= number_format($produto['preco_base'], 2, ',', '') ?>" required></label>
 
-                <h3>Combinações</h3>
+                <button type="submit" class="btn-bloco">Salvar dados do produto</button>
+            </form>
+
+            <h3 style="margin-top:28px;">Variações do produto</h3>
+            <?php if (empty($listaVariacoesCategoria)): ?>
+            <p class="alert alert-info">A categoria "<?= htmlspecialchars($produto['categoria']) ?>" ainda não tem variações cadastradas. <a href="/produtos/variacoes.php?id_categoria=<?= $produto['id_categoria'] ?>">Cadastrar variações</a>.</p>
+            <?php else: ?>
+            <p style="color:var(--cor-texto-suave); font-size:0.9rem; margin-bottom:14px;">Marque as variações que esse produto usa. As combinações novas (inclusive de valores que você acabou de cadastrar na categoria) aparecem em "Combinações" prontas pra receber estoque e preço.</p>
+            <form method="post" class="lista-checkbox">
+                <input type="hidden" name="acao" value="sincronizar_variacoes">
+                <?php foreach ($listaVariacoesCategoria as $v): ?>
+                <?php $emUso = in_array((int) $v['id_variacao'], $idsVariacoesEmUso, true); ?>
+                <label>
+                    <input type="checkbox" name="variacoes[]" value="<?= $v['id_variacao'] ?>" <?= $emUso ? 'checked disabled' : '' ?>>
+                    <?php if ($emUso): ?><input type="hidden" name="variacoes[]" value="<?= $v['id_variacao'] ?>"><?php endif; ?>
+                    <strong><?= htmlspecialchars($v['nome']) ?></strong> — <?= htmlspecialchars($v['valores'] ?? '') ?>
+                    <?php if ($emUso): ?><span class="status-pill sucesso">em uso</span><?php endif; ?>
+                </label>
+                <?php endforeach; ?>
+                <button type="submit" class="btn-outline">Atualizar combinações</button>
+            </form>
+            <?php endif; ?>
+
+            <form method="post">
+                <input type="hidden" name="acao" value="atualizar_combinacoes">
+                <h3 style="margin-top:28px;">Combinações</h3>
                 <div class="tabela-wrap">
                 <table>
                     <tr><th>Combinação</th><th>Estoque</th><th>Preço (branco = usa o base)</th></tr>
@@ -279,7 +288,7 @@ $idsVariacoesEmUso = $stmtVariacoesEmUso->fetchAll(PDO::FETCH_COLUMN);
                 </table>
                 </div>
 
-                <button type="submit" class="btn-bloco">Salvar alterações</button>
+                <button type="submit" class="btn-bloco">Salvar combinações</button>
             </form>
         </div>
     </div>
