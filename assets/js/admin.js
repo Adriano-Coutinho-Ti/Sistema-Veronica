@@ -98,7 +98,43 @@ function iniciarConfirmacoesFormulario() {
     });
 }
 
+/**
+ * Alterna listagens entre tabela e cards, lembrando a escolha do usuário
+ * (por navegador, via localStorage — não é dado do sistema, é preferência
+ * de exibição). Funciona por atributos data-* no HTML, sem precisar de
+ * JS específico por página: qualquer `.alternador-visualizacao` com
+ * data-chave/data-alvo-lista/data-alvo-cards é detectado automaticamente.
+ */
+function iniciarAlternadoresVisualizacao() {
+    document.querySelectorAll('.alternador-visualizacao').forEach(function (alternador) {
+        const chave = alternador.dataset.chave;
+        const elLista = document.getElementById(alternador.dataset.alvoLista);
+        const elCards = document.getElementById(alternador.dataset.alvoCards);
+        if (!chave || !elLista || !elCards) {
+            return;
+        }
+
+        const botoes = alternador.querySelectorAll('button[data-modo]');
+
+        function aplicar(modo) {
+            elLista.hidden = modo === 'cards';
+            elCards.hidden = modo !== 'cards';
+            botoes.forEach(function (b) { b.classList.toggle('ativo', b.dataset.modo === modo); });
+            try { localStorage.setItem('visualizacao-' + chave, modo); } catch (e) { /* navegador sem acesso a localStorage (aba anônima etc) — só não lembra a escolha */ }
+        }
+
+        let modoSalvo = 'lista';
+        try { modoSalvo = localStorage.getItem('visualizacao-' + chave) || 'lista'; } catch (e) { /* idem */ }
+        aplicar(modoSalvo);
+
+        botoes.forEach(function (b) {
+            b.addEventListener('click', function () { aplicar(b.dataset.modo); });
+        });
+    });
+}
+
 document.addEventListener('DOMContentLoaded', function () {
     iniciarMenuMobileAdmin();
     iniciarConfirmacoesFormulario();
+    iniciarAlternadoresVisualizacao();
 });

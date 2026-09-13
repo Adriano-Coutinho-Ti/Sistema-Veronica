@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../conecta_bd.php';
 require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/loja.php';
 exigirLogin();
 
 $busca = trim($_GET['busca'] ?? '');
@@ -104,13 +105,23 @@ function montarLinkFiltroClientes(int $pagina, string $status, string $busca): s
             <?php if (empty($clientes)): ?>
                 <p class="alert alert-info">Nenhum cliente encontrado.</p>
             <?php else: ?>
+            <div class="alternador-visualizacao" data-chave="clientes" data-alvo-lista="visualizacao-lista" data-alvo-cards="visualizacao-cards">
+                <button type="button" class="btn-sm btn-outline" data-modo="lista" title="Ver em lista">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                </button>
+                <button type="button" class="btn-sm btn-outline" data-modo="cards" title="Ver em cards">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+                </button>
+            </div>
+
+            <div id="visualizacao-lista">
             <div class="tabela-wrap">
             <table>
                 <tr><th>Nome</th><th>WhatsApp</th><th>E-mail</th><th>E-mail verificado</th><th></th></tr>
                 <?php foreach ($clientes as $c): ?>
                 <tr>
                     <td><?= htmlspecialchars($c['nome']) ?></td>
-                    <td><?= htmlspecialchars($c['whatsapp']) ?></td>
+                    <td><?= htmlspecialchars(formatarWhatsappExibicao($c['whatsapp'])) ?></td>
                     <td><?= htmlspecialchars($c['email'] ?? '') ?></td>
                     <td>
                         <?php if (!$c['email']): ?>—
@@ -122,6 +133,28 @@ function montarLinkFiltroClientes(int $pagina, string $status, string $busca): s
                 </tr>
                 <?php endforeach; ?>
             </table>
+            </div>
+            </div>
+
+            <div id="visualizacao-cards" hidden>
+            <div class="grade-cards">
+                <?php foreach ($clientes as $c): ?>
+                <div class="item-card">
+                    <div class="item-card-topo">
+                        <strong><?= htmlspecialchars($c['nome']) ?></strong>
+                        <?php if (!$c['email']): ?><span class="status-pill">Sem e-mail</span>
+                        <?php elseif ($c['email_verificado_em']): ?><span class="status-pill sucesso">✓ Verificado</span>
+                        <?php else: ?><span class="status-pill alerta">Não verificado</span>
+                        <?php endif; ?>
+                    </div>
+                    <p><?= htmlspecialchars(formatarWhatsappExibicao($c['whatsapp'])) ?></p>
+                    <?php if ($c['email']): ?><p><?= htmlspecialchars($c['email']) ?></p><?php endif; ?>
+                    <div class="celula-acoes">
+                        <a href="/clientes/detalhe.php?id=<?= $c['id_cliente'] ?>" class="btn-sm btn-outline">ver</a>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+            </div>
             </div>
 
             <?php if ($totalPaginas > 1): ?>

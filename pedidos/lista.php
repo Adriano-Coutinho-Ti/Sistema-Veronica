@@ -110,6 +110,16 @@ function montarLinkFiltroPedidos(int $pagina, string $status, string $busca): st
             <?php if (empty($pedidos)): ?>
                 <p class="alert alert-info">Nenhum pedido encontrado.</p>
             <?php else: ?>
+            <div class="alternador-visualizacao" data-chave="pedidos" data-alvo-lista="visualizacao-lista" data-alvo-cards="visualizacao-cards">
+                <button type="button" class="btn-sm btn-outline" data-modo="lista" title="Ver em lista">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                </button>
+                <button type="button" class="btn-sm btn-outline" data-modo="cards" title="Ver em cards">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+                </button>
+            </div>
+
+            <div id="visualizacao-lista">
             <div class="tabela-wrap">
             <table>
                 <tr><th>Pedido</th><th>Cliente</th><th>Data</th><th>Total</th><th>Status</th><th></th></tr>
@@ -124,6 +134,26 @@ function montarLinkFiltroPedidos(int $pagina, string $status, string $busca): st
                 </tr>
                 <?php endforeach; ?>
             </table>
+            </div>
+            </div>
+
+            <div id="visualizacao-cards" hidden>
+            <div class="grade-cards">
+                <?php foreach ($pedidos as $p): ?>
+                <div class="item-card">
+                    <div class="item-card-topo">
+                        <strong>#<?= (int) $p['id_venda'] ?></strong>
+                        <span class="status-pill <?= classePillStatusPedido($p['status'], $p['status_entrega']) ?>"><?= htmlspecialchars(rotuloStatusPedido($p['status'], $p['status_entrega'])) ?></span>
+                    </div>
+                    <p><?= htmlspecialchars($p['cliente_nome'] ?? '—') ?></p>
+                    <p><?= htmlspecialchars(date('d/m/Y H:i', strtotime($p['data_venda']))) ?></p>
+                    <p>R$ <?= number_format($p['valor_total'], 2, ',', '.') ?></p>
+                    <div class="celula-acoes">
+                        <a href="/pedidos/detalhe.php?id_venda=<?= (int) $p['id_venda'] ?>" class="btn-sm btn-outline">Ver</a>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+            </div>
             </div>
 
             <?php if ($totalPaginas > 1): ?>

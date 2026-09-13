@@ -28,7 +28,8 @@ $id_venda = buscarVendaReservadaDoOperador($pdo, (int) $caixa['id_caixa'], (int)
 
     <?php if (!$id_venda): ?>
     <div class="card" style="text-align:center; padding:48px 24px;">
-        <p style="color:var(--cor-texto-suave); margin-bottom:20px;">Nenhuma venda em andamento no momento.</p>
+        <span class="status-pill sucesso" style="font-size:0.85rem; padding:6px 16px; margin-bottom:10px;">Caixa livre</span>
+        <p style="color:var(--cor-texto-suave); margin-bottom:20px;">Pronto pra começar uma nova venda.</p>
         <button id="btn-iniciar" class="btn-lg">+ Nova venda</button>
         <p id="msg-iniciar" class="alert alert-erro" style="display:none; margin-top:16px; text-align:left;"></p>
     </div>

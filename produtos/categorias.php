@@ -76,14 +76,14 @@ $totalCategorias = count($categorias);
         <?php if (empty($categorias)): ?>
         <p class="alert alert-info">Nenhuma categoria cadastrada ainda.</p>
         <?php else: ?>
-        <div class="tabela-wrap">
-        <table>
-            <tr><th>Nome</th><th>Produtos</th><th></th></tr>
+        <div class="grade-categorias">
             <?php foreach ($categorias as $c): ?>
-            <tr>
-                <td><?= htmlspecialchars($c['nome']) ?></td>
-                <td><span class="status-pill"><?= (int) $c['total_produtos'] ?></span></td>
-                <td class="celula-acoes">
+            <div class="card-categoria">
+                <div class="card-categoria-topo">
+                    <strong><?= htmlspecialchars($c['nome']) ?></strong>
+                    <span class="status-pill"><?= (int) $c['total_produtos'] ?> produto<?= (int) $c['total_produtos'] === 1 ? '' : 's' ?></span>
+                </div>
+                <div class="celula-acoes">
                     <a href="/produtos/variacoes.php?id_categoria=<?= $c['id_categoria'] ?>" class="btn-sm btn-outline">variações</a>
                     <form method="post" data-confirm="Excluir esta categoria?">
                         <input type="hidden" name="acao" value="deletar">
@@ -92,10 +92,9 @@ $totalCategorias = count($categorias);
                             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3m-8 0 1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13M10 11v6M14 11v6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
                         </button>
                     </form>
-                </td>
-            </tr>
+                </div>
+            </div>
             <?php endforeach; ?>
-        </table>
         </div>
         <?php endif; ?>
     </div>

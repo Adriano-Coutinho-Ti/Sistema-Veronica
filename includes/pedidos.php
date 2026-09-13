@@ -11,7 +11,7 @@ const STATUS_ENTREGA_VALIDOS = ['Aguardando preparo', 'Preparando', 'Pronto', 'E
  * reembolsado por fora do sistema — não existe estorno automático real de
  * cartão/Pix aqui.
  */
-function cancelarPedidoPago(PDO $pdo, int $id_venda, int $id_usuario_admin): array
+function cancelarPedidoPago(PDO $pdo, int $id_venda, int $id_usuario_admin, string $motivo): array
 {
     try {
         $pdo->beginTransaction();
@@ -62,8 +62,8 @@ function cancelarPedidoPago(PDO $pdo, int $id_venda, int $id_usuario_admin): arr
             ]);
         }
 
-        $pdo->prepare("UPDATE vendas SET status = 'Cancelado', status_entrega = NULL WHERE id_venda = :id")
-            ->execute([':id' => $id_venda]);
+        $pdo->prepare("UPDATE vendas SET status = 'Cancelado', status_entrega = NULL, motivo_cancelamento = :motivo WHERE id_venda = :id")
+            ->execute([':motivo' => $motivo, ':id' => $id_venda]);
 
         $pdo->commit();
 

@@ -484,8 +484,9 @@ td a { font-weight: 600; }
 
 /* Formulário compacto dentro de uma célula de tabela — inputs/botão lado a
    lado numa linha só, sem os 14px de margem-bottom padrão do label/input. */
-.form-linha-compacta { display: flex; gap: 8px; align-items: center; margin: 0; }
-.form-linha-compacta input { margin: 0; min-height: 38px; padding: 6px 10px; }
+.form-linha-compacta { display: flex; gap: 8px; align-items: center; margin: 0; flex-wrap: wrap; }
+.form-linha-compacta input, .form-linha-compacta select { margin: 0; min-height: 38px; padding: 6px 10px; width: auto; flex: 1; min-width: 120px; }
+.form-linha-compacta button { flex-shrink: 0; }
 .campo-valor-curto { width: 100px !important; }
 
 /* Checkboxes de variação (produtos/novo.php) — uma por linha, com respiro */
@@ -657,6 +658,35 @@ td a { font-weight: 600; }
 
 /* Lista de "chips" genérica (ex: pagamentos já lançados em caixa/pagamento.php) */
 .lista-pills { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* Categorias em cards (produtos/categorias.php) */
+.grade-categorias { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+.card-categoria {
+    border: 1px solid var(--cor-borda);
+    border-radius: var(--raio-md);
+    padding: 16px;
+    background: var(--cor-fundo);
+}
+.card-categoria-topo { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.card-categoria-topo strong { font-family: var(--fonte-titulo); font-size: 1.05rem; }
+
+/* Alternador tabela/cards (clientes/lista.php, pedidos/lista.php) */
+.alternador-visualizacao { display: flex; gap: 6px; margin-bottom: 14px; }
+.alternador-visualizacao button.ativo { background: var(--cor-primaria); color: #fff; border-color: var(--cor-primaria); }
+.alternador-visualizacao svg { width: 16px; height: 16px; }
+
+/* Grade de cards genérica pras listagens que oferecem visualização em cards */
+.grade-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
+.item-card {
+    border: 1px solid var(--cor-borda);
+    border-radius: var(--raio-md);
+    padding: 16px;
+    background: var(--cor-fundo);
+}
+.item-card-topo { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.item-card-topo strong { font-family: var(--fonte-titulo); font-size: 1rem; }
+.item-card p { margin: 4px 0; font-size: 0.86rem; color: var(--cor-texto-suave); }
+.item-card .celula-acoes { margin-top: 12px; }
 
 /* ============ Layout com coluna lateral (listas com filtro — ex: Produtos) ============ */
 /* Mesmo padrão do catalogo-layout da loja: barra de pills no mobile, coluna

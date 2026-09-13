@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../conecta_bd.php';
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/pedidos.php';
+require_once __DIR__ . '/../includes/loja.php';
 exigirLogin();
 
 $id_venda = (int) ($_GET['id_venda'] ?? 0);
@@ -37,20 +38,23 @@ $listaItens = $itens->fetchAll();
 
     <div class="grade-2col">
     <div class="card">
-    <h3>Cliente</h3>
+    <h3>Dados do Cliente</h3>
     <p>
         <?= htmlspecialchars($pedido['cliente_nome'] ?? '—') ?><br>
-        WhatsApp: <?= htmlspecialchars($pedido['cliente_whatsapp'] ?? '—') ?><br>
+        <strong>WhatsApp:</strong> <?= htmlspecialchars(formatarWhatsappExibicao($pedido['cliente_whatsapp'] ?? '')) ?><br>
         <?php if ($pedido['entrega_tipo'] === 'entrega'): ?>
-            Endereço: <?= htmlspecialchars($pedido['cliente_endereco'] ?? '—') ?><br>
+            <strong>Endereço:</strong> <?= htmlspecialchars($pedido['cliente_endereco'] ?? '—') ?><br>
         <?php endif; ?>
-        Entrega: <?= htmlspecialchars($pedido['entrega_nome'] ?? '—') ?>
+        <strong>Entrega:</strong> <?= htmlspecialchars($pedido['entrega_nome'] ?? '—') ?>
     </p>
     </div>
 
     <div class="card">
     <p style="font-weight:700; font-size:1.1rem;">Total: R$ <?= number_format($pedido['valor_total'], 2, ',', '.') ?></p>
-    <p>Pagamento: <?= htmlspecialchars($pedido['forma_pagamento'] ?? '—') ?></p>
+    <p><strong>Pagamento:</strong> <?= htmlspecialchars($pedido['forma_pagamento'] ?? '—') ?></p>
+    <?php if ($pedido['status'] === 'Cancelado' && !empty($pedido['motivo_cancelamento'])): ?>
+    <p><strong>Motivo do cancelamento:</strong> <?= htmlspecialchars($pedido['motivo_cancelamento']) ?></p>
+    <?php endif; ?>
     </div>
     </div>
 
@@ -91,6 +95,20 @@ $listaItens = $itens->fetchAll();
         <button id="btn-cancelar" class="btn-perigo">Cancelar este pedido</button>
         <p id="cancelar-msg"></p>
         </div>
+
+        <div class="modal-overlay" id="modal-cancelar" hidden>
+            <div class="modal-card">
+                <h3>Cancelar pedido</h3>
+                <p style="color:var(--cor-texto-suave); font-size:0.9rem; margin-bottom:14px;">Estoque e crédito (se houver) serão estornados. Informe o motivo do cancelamento:</p>
+                <button type="button" class="btn-sm btn-outline" id="btn-motivo-atraso" style="margin-bottom:10px;">O cliente não pagou a tempo</button>
+                <textarea id="motivo-cancelamento" placeholder="Motivo do cancelamento"></textarea>
+                <p id="erro-motivo" class="alert alert-erro" style="display:none;"></p>
+                <div class="modal-acoes">
+                    <button type="button" class="btn-outline" id="btn-cancelar-modal-cancelar">Voltar</button>
+                    <button type="button" class="btn-perigo" id="btn-confirmar-cancelamento">Confirmar cancelamento</button>
+                </div>
+            </div>
+        </div>
         <?php endif; ?>
     <?php endif; ?>
 
@@ -114,18 +132,42 @@ if (formStatus) {
 }
 
 const btnCancelar = document.getElementById('btn-cancelar');
-if (btnCancelar) {
-    btnCancelar.addEventListener('click', function () {
-        confirmarAcao('Cancelar este pedido? Estoque e crédito (se houver) serão estornados.').then(function (ok) {
-            if (!ok) { return; }
-            fetch('/pedidos/ajax/cancelar.php', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: 'id_venda=' + idVenda
-            }).then(r => r.json()).then(data => {
-                document.getElementById('cancelar-msg').textContent = data.message;
-                if (data.success) { window.location.reload(); }
-            });
+const modalCancelar = document.getElementById('modal-cancelar');
+if (btnCancelar && modalCancelar) {
+    const campoMotivo = document.getElementById('motivo-cancelamento');
+    const erroMotivo = document.getElementById('erro-motivo');
+
+    function fecharModalCancelar() {
+        modalCancelar.hidden = true;
+        campoMotivo.value = '';
+        erroMotivo.style.display = 'none';
+    }
+
+    btnCancelar.addEventListener('click', function () { modalCancelar.hidden = false; });
+    document.getElementById('btn-cancelar-modal-cancelar').addEventListener('click', fecharModalCancelar);
+    modalCancelar.addEventListener('click', function (e) { if (e.target === modalCancelar) { fecharModalCancelar(); } });
+    document.getElementById('btn-motivo-atraso').addEventListener('click', function () {
+        campoMotivo.value = 'O cliente não pagou a tempo';
+    });
+
+    document.getElementById('btn-confirmar-cancelamento').addEventListener('click', function () {
+        const motivo = campoMotivo.value.trim();
+        if (!motivo) {
+            erroMotivo.textContent = 'Informe o motivo do cancelamento.';
+            erroMotivo.style.display = '';
+            return;
+        }
+        fetch('/pedidos/ajax/cancelar.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: 'id_venda=' + idVenda + '&motivo=' + encodeURIComponent(motivo)
+        }).then(r => r.json()).then(data => {
+            if (data.success) {
+                window.location.reload();
+            } else {
+                erroMotivo.textContent = data.message;
+                erroMotivo.style.display = '';
+            }
         });
     });
 }
