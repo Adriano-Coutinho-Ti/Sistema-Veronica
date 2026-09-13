@@ -4,59 +4,134 @@ require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/pedidos.php';
 exigirLogin();
 
+$busca = trim($_GET['busca'] ?? '');
 $filtro = $_GET['status_entrega'] ?? '';
-$filtroValido = in_array($filtro, STATUS_ENTREGA_VALIDOS, true) ? $filtro : '';
+$filtroValido = $filtro === 'cancelados' || in_array($filtro, STATUS_ENTREGA_VALIDOS, true) ? $filtro : '';
 
-$sql = "SELECT v.id_venda, v.data_venda, v.valor_total, v.status, v.status_entrega, c.nome AS cliente_nome
-        FROM vendas v
-        LEFT JOIN clientes c ON c.id_cliente = v.id_cliente
-        WHERE v.origem = 'loja' AND v.status IN ('Pago', 'Cancelado')";
+$where = "v.origem = 'loja' AND v.status IN ('Pago', 'Cancelado')";
 $params = [];
-if ($filtroValido !== '') {
-    $sql .= ' AND v.status_entrega = :se';
+if ($filtroValido === 'cancelados') {
+    $where .= " AND v.status = 'Cancelado'";
+} elseif ($filtroValido !== '') {
+    $where .= " AND v.status <> 'Cancelado' AND v.status_entrega = :se";
     $params[':se'] = $filtroValido;
 }
-$sql .= ' ORDER BY v.data_venda DESC';
+if ($busca !== '') {
+    $where .= ' AND (c.nome LIKE :busca OR v.id_venda = :buscaId)';
+    $params[':busca'] = '%' . $busca . '%';
+    $params[':buscaId'] = (int) $busca;
+}
 
-$stmt = $pdo->prepare($sql);
-$stmt->execute($params);
+const PEDIDOS_POR_PAGINA = 20;
+$pagina = max(1, (int) ($_GET['pagina'] ?? 1));
+
+$stmtTotal = $pdo->prepare(
+    "SELECT COUNT(*) FROM vendas v LEFT JOIN clientes c ON c.id_cliente = v.id_cliente WHERE $where"
+);
+$stmtTotal->execute($params);
+$totalPedidos = (int) $stmtTotal->fetchColumn();
+$totalPaginas = max(1, (int) ceil($totalPedidos / PEDIDOS_POR_PAGINA));
+$pagina = min($pagina, $totalPaginas);
+$offset = ($pagina - 1) * PEDIDOS_POR_PAGINA;
+
+$stmt = $pdo->prepare(
+    "SELECT v.id_venda, v.data_venda, v.valor_total, v.status, v.status_entrega, c.nome AS cliente_nome
+     FROM vendas v
+     LEFT JOIN clientes c ON c.id_cliente = v.id_cliente
+     WHERE $where
+     ORDER BY v.data_venda DESC
+     LIMIT :limite OFFSET :offset"
+);
+foreach ($params as $chave => $valor) {
+    $stmt->bindValue($chave, $valor);
+}
+$stmt->bindValue(':limite', PEDIDOS_POR_PAGINA, PDO::PARAM_INT);
+$stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+$stmt->execute();
 $pedidos = $stmt->fetchAll();
+
+function montarLinkFiltroPedidos(int $pagina, string $status, string $busca): string
+{
+    $params = ['pagina' => $pagina];
+    if ($status !== '') {
+        $params['status_entrega'] = $status;
+    }
+    if ($busca !== '') {
+        $params['busca'] = $busca;
+    }
+    return '/pedidos/lista.php?' . http_build_query($params);
+}
 ?>
 <!DOCTYPE html>
 <html lang="pt-br">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Pedidos</title></head>
 <body>
 <?php require __DIR__ . '/../includes/admin_header.php'; ?>
-    <h1>Pedidos da loja online</h1>
+    <div class="page-title">
+        <span class="icone-titulo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16l-1.5 12.5a2 2 0 0 1-2 1.5H7.5a2 2 0 0 1-2-1.5L4 7Zm3 0V5a3 3 0 0 1 6 0v2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <div>
+            <h1>Pedidos</h1>
+            <span class="subtitulo"><?= $totalPedidos ?> pedido<?= $totalPedidos === 1 ? '' : 's' ?> da loja online</span>
+        </div>
+    </div>
 
-    <form method="get" class="linha-form-rapido">
-        <label style="flex:1;">Filtrar por etapa
-            <select name="status_entrega" onchange="this.form.submit()">
-                <option value="">Todas</option>
+    <div class="layout-lateral">
+        <aside class="filtros-lateral">
+            <h2>Etapa</h2>
+            <nav>
+                <a href="<?= montarLinkFiltroPedidos(1, '', $busca) ?>" class="<?= $filtroValido === '' ? 'ativa' : '' ?>">Todas</a>
                 <?php foreach (STATUS_ENTREGA_VALIDOS as $s): ?>
-                    <option value="<?= htmlspecialchars($s) ?>" <?= $filtroValido === $s ? 'selected' : '' ?>><?= htmlspecialchars($s) ?></option>
+                <a href="<?= montarLinkFiltroPedidos(1, $s, $busca) ?>" class="<?= $filtroValido === $s ? 'ativa' : '' ?>"><?= htmlspecialchars($s) ?></a>
                 <?php endforeach; ?>
-            </select>
-        </label>
-    </form>
+                <a href="<?= montarLinkFiltroPedidos(1, 'cancelados', $busca) ?>" class="<?= $filtroValido === 'cancelados' ? 'ativa' : '' ?>">Cancelados</a>
+            </nav>
+        </aside>
 
-    <div class="tabela-wrap">
-    <table>
-        <tr><th>Pedido</th><th>Cliente</th><th>Data</th><th>Total</th><th>Status</th><th></th></tr>
-        <?php foreach ($pedidos as $p): ?>
-        <tr>
-            <td>#<?= (int) $p['id_venda'] ?></td>
-            <td><?= htmlspecialchars($p['cliente_nome'] ?? '—') ?></td>
-            <td><?= htmlspecialchars(date('d/m/Y H:i', strtotime($p['data_venda']))) ?></td>
-            <td>R$ <?= number_format($p['valor_total'], 2, ',', '.') ?></td>
-            <td><span class="status-pill<?= $p['status'] === 'Cancelado' ? ' erro' : '' ?>"><?= htmlspecialchars(rotuloStatusPedido($p['status'], $p['status_entrega'])) ?></span></td>
-            <td><a href="/pedidos/detalhe.php?id_venda=<?= (int) $p['id_venda'] ?>" class="btn-sm btn-outline">Ver</a></td>
-        </tr>
-        <?php endforeach; ?>
-        <?php if (empty($pedidos)): ?>
-        <tr><td colspan="6">Nenhum pedido encontrado.</td></tr>
-        <?php endif; ?>
-    </table>
+        <div>
+            <div class="filtros-mobile">
+                <a href="<?= montarLinkFiltroPedidos(1, '', $busca) ?>" class="filtro-pill<?= $filtroValido === '' ? ' ativa' : '' ?>">Todas</a>
+                <?php foreach (STATUS_ENTREGA_VALIDOS as $s): ?>
+                <a href="<?= montarLinkFiltroPedidos(1, $s, $busca) ?>" class="filtro-pill<?= $filtroValido === $s ? ' ativa' : '' ?>"><?= htmlspecialchars($s) ?></a>
+                <?php endforeach; ?>
+                <a href="<?= montarLinkFiltroPedidos(1, 'cancelados', $busca) ?>" class="filtro-pill<?= $filtroValido === 'cancelados' ? ' ativa' : '' ?>">Cancelados</a>
+            </div>
+
+            <form method="get" class="busca-lista">
+                <?php if ($filtroValido !== ''): ?><input type="hidden" name="status_entrega" value="<?= htmlspecialchars($filtroValido) ?>"><?php endif; ?>
+                <input type="text" name="busca" placeholder="Buscar por cliente ou nº do pedido..." value="<?= htmlspecialchars($busca) ?>">
+                <button type="submit">Buscar</button>
+            </form>
+
+            <?php if (empty($pedidos)): ?>
+                <p class="alert alert-info">Nenhum pedido encontrado.</p>
+            <?php else: ?>
+            <div class="tabela-wrap">
+            <table>
+                <tr><th>Pedido</th><th>Cliente</th><th>Data</th><th>Total</th><th>Status</th><th></th></tr>
+                <?php foreach ($pedidos as $p): ?>
+                <tr>
+                    <td>#<?= (int) $p['id_venda'] ?></td>
+                    <td><?= htmlspecialchars($p['cliente_nome'] ?? '—') ?></td>
+                    <td><?= htmlspecialchars(date('d/m/Y H:i', strtotime($p['data_venda']))) ?></td>
+                    <td>R$ <?= number_format($p['valor_total'], 2, ',', '.') ?></td>
+                    <td><span class="status-pill <?= classePillStatusPedido($p['status'], $p['status_entrega']) ?>"><?= htmlspecialchars(rotuloStatusPedido($p['status'], $p['status_entrega'])) ?></span></td>
+                    <td><a href="/pedidos/detalhe.php?id_venda=<?= (int) $p['id_venda'] ?>" class="btn-sm btn-outline">Ver</a></td>
+                </tr>
+                <?php endforeach; ?>
+            </table>
+            </div>
+
+            <?php if ($totalPaginas > 1): ?>
+            <nav class="paginacao">
+                <?php if ($pagina > 1): ?><a href="<?= montarLinkFiltroPedidos($pagina - 1, $filtroValido, $busca) ?>">‹ Anterior</a><?php endif; ?>
+                <?php for ($p2 = 1; $p2 <= $totalPaginas; $p2++): ?>
+                    <a href="<?= montarLinkFiltroPedidos($p2, $filtroValido, $busca) ?>" class="<?= $p2 === $pagina ? 'ativa' : '' ?>"><?= $p2 ?></a>
+                <?php endfor; ?>
+                <?php if ($pagina < $totalPaginas): ?><a href="<?= montarLinkFiltroPedidos($pagina + 1, $filtroValido, $busca) ?>">Próxima ›</a><?php endif; ?>
+            </nav>
+            <?php endif; ?>
+            <?php endif; ?>
+        </div>
     </div>
 </main>
 </body>

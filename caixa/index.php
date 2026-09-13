@@ -13,65 +13,115 @@ $id_venda = buscarVendaReservadaDoOperador($pdo, (int) $caixa['id_caixa'], (int)
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>PDV</title></head>
 <body>
 <?php require __DIR__ . '/../includes/admin_header.php'; ?>
-    <h1>PDV — Caixa aberto</h1>
-    <p><a href="/caixa/fechamento.php" class="btn-outline">Fechar caixa</a></p>
+    <div class="page-title">
+        <span class="icone-titulo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16M6 20V10a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v10M9 8V6a3 3 0 0 1 6 0v2M10 14h4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <div>
+            <h1>PDV</h1>
+            <span class="subtitulo">Caixa aberto desde <?= htmlspecialchars(date('d/m/Y H:i', strtotime($caixa['data_abertura']))) ?></span>
+        </div>
+    </div>
+
+    <p class="acoes-topo">
+        <a href="/caixa/fechamento.php" class="btn-outline btn-sm">Fechar caixa</a>
+        <?php if ($id_venda): ?><span class="status-pill">Venda #<?= $id_venda ?></span><?php endif; ?>
+    </p>
 
     <?php if (!$id_venda): ?>
-    <button id="btn-iniciar" class="btn-lg">Nova venda</button>
-    <script>
-    document.getElementById('btn-iniciar').addEventListener('click', function () {
-        fetch('/caixa/ajax/iniciar_venda.php', { method: 'POST' })
-            .then(r => r.json())
-            .then(data => {
-                if (data.success) {
-                    window.location.reload();
-                } else {
-                    alert(data.message);
-                }
-            });
-    });
-    </script>
+    <div class="card" style="text-align:center; padding:48px 24px;">
+        <p style="color:var(--cor-texto-suave); margin-bottom:20px;">Nenhuma venda em andamento no momento.</p>
+        <button id="btn-iniciar" class="btn-lg">+ Nova venda</button>
+        <p id="msg-iniciar" class="alert alert-erro" style="display:none; margin-top:16px; text-align:left;"></p>
+    </div>
+<script>
+document.getElementById('btn-iniciar').addEventListener('click', function () {
+    const msg = document.getElementById('msg-iniciar');
+    msg.style.display = 'none';
+    fetch('/caixa/ajax/iniciar_venda.php', { method: 'POST' })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                window.location.reload();
+            } else {
+                msg.textContent = data.message;
+                msg.style.display = '';
+            }
+        });
+});
+</script>
     <?php else: ?>
-    <h2>Venda #<?= $id_venda ?></h2>
+    <p id="msg-pdv" class="alert alert-erro" style="display:none;"></p>
 
-    <div class="card">
-    <label>Buscar produto<input type="text" id="termo-busca" placeholder="Digite o nome do produto..."></label>
-    <div id="resultados-busca"></div>
+    <div class="grade-2col">
+        <div class="card">
+            <h2>Buscar produto</h2>
+            <input type="text" id="termo-busca" aria-label="Buscar produto" placeholder="Digite o nome do produto...">
+            <div id="resultados-busca" class="lista-resultados"></div>
+        </div>
+
+        <div>
+            <div class="card">
+                <h2>Carrinho</h2>
+                <div id="carrinho" class="lista-carrinho"></div>
+                <div class="carrinho-rodape">
+                    <span>Total</span>
+                    <strong>R$ <span id="total-venda">0,00</span></strong>
+                </div>
+                <a href="/caixa/pagamento.php?id_venda=<?= $id_venda ?>" class="btn btn-bloco btn-lg" style="margin-top:16px;">Ir para pagamento →</a>
+            </div>
+
+            <div class="card" style="margin-top:20px;">
+                <h2>Cliente</h2>
+                <div id="cliente-vinculado"></div>
+                <input type="text" id="termo-cliente" aria-label="Buscar cliente" placeholder="Buscar cliente (opcional)...">
+                <div id="resultados-cliente" class="lista-resultados"></div>
+            </div>
+        </div>
     </div>
-
-    <div class="card">
-    <h3>Carrinho</h3>
-    <div id="carrinho"></div>
-    <p style="font-weight:700; font-size:1.15rem;">Total: R$ <span id="total-venda">0,00</span></p>
-    </div>
-
-    <div class="card">
-    <div id="cliente-vinculado" style="font-weight:600; margin-bottom:10px;"></div>
-    <label>Vincular cliente (opcional)<input type="text" id="termo-cliente" placeholder="Buscar cliente..."></label>
-    <div id="resultados-cliente"></div>
-    </div>
-
-    <p><a href="/caixa/pagamento.php?id_venda=<?= $id_venda ?>" class="btn btn-lg">Ir para pagamento →</a></p>
 
 <script>
 const idVenda = <?= $id_venda ?>;
 
+function mostrarErroPdv(mensagem) {
+    const msg = document.getElementById('msg-pdv');
+    msg.textContent = mensagem;
+    msg.style.display = '';
+}
+
 document.getElementById('termo-busca').addEventListener('input', function () {
     const termo = this.value;
-    if (termo.length < 2) { document.getElementById('resultados-busca').innerHTML = ''; return; }
+    const container = document.getElementById('resultados-busca');
+    if (termo.length < 2) { container.innerHTML = ''; return; }
     fetch('/caixa/ajax/buscar_produtos.php?termo=' + encodeURIComponent(termo))
         .then(r => r.json())
         .then(data => {
-            const container = document.getElementById('resultados-busca');
             container.innerHTML = '';
+            if (data.produtos.length === 0) {
+                container.innerHTML = '<p class="lista-vazia">Nenhum produto encontrado.</p>';
+                return;
+            }
             data.produtos.forEach(p => {
-                const div = document.createElement('div');
-                div.appendChild(document.createTextNode(p.nome_completo + ' — R$ ' + p.preco.toFixed(2).replace('.', ',') + ' (estoque: ' + p.estoque + ') '));
+                const linha = document.createElement('div');
+                linha.className = 'linha-resultado';
+
+                const info = document.createElement('div');
+                info.className = 'linha-resultado-info';
+                const nome = document.createElement('strong');
+                nome.textContent = p.nome_completo;
+                const meta = document.createElement('span');
+                meta.className = 'linha-resultado-meta';
+                meta.textContent = 'R$ ' + p.preco.toFixed(2).replace('.', ',') + ' · Estoque: ' + p.estoque;
+                info.appendChild(nome);
+                info.appendChild(meta);
+
                 const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'btn-sm btn-outline';
                 btn.textContent = 'Adicionar';
                 btn.addEventListener('click', function () { adicionarItem(p.id_produto_variacao); });
-                div.appendChild(btn);
-                container.appendChild(div);
+
+                linha.appendChild(info);
+                linha.appendChild(btn);
+                container.appendChild(linha);
             });
         });
 });
@@ -82,7 +132,7 @@ function adicionarItem(idProdutoVariacao) {
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: 'id_venda=' + idVenda + '&id_produto_variacao=' + idProdutoVariacao + '&quantidade=1'
     }).then(r => r.json()).then(data => {
-        if (data.success) { carregarCarrinho(); } else { alert(data.message); }
+        if (data.success) { carregarCarrinho(); } else { mostrarErroPdv(data.message); }
     });
 }
 
@@ -92,7 +142,7 @@ function removerItem(idItem) {
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: 'id_item=' + idItem + '&id_venda=' + idVenda
     }).then(r => r.json()).then(data => {
-        if (data.success) { carregarCarrinho(); } else { alert(data.message); }
+        if (data.success) { carregarCarrinho(); } else { mostrarErroPdv(data.message); }
     });
 }
 
@@ -102,18 +152,45 @@ function carregarCarrinho() {
         .then(data => {
             const container = document.getElementById('carrinho');
             container.innerHTML = '';
+
+            if (data.itens.length === 0) {
+                container.innerHTML = '<p class="lista-vazia">Carrinho vazio — busque um produto ao lado.</p>';
+            }
+
             data.itens.forEach(item => {
-                const div = document.createElement('div');
-                div.appendChild(document.createTextNode(
-                    item.quantidade + 'x ' + item.nome_produto +
-                    (item.descricao_combinacao ? ' (' + item.descricao_combinacao + ')' : '') +
-                    ' — R$ ' + item.subtotal.toFixed(2).replace('.', ',') + ' '
-                ));
-                const btn = document.createElement('button');
-                btn.textContent = 'remover';
-                btn.addEventListener('click', function () { removerItem(item.id_item); });
-                div.appendChild(btn);
-                container.appendChild(div);
+                const linha = document.createElement('div');
+                linha.className = 'linha-carrinho';
+
+                const info = document.createElement('div');
+                info.className = 'linha-carrinho-info';
+                const nome = document.createElement('strong');
+                nome.textContent = item.quantidade + 'x ' + item.nome_produto;
+                info.appendChild(nome);
+                if (item.descricao_combinacao) {
+                    const meta = document.createElement('span');
+                    meta.className = 'linha-carrinho-meta';
+                    meta.textContent = item.descricao_combinacao;
+                    info.appendChild(meta);
+                }
+
+                const direita = document.createElement('div');
+                direita.className = 'linha-carrinho-direita';
+                const subtotal = document.createElement('span');
+                subtotal.className = 'linha-carrinho-subtotal';
+                subtotal.textContent = 'R$ ' + item.subtotal.toFixed(2).replace('.', ',');
+                const btnRemover = document.createElement('button');
+                btnRemover.type = 'button';
+                btnRemover.className = 'btn-sm btn-perigo btn-icone';
+                btnRemover.title = 'Remover item';
+                btnRemover.setAttribute('aria-label', 'Remover item');
+                btnRemover.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3m-8 0 1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13M10 11v6M14 11v6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+                btnRemover.addEventListener('click', function () { removerItem(item.id_item); });
+                direita.appendChild(subtotal);
+                direita.appendChild(btnRemover);
+
+                linha.appendChild(info);
+                linha.appendChild(direita);
+                container.appendChild(linha);
             });
             document.getElementById('total-venda').textContent = data.total.toFixed(2).replace('.', ',');
         });
@@ -121,20 +198,39 @@ function carregarCarrinho() {
 
 document.getElementById('termo-cliente').addEventListener('input', function () {
     const termo = this.value;
-    if (termo.length < 2) { document.getElementById('resultados-cliente').innerHTML = ''; return; }
+    const container = document.getElementById('resultados-cliente');
+    if (termo.length < 2) { container.innerHTML = ''; return; }
     fetch('/caixa/ajax/buscar_clientes.php?termo=' + encodeURIComponent(termo))
         .then(r => r.json())
         .then(data => {
-            const container = document.getElementById('resultados-cliente');
             container.innerHTML = '';
+            if (data.clientes.length === 0) {
+                container.innerHTML = '<p class="lista-vazia">Nenhum cliente encontrado.</p>';
+                return;
+            }
             data.clientes.forEach(c => {
-                const div = document.createElement('div');
-                div.appendChild(document.createTextNode(c.nome + ' (' + c.whatsapp + ') '));
+                const linha = document.createElement('div');
+                linha.className = 'linha-resultado';
+
+                const info = document.createElement('div');
+                info.className = 'linha-resultado-info';
+                const nome = document.createElement('strong');
+                nome.textContent = c.nome;
+                const meta = document.createElement('span');
+                meta.className = 'linha-resultado-meta';
+                meta.textContent = c.whatsapp;
+                info.appendChild(nome);
+                info.appendChild(meta);
+
                 const btn = document.createElement('button');
-                btn.textContent = 'vincular';
+                btn.type = 'button';
+                btn.className = 'btn-sm btn-outline';
+                btn.textContent = 'Vincular';
                 btn.addEventListener('click', function () { vincularCliente(c.id_cliente, c.nome); });
-                div.appendChild(btn);
-                container.appendChild(div);
+
+                linha.appendChild(info);
+                linha.appendChild(btn);
+                container.appendChild(linha);
             });
         });
 });
@@ -146,9 +242,18 @@ function vincularCliente(idCliente, nome) {
         body: 'id_venda=' + idVenda + '&id_cliente=' + idCliente
     }).then(r => r.json()).then(data => {
         if (data.success) {
-            document.getElementById('cliente-vinculado').textContent = 'Cliente: ' + nome;
+            const painel = document.getElementById('cliente-vinculado');
+            painel.innerHTML = '';
+            const pill = document.createElement('div');
+            pill.className = 'cliente-vinculado-pill';
+            const texto = document.createElement('span');
+            texto.textContent = '✓ ' + nome;
+            pill.appendChild(texto);
+            painel.appendChild(pill);
+            document.getElementById('resultados-cliente').innerHTML = '';
+            document.getElementById('termo-cliente').value = '';
         } else {
-            alert(data.message);
+            mostrarErroPdv(data.message);
         }
     });
 }

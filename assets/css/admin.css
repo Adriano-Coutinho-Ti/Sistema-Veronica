@@ -22,6 +22,10 @@
     --cor-sucesso-fundo: #DCFCE7;
     --cor-alerta: #B45309;
     --cor-alerta-fundo: #FEF3C7;
+    --cor-pronto: #2563EB;
+    --cor-pronto-fundo: #DBEAFE;
+    --cor-enviado: #0D9488;
+    --cor-enviado-fundo: #CCFBF1;
 
     --fonte-titulo: 'Fraunces', Georgia, serif;
     --fonte-corpo: 'Manrope', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
@@ -386,6 +390,13 @@ textarea { min-height: 88px; }
 .status-pill.sucesso { background: var(--cor-sucesso-fundo); color: var(--cor-sucesso); }
 .status-pill.erro { background: var(--cor-erro-fundo); color: var(--cor-erro); }
 .status-pill.alerta { background: var(--cor-alerta-fundo); color: var(--cor-alerta); }
+/* Etapas de pedido (classePillStatusPedido(), includes/pedidos.php) — mesmas
+   cores fixas do loja.css, pra reconhecer o estágio de relance nas duas telas. */
+.status-pill.cancelado { background: var(--cor-erro-fundo); color: var(--cor-erro); }
+.status-pill.concluido { background: var(--cor-sucesso-fundo); color: var(--cor-sucesso); }
+.status-pill.preparando { background: var(--cor-alerta-fundo); color: var(--cor-alerta); }
+.status-pill.pronto { background: var(--cor-pronto-fundo); color: var(--cor-pronto); }
+.status-pill.enviado { background: var(--cor-enviado-fundo); color: var(--cor-enviado); }
 
 /* ============ Tabelas ============ */
 
@@ -585,25 +596,63 @@ td a { font-weight: 600; }
     font-size: 0.9rem;
 }
 
-/* PDV (caixa/index.php) — os itens de busca/carrinho/cliente são <div> soltos
-   criados via JS, então o alvo aqui é o container por id, não uma classe. */
-#resultados-busca > div, #carrinho > div, #resultados-cliente > div {
+/* PDV (caixa/index.php) — linhas de busca de produto/carrinho/busca de
+   cliente, geradas via JS mas com classes de verdade (não mais <div> soltos
+   estilizados só pelo id do container). */
+.lista-resultados { margin-top: 10px; max-height: 320px; overflow-y: auto; }
+.linha-resultado {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 10px;
-    padding: 10px 14px;
-    border: 1px solid var(--cor-borda);
-    border-radius: var(--raio-sm);
-    margin-bottom: 8px;
-    background: var(--cor-fundo);
-    font-size: 0.92rem;
+    padding: 10px 4px;
+    border-bottom: 1px solid var(--cor-borda);
 }
-#resultados-busca button, #carrinho button, #resultados-cliente button {
-    flex-shrink: 0;
-    padding: 7px 14px;
-    min-height: 34px;
-    font-size: 0.85rem;
+.linha-resultado:last-child { border-bottom: none; }
+.linha-resultado-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.linha-resultado-info strong { font-size: 0.92rem; }
+.linha-resultado-meta { font-size: 0.8rem; color: var(--cor-texto-suave); }
+
+.lista-carrinho { margin-top: 4px; }
+.linha-carrinho {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 4px;
+    border-bottom: 1px solid var(--cor-borda);
+}
+.linha-carrinho:last-child { border-bottom: none; }
+.linha-carrinho-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.linha-carrinho-info strong { font-size: 0.92rem; }
+.linha-carrinho-meta { font-size: 0.8rem; color: var(--cor-texto-suave); }
+.linha-carrinho-direita { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.linha-carrinho-subtotal { font-weight: 700; font-size: 0.92rem; white-space: nowrap; }
+
+.carrinho-rodape {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 14px;
+    margin-top: 6px;
+    border-top: 2px solid var(--cor-borda);
+}
+.carrinho-rodape strong { font-family: var(--fonte-titulo); font-size: 1.4rem; }
+
+.lista-vazia { color: var(--cor-texto-suave); font-size: 0.88rem; text-align: center; padding: 16px 0; }
+
+.cliente-vinculado-pill {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    background: var(--cor-sucesso-fundo);
+    color: var(--cor-sucesso);
+    border-radius: var(--raio-sm);
+    padding: 10px 14px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-bottom: 14px;
 }
 
 /* ============ Layout com coluna lateral (listas com filtro — ex: Produtos) ============ */
