@@ -166,7 +166,11 @@ h3 { font-size: 1.05rem; }
 
 /* ============ Botões ============ */
 
-button, input[type="submit"], .btn {
+/* .btn-outline/.btn-perigo/.btn-sm entram na MESMA regra base — precisam
+   funcionar sozinhas em cima de um <a> (sem precisar também ter .btn),
+   senão o link vira uma etiqueta de texto sublinhada em vez de botão. Já
+   aconteceu mais de uma vez sem essa regra (Categorias, editar, ver...). */
+button, input[type="submit"], .btn, .btn-outline, .btn-perigo, .btn-sm {
     display: inline-flex;
     align-items: center;
     justify-content: center;

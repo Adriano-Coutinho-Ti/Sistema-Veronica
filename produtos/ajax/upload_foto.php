@@ -26,8 +26,7 @@ if ($totalFotos >= 5) {
     exit;
 }
 
-$targetWidth = 473;
-$targetHeight = 400;
+$targetSize = 700;
 $targetDir = __DIR__ . '/../../assets/img/produtos/' . $id_produto . '/';
 if (!is_dir($targetDir)) {
     mkdir($targetDir, 0755, true);
@@ -51,10 +50,21 @@ if ($origem === null || $origem === false) {
     exit;
 }
 
-$novaImagem = imagecreatetruecolor($targetWidth, $targetHeight);
+// Corta um quadrado central da foto original antes de redimensionar — sem
+// isso, uma foto retangular (a maioria dos celulares tira assim) saía
+// esticada/distorcida pro tamanho fixo antigo (473x400, que nem era
+// quadrado). Corta o quadrado maior possível a partir do centro da imagem e
+// só então redimensiona pro tamanho final, mantendo a proporção certa.
+$larguraOrigem = imagesx($origem);
+$alturaOrigem = imagesy($origem);
+$ladoCorte = min($larguraOrigem, $alturaOrigem);
+$origemX = (int) (($larguraOrigem - $ladoCorte) / 2);
+$origemY = (int) (($alturaOrigem - $ladoCorte) / 2);
+
+$novaImagem = imagecreatetruecolor($targetSize, $targetSize);
 imagealphablending($novaImagem, false);
 imagesavealpha($novaImagem, true);
-imagecopyresampled($novaImagem, $origem, 0, 0, 0, 0, $targetWidth, $targetHeight, imagesx($origem), imagesy($origem));
+imagecopyresampled($novaImagem, $origem, 0, 0, $origemX, $origemY, $targetSize, $targetSize, $ladoCorte, $ladoCorte);
 $sucesso = imagepng($novaImagem, $destino, 9);
 imagedestroy($origem);
 imagedestroy($novaImagem);
