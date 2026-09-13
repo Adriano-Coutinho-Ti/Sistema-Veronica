@@ -261,16 +261,33 @@ textarea { min-height: 88px; }
 .card h2 { margin-bottom: 16px; }
 
 /* "Zona de risco" — mesmo cartão, borda e título em vermelho, pra deixar
-   claro que ali dentro só tem ação destrutiva (excluir produto). */
-.card-perigo { border-color: var(--cor-erro); }
+   claro que ali dentro só tem ação destrutiva (excluir produto). Margem
+   maior em cima pra respirar separado do que vem antes (ex: grade-2col). */
+.card-perigo { border-color: var(--cor-erro); margin-top: 32px; }
 .card-perigo h2 { color: var(--cor-erro); }
 
 /* Ações de topo da página (voltar, compartilhar) lado a lado */
 .acoes-topo { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin-bottom: 20px; }
 
-/* Checkbox junto do texto, não empilhado como os outros campos de formulário */
-.linha-checkbox { display: flex; align-items: center; gap: 8px; }
-.linha-checkbox input[type="checkbox"] { width: auto; min-height: 0; margin: 0; }
+/* Toggle "Produto ativo" — vira um cartão próprio dentro do formulário, não
+   um checkbox solto fácil de passar batido. Fica verde quando marcado. */
+.linha-checkbox {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    background: var(--cor-fundo-alt);
+    border: 1.5px solid var(--cor-borda);
+    border-radius: var(--raio-sm);
+    padding: 14px 16px;
+    margin-bottom: 18px;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+.linha-checkbox:has(input:checked) { border-color: var(--cor-sucesso); background: var(--cor-sucesso-fundo); }
+.linha-checkbox input[type="checkbox"] { width: 20px; height: 20px; min-height: 0; margin: 2px 0 0; flex-shrink: 0; accent-color: var(--cor-sucesso); cursor: pointer; }
+.linha-checkbox span { display: flex; flex-direction: column; gap: 2px; }
+.linha-checkbox strong { font-size: 0.95rem; }
+.linha-checkbox small { color: var(--cor-texto-suave); font-size: 0.82rem; font-weight: 400; }
 
 .auth-card {
     max-width: 400px;
