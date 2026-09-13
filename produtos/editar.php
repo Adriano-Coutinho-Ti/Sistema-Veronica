@@ -106,11 +106,20 @@ $listaCombinacoes = $combinacoes->fetchAll();
                 <div class="foto-item">
                     <?php if ($i === 0): ?><span class="foto-capa">Capa</span><?php endif; ?>
                     <img src="/<?= htmlspecialchars(fotoComVersao($f['caminho_arquivo'])) ?>" alt="Foto do produto">
-                    <form method="post" action="/produtos/ajax/deletar_foto.php" onsubmit="return confirm('Remover esta foto?');">
-                        <input type="hidden" name="id_foto" value="<?= $f['id_foto'] ?>">
-                        <input type="hidden" name="id_produto" value="<?= $id_produto ?>">
-                        <button type="submit" class="btn-sm btn-outline">remover</button>
-                    </form>
+                    <div class="foto-item-acoes">
+                        <?php if ($i !== 0): ?>
+                        <form method="post" action="/produtos/ajax/definir_capa.php">
+                            <input type="hidden" name="id_foto" value="<?= $f['id_foto'] ?>">
+                            <input type="hidden" name="id_produto" value="<?= $id_produto ?>">
+                            <button type="submit" class="btn-sm btn-outline">Tornar capa</button>
+                        </form>
+                        <?php endif; ?>
+                        <form method="post" action="/produtos/ajax/deletar_foto.php" onsubmit="return confirm('Remover esta foto?');">
+                            <input type="hidden" name="id_foto" value="<?= $f['id_foto'] ?>">
+                            <input type="hidden" name="id_produto" value="<?= $id_produto ?>">
+                            <button type="submit" class="btn-sm btn-outline">remover</button>
+                        </form>
+                    </div>
                 </div>
                 <?php endforeach; ?>
                 <?php if (count($listaFotos) < MAX_FOTOS_PRODUTO): ?>

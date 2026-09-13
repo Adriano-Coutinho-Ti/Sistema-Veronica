@@ -493,6 +493,8 @@ td a { font-weight: 600; }
 }
 .foto-item img { width: 120px; height: 120px; min-width: 120px; max-width: 120px; object-fit: cover; border-radius: var(--raio-sm); margin-bottom: 8px; display: block; }
 .foto-item form { margin: 0; }
+.foto-item-acoes { display: flex; flex-direction: column; gap: 6px; }
+.foto-item-acoes .btn-sm { width: 100%; }
 
 .foto-capa {
     position: absolute;
