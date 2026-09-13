@@ -58,13 +58,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'atualiz
     exit;
 }
 
-// Cria combinações novas (produto_variacoes) a partir dos VALORES marcados
-// (não da variação inteira — o lojista escolhe exatamente quais cores/
-// tamanhos esse produto usa, não precisa oferecer todas as cadastradas na
-// categoria), sem nunca apagar as que já existem — só soma. Assim, quando
-// o lojista cadastra um valor novo (ex: adiciona "Rosa" em Cor lá em
-// produtos/variacoes.php) e volta pra cá, é só marcar o valor novo e clicar
-// em "Atualizar combinações" de novo.
+// Sincroniza produto_variacoes com os VALORES marcados (não a variação
+// inteira — o lojista escolhe exatamente quais cores/tamanhos esse produto
+// usa). O checkbox é a fonte da verdade: cria as combinações que faltam e
+// REMOVE as que existiam mas foram desmarcadas — sem nada marcado em
+// nenhuma variação, sobra só a combinação "Padrão (sem variação)". Uma
+// combinação só não é removida se estiver reservada agora no carrinho de
+// um cliente (estoque_reservado > 0) — nesse caso ela fica intacta e o
+// lojista é avisado, pra não quebrar uma compra em andamento.
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'sincronizar_variacoes') {
     $idsValorSelecionados = array_unique(array_filter(array_map('intval', $_POST['valores'] ?? [])));
 
@@ -84,34 +85,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'sincron
         $gruposValores = array_values($gruposValores);
     }
 
-    $combinacoesGeradas = [[]];
+    // Produto cartesiano dos valores marcados. Sem nenhum valor marcado, o
+    // resultado fica [[]] — a própria combinação "Padrão (sem variação)".
+    $combinacoesDesejadas = [[]];
     foreach ($gruposValores as $grupo) {
         $novasCombinacoes = [];
-        foreach ($combinacoesGeradas as $combinacaoAtual) {
+        foreach ($combinacoesDesejadas as $combinacaoAtual) {
             foreach ($grupo as $idValor) {
                 $novasCombinacoes[] = array_merge($combinacaoAtual, [$idValor]);
             }
         }
-        $combinacoesGeradas = $novasCombinacoes;
+        $combinacoesDesejadas = $novasCombinacoes;
+    }
+
+    $chavesDesejadas = [];
+    foreach ($combinacoesDesejadas as $combinacao) {
+        sort($combinacao);
+        $chavesDesejadas[implode(',', $combinacao)] = $combinacao;
     }
 
     $stmtExistentes = $pdo->prepare(
-        'SELECT pv.id_produto_variacao, GROUP_CONCAT(pvv.id_valor ORDER BY pvv.id_valor SEPARATOR ",") AS chave
+        'SELECT pv.id_produto_variacao, pv.estoque_reservado,
+                GROUP_CONCAT(pvv.id_valor ORDER BY pvv.id_valor SEPARATOR ",") AS chave
          FROM produto_variacoes pv
          LEFT JOIN produto_variacao_valores pvv ON pvv.id_produto_variacao = pv.id_produto_variacao
          WHERE pv.id_produto = :ip
-         GROUP BY pv.id_produto_variacao'
+         GROUP BY pv.id_produto_variacao, pv.estoque_reservado'
     );
     $stmtExistentes->execute([':ip' => $id_produto]);
-    $chavesExistentes = array_flip(array_column($stmtExistentes->fetchAll(), 'chave'));
+    $existentes = [];
+    foreach ($stmtExistentes->fetchAll() as $linha) {
+        $existentes[$linha['chave'] ?? ''] = $linha;
+    }
 
-    foreach ($combinacoesGeradas as $combinacao) {
-        if (empty($combinacao)) {
-            continue;
-        }
-        sort($combinacao);
-        $chave = implode(',', $combinacao);
-        if (isset($chavesExistentes[$chave])) {
+    foreach ($chavesDesejadas as $chave => $combinacao) {
+        if (isset($existentes[$chave])) {
             continue;
         }
 
@@ -125,7 +133,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'sincron
         }
     }
 
-    header('Location: /produtos/editar.php?id=' . $id_produto . '&variacoes_atualizadas=1');
+    $existeReservaBloqueada = false;
+    foreach ($existentes as $chave => $linha) {
+        if (isset($chavesDesejadas[$chave])) {
+            continue;
+        }
+        if ((int) $linha['estoque_reservado'] > 0) {
+            $existeReservaBloqueada = true;
+            continue;
+        }
+        $pdo->prepare('DELETE FROM produto_variacoes WHERE id_produto_variacao = :id AND id_produto = :ip')
+            ->execute([':id' => $linha['id_produto_variacao'], ':ip' => $id_produto]);
+    }
+
+    $parametroRedirect = $existeReservaBloqueada ? 'variacoes_parcial=1' : 'variacoes_atualizadas=1';
+    header('Location: /produtos/editar.php?id=' . $id_produto . '&' . $parametroRedirect);
     exit;
 }
 
@@ -192,7 +214,8 @@ $idsValoresEmUso = $stmtValoresEmUso->fetchAll(PDO::FETCH_COLUMN);
 
     <?php if (isset($_GET['atualizado'])): ?><p class="alert alert-sucesso">Produto atualizado.</p><?php endif; ?>
     <?php if (isset($_GET['criado'])): ?><p class="alert alert-sucesso">Produto criado com sucesso.</p><?php endif; ?>
-    <?php if (isset($_GET['variacoes_atualizadas'])): ?><p class="alert alert-sucesso">Combinações atualizadas — defina estoque e preço delas em "Combinações".</p><?php endif; ?>
+    <?php if (isset($_GET['variacoes_atualizadas'])): ?><p class="alert alert-sucesso">Variações atualizadas — defina estoque e preço das combinações novas em "Combinações".</p><?php endif; ?>
+    <?php if (isset($_GET['variacoes_parcial'])): ?><p class="alert alert-erro">Variações atualizadas, mas uma ou mais combinações desmarcadas não foram removidas por estarem reservadas agora no carrinho de um cliente — tente de novo daqui a pouco.</p><?php endif; ?>
     <?php if (isset($_GET['combinacoes_atualizadas'])): ?><p class="alert alert-sucesso">Combinações salvas.</p><?php endif; ?>
     <?php if ($erro): ?><p class="alert alert-erro"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
     <?php if (isset($_GET['upload_status']) && $_GET['upload_status'] === 'error'): ?>
@@ -289,8 +312,8 @@ $idsValoresEmUso = $stmtValoresEmUso->fetchAll(PDO::FETCH_COLUMN);
     <div class="modal-overlay" id="modal-variacoes" hidden>
         <div class="modal-card modal-card-lg">
             <h3>Variações do produto</h3>
-            <p style="color:var(--cor-texto-suave); font-size:0.9rem; margin-bottom:14px;">Marque os valores que esse produto usa. As combinações novas (inclusive de valores que você acabou de cadastrar na categoria) aparecem em "Combinações" prontas pra receber estoque e preço. Desmarcar um valor aqui ainda não remove uma combinação que já existe — isso é outra funcionalidade, ainda não construída.</p>
-            <form method="post" id="form-variacoes">
+            <p style="color:var(--cor-texto-suave); font-size:0.9rem; margin-bottom:14px;">Marque os valores que esse produto usa. As combinações aparecem em "Combinações" prontas pra receber estoque e preço. Desmarcar um valor remove a combinação correspondente (e o estoque cadastrado nela, se houver) — sem nada marcado, sobra só a combinação Padrão.</p>
+            <form method="post" id="form-variacoes" data-confirm="Atualizar as variações? Valores desmarcados vão remover as combinações correspondentes, junto com o estoque cadastrado nelas.">
                 <input type="hidden" name="acao" value="sincronizar_variacoes">
                 <div class="lista-grupos-variacao">
                     <?php foreach ($gruposVariacaoCategoria as $nomeVariacao => $valoresDoGrupo): ?>
