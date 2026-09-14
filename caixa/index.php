@@ -57,7 +57,12 @@ document.getElementById('btn-iniciar').addEventListener('click', function () {
     <div class="grade-2col">
         <div class="card">
             <h2>Buscar produto</h2>
-            <input type="text" id="termo-busca" aria-label="Buscar produto" placeholder="Nome do produto ou código da etiqueta...">
+            <div style="display:flex; gap:8px; align-items:flex-start;">
+                <input type="text" id="termo-busca" aria-label="Buscar produto" placeholder="Nome do produto ou código da etiqueta..." style="flex:1;">
+                <button type="button" class="btn-outline btn-icone" id="btn-abrir-scanner-pdv" title="Ler código de barras com a câmera" aria-label="Ler código de barras com a câmera">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.2" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+                </button>
+            </div>
             <div id="resultados-busca" class="lista-resultados"></div>
             <button type="button" class="btn-outline btn-bloco" id="btn-venda-avulsa" style="margin-top:14px;">Venda avulsa</button>
         </div>
@@ -82,6 +87,18 @@ document.getElementById('btn-iniciar').addEventListener('click', function () {
         </div>
     </div>
 
+    <div class="modal-overlay" id="modal-scanner" hidden>
+        <div class="modal-card">
+            <h3>Ler código de barras</h3>
+            <p style="color:var(--cor-texto-suave); font-size:0.9rem; margin-bottom:14px;">Aponte a câmera pro código de barras do produto.</p>
+            <div id="scanner-viewport" style="position:relative; width:100%; aspect-ratio:4/3; background:#000; border-radius:var(--raio-sm); overflow:hidden;"></div>
+            <p id="scanner-erro" class="alert alert-erro" hidden style="margin-top:12px;"></p>
+            <div class="modal-acoes">
+                <button type="button" class="btn-outline" id="btn-cancelar-scanner">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
     <div class="modal-overlay" id="modal-avulsa" hidden>
         <div class="modal-card">
             <h3>Venda avulsa</h3>
@@ -95,6 +112,7 @@ document.getElementById('btn-iniciar').addEventListener('click', function () {
         </div>
     </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
 <script>
 const idVenda = <?= $id_venda ?>;
 
@@ -243,6 +261,27 @@ function carregarCarrinho() {
             document.getElementById('total-venda').textContent = data.total.toFixed(2).replace('.', ',');
         });
 }
+
+iniciarLeitorCodigoBarras('btn-abrir-scanner-pdv', function (codigo) {
+    const campoBusca = document.getElementById('termo-busca');
+    const containerResultados = document.getElementById('resultados-busca');
+    campoBusca.value = codigo;
+    fetch('/caixa/ajax/buscar_produtos.php?termo=' + encodeURIComponent(codigo))
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            // Código só é ambíguo se o mesmo produto tiver mais de uma
+            // combinação (cor/tamanho) — nesse caso mostra a lista normal
+            // pro operador escolher qual. Uma única combinação encontrada
+            // já vai direto pro carrinho, sem precisar clicar "Adicionar".
+            if (data.produtos.length === 1) {
+                adicionarItem(data.produtos[0].id_produto_variacao);
+                campoBusca.value = '';
+                containerResultados.innerHTML = '';
+            } else {
+                campoBusca.dispatchEvent(new Event('input'));
+            }
+        });
+});
 
 document.getElementById('termo-cliente').addEventListener('input', function () {
     const termo = this.value;

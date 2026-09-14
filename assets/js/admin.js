@@ -166,6 +166,89 @@ function iniciarAlternadoresVisualizacao() {
     });
 }
 
+/**
+ * Leitor de código de barras pela câmera do celular/computador, usando
+ * QuaggaJS (carregado só nas páginas que chamam esta função — não faz
+ * parte do bundle carregado em toda tela admin). Espera encontrar no HTML
+ * da página que chama: um botão com o id passado em `idBotaoAbrir`, e o
+ * modal padrão #modal-scanner com #scanner-viewport (onde o Quagga desenha
+ * o vídeo), #scanner-erro e #btn-cancelar-scanner dentro dele.
+ *
+ * Exige 3 leituras seguidas do MESMO código antes de aceitar — frames
+ * isolados de uma câmera de celular geram falso-positivo com frequência,
+ * e aqui o código lido vira dado real (produto cadastrado, busca no
+ * caixa), então vale a pena essa folga extra antes de aceitar.
+ *
+ * `aoAbrir`/`aoFechar` são opcionais — usados quando o botão de escanear
+ * fica dentro de outro modal (ex: produtos/editar.php), pra esconder esse
+ * modal enquanto a câmera está aberta e mostrar de novo ao cancelar/ler.
+ */
+function iniciarLeitorCodigoBarras(idBotaoAbrir, aoLerCodigo, aoAbrir, aoFechar) {
+    const botaoAbrir = document.getElementById(idBotaoAbrir);
+    const modal = document.getElementById('modal-scanner');
+    const viewport = document.getElementById('scanner-viewport');
+    const erro = document.getElementById('scanner-erro');
+    const btnCancelar = document.getElementById('btn-cancelar-scanner');
+    if (!botaoAbrir || !modal || !viewport || typeof Quagga === 'undefined') {
+        return;
+    }
+
+    let scannerAtivo = false;
+    let contagemPorCodigo = {};
+
+    function aoDetectar(resultado) {
+        const codigo = resultado && resultado.codeResult && resultado.codeResult.code;
+        if (!codigo) { return; }
+        contagemPorCodigo[codigo] = (contagemPorCodigo[codigo] || 0) + 1;
+        if (contagemPorCodigo[codigo] < 3) { return; }
+        const codigoConfirmado = codigo;
+        pararScanner();
+        aoLerCodigo(codigoConfirmado);
+    }
+
+    function pararScanner() {
+        if (scannerAtivo) {
+            Quagga.offDetected(aoDetectar);
+            Quagga.stop();
+            scannerAtivo = false;
+        }
+        modal.hidden = true;
+        if (aoFechar) { aoFechar(); }
+    }
+
+    function iniciarScanner() {
+        if (aoAbrir) { aoAbrir(); }
+        contagemPorCodigo = {};
+        erro.hidden = true;
+        modal.hidden = false;
+        Quagga.init({
+            inputStream: {
+                type: 'LiveStream',
+                target: viewport,
+                constraints: { facingMode: 'environment' },
+            },
+            decoder: {
+                readers: ['ean_reader', 'ean_8_reader', 'code_128_reader', 'code_39_reader', 'upc_reader', 'upc_e_reader'],
+            },
+            locate: true,
+        }, function (err) {
+            if (err) {
+                erro.textContent = 'Não foi possível acessar a câmera — verifique a permissão do navegador.';
+                erro.hidden = false;
+                return;
+            }
+            scannerAtivo = true;
+            Quagga.start();
+            Quagga.onDetected(aoDetectar);
+        });
+    }
+
+    botaoAbrir.addEventListener('click', iniciarScanner);
+    btnCancelar.addEventListener('click', pararScanner);
+    modal.addEventListener('click', function (e) { if (e.target === modal) { pararScanner(); } });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !modal.hidden) { pararScanner(); } });
+}
+
 document.addEventListener('DOMContentLoaded', function () {
     iniciarMenuMobileAdmin();
     iniciarConfirmacoesFormulario();

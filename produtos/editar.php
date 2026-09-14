@@ -401,7 +401,14 @@ $idsValoresEmUso = $stmtValoresEmUso->fetchAll(PDO::FETCH_COLUMN);
             <?php if ($erroCodigo): ?><p class="alert alert-erro"><?= htmlspecialchars($erroCodigo) ?></p><?php endif; ?>
             <form method="post">
                 <input type="hidden" name="acao" value="definir_codigo_manual">
-                <label>Código<input type="text" name="codigo_manual" value="<?= htmlspecialchars($codigoManual ?? $produto['codigo'] ?? '') ?>" placeholder="Digite ou escaneie um código de barras" maxlength="30"></label>
+                <label>Código
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <input type="text" name="codigo_manual" id="input-codigo-manual" value="<?= htmlspecialchars($codigoManual ?? $produto['codigo'] ?? '') ?>" placeholder="Digite ou escaneie um código de barras" maxlength="30" style="flex:1;">
+                        <button type="button" class="btn-outline btn-icone" id="btn-abrir-scanner-produto" title="Ler código de barras com a câmera" aria-label="Ler código de barras com a câmera">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.2" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+                        </button>
+                    </div>
+                </label>
                 <div class="modal-acoes">
                     <button type="button" class="btn-outline" id="btn-cancelar-codigo">Cancelar</button>
                     <button type="submit" class="btn">Salvar código</button>
@@ -411,6 +418,18 @@ $idsValoresEmUso = $stmtValoresEmUso->fetchAll(PDO::FETCH_COLUMN);
                 <input type="hidden" name="acao" value="gerar_codigo">
                 <button type="submit" class="btn-outline btn-bloco">Gerar código automático (3 dígitos)</button>
             </form>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modal-scanner" hidden>
+        <div class="modal-card">
+            <h3>Ler código de barras</h3>
+            <p style="color:var(--cor-texto-suave); font-size:0.9rem; margin-bottom:14px;">Aponte a câmera pro código de barras da peça.</p>
+            <div id="scanner-viewport" style="position:relative; width:100%; aspect-ratio:4/3; background:#000; border-radius:var(--raio-sm); overflow:hidden;"></div>
+            <p id="scanner-erro" class="alert alert-erro" hidden style="margin-top:12px;"></p>
+            <div class="modal-acoes">
+                <button type="button" class="btn-outline" id="btn-cancelar-scanner">Cancelar</button>
+            </div>
         </div>
     </div>
 
@@ -435,6 +454,7 @@ $idsValoresEmUso = $stmtValoresEmUso->fetchAll(PDO::FETCH_COLUMN);
     </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
 <script>
 (function () {
     const checkboxEstoque = document.getElementById('checkbox-estoque-gerenciado');
@@ -457,6 +477,13 @@ $idsValoresEmUso = $stmtValoresEmUso->fetchAll(PDO::FETCH_COLUMN);
         modalCodigo.addEventListener('click', function (e) { if (e.target === modalCodigo) { fecharModalCodigo(); } });
         document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !modalCodigo.hidden) { fecharModalCodigo(); } });
     }
+
+    iniciarLeitorCodigoBarras(
+        'btn-abrir-scanner-produto',
+        function (codigo) { document.getElementById('input-codigo-manual').value = codigo; },
+        function () { if (modalCodigo) { modalCodigo.hidden = true; } },
+        function () { if (modalCodigo) { modalCodigo.hidden = false; } }
+    );
 })();
 
 (function () {
