@@ -49,6 +49,16 @@ $sessoes = $stmt->fetchAll();
         <?php if (empty($sessoes)): ?>
         <p class="alert alert-info">Nenhum caixa registrado ainda.</p>
         <?php else: ?>
+        <div class="alternador-visualizacao" data-chave="historico-caixas" data-alvo-lista="visualizacao-lista" data-alvo-cards="visualizacao-cards">
+            <button type="button" class="btn-sm btn-outline" data-modo="lista" title="Ver em lista">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            </button>
+            <button type="button" class="btn-sm btn-outline" data-modo="cards" title="Ver em cards">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+            </button>
+        </div>
+
+        <div id="visualizacao-lista">
         <div class="tabela-wrap">
         <table>
             <tr>
@@ -75,6 +85,33 @@ $sessoes = $stmt->fetchAll();
             </tr>
             <?php endforeach; ?>
         </table>
+        </div>
+        </div>
+
+        <div id="visualizacao-cards" hidden>
+        <div class="grade-cards">
+            <?php foreach ($sessoes as $s): ?>
+            <div class="item-card">
+                <div class="item-card-topo">
+                    <strong>Caixa #<?= (int) $s['id_caixa'] ?></strong>
+                    <span class="status-pill<?= $s['status'] === 'aberto' ? '' : ' sucesso' ?>"><?= $s['status'] === 'aberto' ? 'Aberto' : 'Fechado' ?></span>
+                </div>
+                <p>Aberto em <?= htmlspecialchars(date('d/m/Y H:i', strtotime($s['data_abertura']))) ?> por <?= htmlspecialchars($s['aberto_por_nome']) ?></p>
+                <p>Valor inicial: R$ <?= number_format($s['valor_inicial'], 2, ',', '.') ?></p>
+                <?php if ($s['status'] !== 'aberto'): ?>
+                <p>Fechado em <?= $s['data_fechamento'] ? htmlspecialchars(date('d/m/Y H:i', strtotime($s['data_fechamento']))) : '—' ?> por <?= htmlspecialchars($s['fechado_por_nome'] ?? '—') ?></p>
+                <p>Informado: <?= $s['valor_final_informado'] !== null ? 'R$ ' . number_format($s['valor_final_informado'], 2, ',', '.') : '—' ?> · Esperado: <?= $s['valor_esperado'] !== null ? 'R$ ' . number_format($s['valor_esperado'], 2, ',', '.') : '—' ?></p>
+                <p<?= $s['diferenca'] !== null && (float) $s['diferenca'] !== 0.0 ? ' style="color:var(--cor-erro); font-weight:700;"' : '' ?>>
+                    Diferença: <?= $s['diferenca'] !== null ? 'R$ ' . number_format($s['diferenca'], 2, ',', '.') : '—' ?>
+                </p>
+                <?php if ($s['observacao_fechamento']): ?><p>Obs.: <?= htmlspecialchars($s['observacao_fechamento']) ?></p><?php endif; ?>
+                <?php endif; ?>
+                <div class="celula-acoes">
+                    <a href="/caixa/historico_detalhe.php?id_caixa=<?= (int) $s['id_caixa'] ?>" class="btn-sm btn-outline">Ver vendas</a>
+                </div>
+            </div>
+            <?php endforeach; ?>
+        </div>
         </div>
 
         <?php if ($totalPaginas > 1): ?>

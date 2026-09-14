@@ -133,6 +133,16 @@ $temFiltroAtivo = $busca !== '' || $dataFiltro !== '' || $formaFiltro !== '' || 
         <?php if (empty($vendas)): ?>
         <p class="alert alert-info">Nenhuma venda encontrada.</p>
         <?php else: ?>
+        <div class="alternador-visualizacao" data-chave="vendas-caixa" data-alvo-lista="visualizacao-lista" data-alvo-cards="visualizacao-cards">
+            <button type="button" class="btn-sm btn-outline" data-modo="lista" title="Ver em lista">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            </button>
+            <button type="button" class="btn-sm btn-outline" data-modo="cards" title="Ver em cards">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+            </button>
+        </div>
+
+        <div id="visualizacao-lista">
         <div class="tabela-wrap">
         <table>
             <tr><th>Venda</th><th>Cliente</th><th>Data</th><th>Total</th><th>Pagamento</th><th>Operador</th><th></th></tr>
@@ -148,6 +158,26 @@ $temFiltroAtivo = $busca !== '' || $dataFiltro !== '' || $formaFiltro !== '' || 
             </tr>
             <?php endforeach; ?>
         </table>
+        </div>
+        </div>
+
+        <div id="visualizacao-cards" hidden>
+        <div class="grade-cards">
+            <?php foreach ($vendas as $v): ?>
+            <div class="item-card">
+                <div class="item-card-topo">
+                    <strong>Venda #<?= (int) $v['id_venda'] ?></strong>
+                    <span class="status-pill">R$ <?= number_format($v['valor_total'], 2, ',', '.') ?></span>
+                </div>
+                <p><?= htmlspecialchars($v['cliente_nome'] ?? 'Consumidor') ?></p>
+                <p><?= htmlspecialchars(date('d/m/Y H:i', strtotime($v['data_venda']))) ?></p>
+                <p><?= htmlspecialchars($v['forma_pagamento'] ?? '—') ?> · Operador: <?= htmlspecialchars($v['operador_nome']) ?></p>
+                <div class="celula-acoes">
+                    <a href="/caixa/comprovante.php?id_venda=<?= (int) $v['id_venda'] ?>" class="btn-sm btn-outline">Ver</a>
+                </div>
+            </div>
+            <?php endforeach; ?>
+        </div>
         </div>
 
         <?php if ($totalPaginas > 1): ?>

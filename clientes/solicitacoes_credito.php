@@ -64,62 +64,112 @@ $respondidas = $pdo->query(
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Solicitações de crédito</title></head>
 <body>
 <?php require __DIR__ . '/../includes/admin_header.php'; ?>
-    <h1>Solicitações de crédito</h1>
+    <div class="page-title">
+        <span class="icone-titulo"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M2 10h20" stroke="currentColor" stroke-width="1.8"/></svg></span>
+        <div>
+            <h1>Solicitações de crédito</h1>
+            <span class="subtitulo"><?= count($pendentes) ?> pendente<?= count($pendentes) === 1 ? '' : 's' ?></span>
+        </div>
+    </div>
     <?php if (isset($_GET['respondido'])): ?><p class="alert alert-sucesso">Solicitação respondida.</p><?php endif; ?>
     <?php if ($erro): ?><p class="alert alert-erro"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
 
-    <h3>Pendentes</h3>
-    <?php if (empty($pendentes)): ?>
-        <p>Nenhuma solicitação pendente.</p>
-    <?php else: ?>
-    <div class="tabela-wrap">
-    <table>
-        <tr><th>Cliente</th><th>WhatsApp</th><th>Limite atual</th><th>Valor pedido</th><th>Data</th><th>Responder</th></tr>
-        <?php foreach ($pendentes as $s): ?>
-        <tr>
-            <td><?= htmlspecialchars($s['nome']) ?></td>
-            <td><?= htmlspecialchars($s['whatsapp']) ?></td>
-            <td>R$ <?= number_format($s['limite_credito'], 2, ',', '.') ?></td>
-            <td>R$ <?= number_format($s['valor_solicitado'], 2, ',', '.') ?></td>
-            <td><?= htmlspecialchars(date('d/m/Y', strtotime($s['criado_em']))) ?></td>
-            <td class="celula-acoes">
-                <form method="post" class="form-linha-compacta">
-                    <input type="hidden" name="id_solicitacao" value="<?= $s['id_solicitacao'] ?>">
-                    <input type="hidden" name="acao" value="aprovar">
-                    <input type="text" name="valor_aprovado" value="<?= number_format($s['valor_solicitado'], 2, ',', '') ?>" class="campo-valor-curto">
-                    <button type="submit" class="btn-sm">Aprovar</button>
-                </form>
-                <form method="post" data-confirm="Rejeitar esta solicitação?">
-                    <input type="hidden" name="id_solicitacao" value="<?= $s['id_solicitacao'] ?>">
-                    <input type="hidden" name="acao" value="rejeitar">
-                    <button type="submit" class="btn-sm btn-perigo">Rejeitar</button>
-                </form>
-            </td>
-        </tr>
-        <?php endforeach; ?>
-    </table>
-    </div>
-    <?php endif; ?>
+    <div class="card">
+        <h2>Pendentes</h2>
+        <?php if (empty($pendentes)): ?>
+            <p class="alert alert-info">Nenhuma solicitação pendente.</p>
+        <?php else: ?>
+        <div class="alternador-visualizacao" data-chave="solicitacoes-credito" data-alvo-lista="visualizacao-lista" data-alvo-cards="visualizacao-cards">
+            <button type="button" class="btn-sm btn-outline" data-modo="lista" title="Ver em lista">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            </button>
+            <button type="button" class="btn-sm btn-outline" data-modo="cards" title="Ver em cards">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+            </button>
+        </div>
 
-    <h3>Últimas respondidas</h3>
-    <?php if (empty($respondidas)): ?>
-        <p>Nenhuma ainda.</p>
-    <?php else: ?>
-    <div class="tabela-wrap">
-    <table>
-        <tr><th>Cliente</th><th>Pedido</th><th>Status</th><th>Aprovado</th><th>Data</th></tr>
-        <?php foreach ($respondidas as $s): ?>
-        <tr>
-            <td><?= htmlspecialchars($s['nome']) ?></td>
-            <td>R$ <?= number_format($s['valor_solicitado'], 2, ',', '.') ?></td>
-            <td><span class="status-pill<?= $s['status'] === 'Aprovada' ? ' sucesso' : ' erro' ?>"><?= htmlspecialchars($s['status']) ?></span></td>
-            <td><?= $s['valor_aprovado'] !== null ? 'R$ ' . number_format($s['valor_aprovado'], 2, ',', '.') : '—' ?></td>
-            <td><?= htmlspecialchars(date('d/m/Y', strtotime($s['respondido_em']))) ?></td>
-        </tr>
-        <?php endforeach; ?>
-    </table>
+        <div id="visualizacao-lista">
+        <div class="tabela-wrap">
+        <table>
+            <tr><th>Cliente</th><th>WhatsApp</th><th>Limite atual</th><th>Valor pedido</th><th>Data</th><th>Responder</th></tr>
+            <?php foreach ($pendentes as $s): ?>
+            <tr>
+                <td><?= htmlspecialchars($s['nome']) ?></td>
+                <td><?= htmlspecialchars($s['whatsapp']) ?></td>
+                <td>R$ <?= number_format($s['limite_credito'], 2, ',', '.') ?></td>
+                <td>R$ <?= number_format($s['valor_solicitado'], 2, ',', '.') ?></td>
+                <td><?= htmlspecialchars(date('d/m/Y', strtotime($s['criado_em']))) ?></td>
+                <td class="celula-acoes">
+                    <form method="post" class="form-linha-compacta">
+                        <input type="hidden" name="id_solicitacao" value="<?= $s['id_solicitacao'] ?>">
+                        <input type="hidden" name="acao" value="aprovar">
+                        <input type="text" name="valor_aprovado" value="<?= number_format($s['valor_solicitado'], 2, ',', '') ?>" class="campo-valor-curto">
+                        <button type="submit" class="btn-sm">Aprovar</button>
+                    </form>
+                    <form method="post" data-confirm="Rejeitar esta solicitação?">
+                        <input type="hidden" name="id_solicitacao" value="<?= $s['id_solicitacao'] ?>">
+                        <input type="hidden" name="acao" value="rejeitar">
+                        <button type="submit" class="btn-sm btn-perigo">Rejeitar</button>
+                    </form>
+                </td>
+            </tr>
+            <?php endforeach; ?>
+        </table>
+        </div>
+        </div>
+
+        <div id="visualizacao-cards" hidden>
+        <div class="grade-cards">
+            <?php foreach ($pendentes as $s): ?>
+            <div class="item-card">
+                <div class="item-card-topo">
+                    <strong><?= htmlspecialchars($s['nome']) ?></strong>
+                    <span class="status-pill">R$ <?= number_format($s['valor_solicitado'], 2, ',', '.') ?></span>
+                </div>
+                <p>WhatsApp: <?= htmlspecialchars($s['whatsapp']) ?></p>
+                <p>Limite atual: R$ <?= number_format($s['limite_credito'], 2, ',', '.') ?></p>
+                <p>Pedido em <?= htmlspecialchars(date('d/m/Y', strtotime($s['criado_em']))) ?></p>
+                <div class="celula-acoes">
+                    <form method="post" class="form-linha-compacta">
+                        <input type="hidden" name="id_solicitacao" value="<?= $s['id_solicitacao'] ?>">
+                        <input type="hidden" name="acao" value="aprovar">
+                        <input type="text" name="valor_aprovado" value="<?= number_format($s['valor_solicitado'], 2, ',', '') ?>" class="campo-valor-curto">
+                        <button type="submit" class="btn-sm">Aprovar</button>
+                    </form>
+                    <form method="post" data-confirm="Rejeitar esta solicitação?">
+                        <input type="hidden" name="id_solicitacao" value="<?= $s['id_solicitacao'] ?>">
+                        <input type="hidden" name="acao" value="rejeitar">
+                        <button type="submit" class="btn-sm btn-perigo">Rejeitar</button>
+                    </form>
+                </div>
+            </div>
+            <?php endforeach; ?>
+        </div>
+        </div>
+        <?php endif; ?>
     </div>
-    <?php endif; ?>
+
+    <div class="card" style="margin-top:20px;">
+        <h2>Últimas respondidas</h2>
+        <?php if (empty($respondidas)): ?>
+            <p class="alert alert-info">Nenhuma ainda.</p>
+        <?php else: ?>
+        <div class="tabela-wrap">
+        <table>
+            <tr><th>Cliente</th><th>Pedido</th><th>Status</th><th>Aprovado</th><th>Data</th></tr>
+            <?php foreach ($respondidas as $s): ?>
+            <tr>
+                <td><?= htmlspecialchars($s['nome']) ?></td>
+                <td>R$ <?= number_format($s['valor_solicitado'], 2, ',', '.') ?></td>
+                <td><span class="status-pill<?= $s['status'] === 'Aprovada' ? ' sucesso' : ' erro' ?>"><?= htmlspecialchars($s['status']) ?></span></td>
+                <td><?= $s['valor_aprovado'] !== null ? 'R$ ' . number_format($s['valor_aprovado'], 2, ',', '.') : '—' ?></td>
+                <td><?= htmlspecialchars(date('d/m/Y', strtotime($s['respondido_em']))) ?></td>
+            </tr>
+            <?php endforeach; ?>
+        </table>
+        </div>
+        <?php endif; ?>
+    </div>
 </main>
 </body>
 </html>
