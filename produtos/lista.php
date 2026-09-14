@@ -46,14 +46,14 @@ $totalPaginas = max(1, (int) ceil($totalProdutos / PRODUTOS_POR_PAGINA));
 $pagina = min($pagina, $totalPaginas);
 $offset = ($pagina - 1) * PRODUTOS_POR_PAGINA;
 
-$sql = "SELECT p.id_produto, p.nome, p.codigo, p.preco_base, p.ativo, c.nome AS categoria,
+$sql = "SELECT p.id_produto, p.nome, p.codigo, p.preco_base, p.ativo, p.estoque_gerenciado, c.nome AS categoria,
                COALESCE(SUM(pv.estoque), 0) AS estoque_total,
                (SELECT caminho_arquivo FROM produto_fotos WHERE id_produto = p.id_produto ORDER BY ordem LIMIT 1) AS foto
         FROM produtos p
         JOIN categorias c ON c.id_categoria = p.id_categoria
         LEFT JOIN produto_variacoes pv ON pv.id_produto = p.id_produto
         WHERE $where
-        GROUP BY p.id_produto, p.nome, p.codigo, p.preco_base, p.ativo, c.nome
+        GROUP BY p.id_produto, p.nome, p.codigo, p.preco_base, p.ativo, p.estoque_gerenciado, c.nome
         ORDER BY p.nome ASC
         LIMIT :limite OFFSET :offset";
 $stmt = $pdo->prepare($sql);
@@ -158,7 +158,7 @@ function montarLinkFiltroProdutos(int $pagina, int $categoria, string $status, s
                     <td><?= htmlspecialchars($p['nome']) ?></td>
                     <td><?= htmlspecialchars($p['categoria']) ?></td>
                     <td>R$ <?= number_format($p['preco_base'], 2, ',', '.') ?></td>
-                    <td><?= (int) $p['estoque_total'] ?></td>
+                    <td><?= $p['estoque_gerenciado'] ? (int) $p['estoque_total'] : '<span class="status-pill">Livre</span>' ?></td>
                     <td><span class="status-pill<?= $p['ativo'] ? ' sucesso' : ' erro' ?>"><?= $p['ativo'] ? 'Ativo' : 'Inativo' ?></span></td>
                     <td><a href="/produtos/editar.php?id=<?= $p['id_produto'] ?>" class="btn-sm btn-outline"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" width="14" height="14"><path d="M4 20h4l10.5-10.5a2 2 0 0 0 0-2.83l-1.17-1.17a2 2 0 0 0-2.83 0L4 16v4Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Editar</a></td>
                     <td>

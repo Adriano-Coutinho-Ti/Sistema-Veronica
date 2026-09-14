@@ -21,6 +21,8 @@ $fotos = $pdo->prepare('SELECT caminho_arquivo FROM produto_fotos WHERE id_produ
 $fotos->execute([':id' => $id_produto]);
 $listaFotos = $fotos->fetchAll(PDO::FETCH_COLUMN);
 
+$semControleEstoque = !(int) $produto['estoque_gerenciado'];
+
 $combinacoes = $pdo->prepare(
     'SELECT pv.id_produto_variacao, COALESCE(pv.preco, p.preco_base) AS preco,
             (pv.estoque - pv.estoque_reservado) AS disponivel,
@@ -31,7 +33,7 @@ $combinacoes = $pdo->prepare(
      LEFT JOIN variacao_valores vv ON vv.id_valor = pvv.id_valor
      WHERE pv.id_produto = :id
      GROUP BY pv.id_produto_variacao, pv.preco, p.preco_base, pv.estoque, pv.estoque_reservado
-     HAVING disponivel > 0
+     HAVING p.estoque_gerenciado = 0 OR disponivel > 0
      ORDER BY descricao_combinacao'
 );
 $combinacoes->execute([':id' => $id_produto]);
@@ -45,7 +47,7 @@ $disponivelTotal = array_sum(array_column($listaCombinacoes, 'disponivel'));
 $stmtEstoqueFisico = $pdo->prepare('SELECT COALESCE(SUM(estoque), 0) FROM produto_variacoes WHERE id_produto = :id');
 $stmtEstoqueFisico->execute([':id' => $id_produto]);
 $estoqueFisicoTotal = (int) $stmtEstoqueFisico->fetchColumn();
-$reservadoEmCarrinho = $disponivelTotal <= 0 && $estoqueFisicoTotal > 0;
+$reservadoEmCarrinho = !$semControleEstoque && $disponivelTotal <= 0 && $estoqueFisicoTotal > 0;
 
 $urlProdutoAbsoluta = 'https://brechodaveve.codernex.com.br/loja/produto.php?id=' . $id_produto;
 // og:image de propósito NÃO leva o "?v=..." do cache-busting: quem lê essa
@@ -71,7 +73,7 @@ $relacionados = $pdo->prepare(
      FROM produtos p2
      JOIN produto_variacoes pv2 ON pv2.id_produto = p2.id_produto
      WHERE p2.ativo = 1 AND p2.id_produto != :id AND p2.id_categoria = :cat
-       AND (pv2.estoque - pv2.estoque_reservado) > 0
+       AND (p2.estoque_gerenciado = 0 OR (pv2.estoque - pv2.estoque_reservado) > 0)
      ORDER BY RAND() LIMIT 8"
 );
 $relacionados->execute([':id' => $id_produto, ':cat' => $produto['id_categoria']]);
@@ -83,7 +85,7 @@ if (empty($listaRelacionados)) {
          FROM produtos p2
          JOIN produto_variacoes pv2 ON pv2.id_produto = p2.id_produto
          WHERE p2.ativo = 1 AND p2.id_produto != :id
-           AND (pv2.estoque - pv2.estoque_reservado) > 0
+           AND (p2.estoque_gerenciado = 0 OR (pv2.estoque - pv2.estoque_reservado) > 0)
          ORDER BY RAND() LIMIT 8"
     );
     $outros->execute([':id' => $id_produto]);
@@ -171,13 +173,13 @@ if (!empty($listaRelacionados)) {
         </script>
         <?php endif; ?>
     </div>
-    <?php if ($disponivelTotal > 0): ?>
+    <?php if (!$semControleEstoque && $disponivelTotal > 0): ?>
     <p class="disponibilidade<?= $disponivelTotal <= 3 ? ' disponibilidade-baixa' : '' ?>"><?= $disponivelTotal ?> <?= $disponivelTotal === 1 ? 'unidade disponível' : 'unidades disponíveis' ?></p>
     <?php endif; ?>
 
     <?php if ($reservadoEmCarrinho): ?>
         <p class="alert alert-info">Este item está no carrinho de outro cliente e ainda não foi comprado. Ele pode voltar a ficar disponível a qualquer momento — vale a pena checar de novo daqui a pouco.</p>
-    <?php elseif (empty($listaCombinacoes)): ?>
+    <?php elseif (!$semControleEstoque && empty($listaCombinacoes)): ?>
         <p class="alert alert-erro">Sem estoque disponível no momento.</p>
     <?php endif; ?>
 
@@ -191,7 +193,7 @@ if (!empty($listaRelacionados)) {
             <select name="id_produto_variacao" id="id_produto_variacao">
                 <?php foreach ($listaCombinacoes as $c): ?>
                 <option value="<?= $c['id_produto_variacao'] ?>">
-                    <?= htmlspecialchars($c['descricao_combinacao'] ?: 'Padrão') ?> — R$ <?= number_format($c['preco'], 2, ',', '.') ?> (<?= (int) $c['disponivel'] ?> disponível)
+                    <?= htmlspecialchars($c['descricao_combinacao'] ?: 'Padrão') ?> — R$ <?= number_format($c['preco'], 2, ',', '.') ?><?= $semControleEstoque ? '' : ' (' . (int) $c['disponivel'] . ' disponível)' ?>
                 </option>
                 <?php endforeach; ?>
             </select>
@@ -262,7 +264,7 @@ if (!empty($listaRelacionados)) {
                 if (!data.success) { return; }
                 ultimaChecagem = data.agora;
                 const status = (data.status || []).find(function (s) { return s.id_produto === idProduto; });
-                if (!status) { return; }
+                if (!status || status.estoque_gerenciado === 0) { return; }
                 const agoraDisponivel = status.disponivel > 0;
                 if (agoraDisponivel !== estavaDisponivel) {
                     window.location.reload();

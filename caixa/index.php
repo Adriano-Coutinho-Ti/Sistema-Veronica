@@ -157,7 +157,7 @@ document.getElementById('termo-busca').addEventListener('input', function () {
                 nome.textContent = p.nome_completo;
                 const meta = document.createElement('span');
                 meta.className = 'linha-resultado-meta';
-                meta.textContent = 'R$ ' + p.preco.toFixed(2).replace('.', ',') + ' · Estoque: ' + p.estoque;
+                meta.textContent = 'R$ ' + p.preco.toFixed(2).replace('.', ',') + ' · ' + (p.estoque_gerenciado ? ('Estoque: ' + p.estoque) : 'Estoque livre');
                 info.appendChild(nome);
                 info.appendChild(meta);
 

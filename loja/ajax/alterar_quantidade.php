@@ -23,9 +23,12 @@ if (!in_array($delta, [1, -1], true)) {
 $pdo->beginTransaction();
 try {
     $stmt = $pdo->prepare(
-        "SELECT iv.id_item, iv.id_venda, iv.id_produto_variacao, iv.quantidade, iv.preco_unit
+        "SELECT iv.id_item, iv.id_venda, iv.id_produto_variacao, iv.quantidade, iv.preco_unit,
+                COALESCE(p.estoque_gerenciado, 1) AS estoque_gerenciado
          FROM itens_venda iv
          JOIN vendas v ON v.id_venda = iv.id_venda
+         LEFT JOIN produto_variacoes pv ON pv.id_produto_variacao = iv.id_produto_variacao
+         LEFT JOIN produtos p ON p.id_produto = pv.id_produto
          WHERE iv.id_item = :id AND v.id_cliente = :ic AND v.origem = 'loja' AND v.status = 'Reservado'
          FOR UPDATE"
     );
@@ -45,16 +48,18 @@ try {
     }
 
     if ($delta === 1) {
-        $reservou = $pdo->prepare(
-            'UPDATE produto_variacoes SET estoque_reservado = estoque_reservado + 1
-             WHERE id_produto_variacao = :id AND (estoque - estoque_reservado) >= 1'
-        );
-        $reservou->execute([':id' => $item['id_produto_variacao']]);
+        if ((int) $item['estoque_gerenciado']) {
+            $reservou = $pdo->prepare(
+                'UPDATE produto_variacoes SET estoque_reservado = estoque_reservado + 1
+                 WHERE id_produto_variacao = :id AND (estoque - estoque_reservado) >= 1'
+            );
+            $reservou->execute([':id' => $item['id_produto_variacao']]);
 
-        if ($reservou->rowCount() === 0) {
-            $pdo->rollBack();
-            echo json_encode(['success' => false, 'message' => 'Não há mais estoque disponível dessa opção.']);
-            exit;
+            if ($reservou->rowCount() === 0) {
+                $pdo->rollBack();
+                echo json_encode(['success' => false, 'message' => 'Não há mais estoque disponível dessa opção.']);
+                exit;
+            }
         }
 
         $novaQuantidade = (int) $item['quantidade'] + 1;

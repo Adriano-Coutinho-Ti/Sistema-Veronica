@@ -16,7 +16,7 @@ $pagina = min($pagina, $totalPaginasFav);
 $offsetFav = ($pagina - 1) * FAVORITOS_POR_PAGINA;
 
 $stmt = $pdo->prepare(
-    "SELECT f.id_favorito, p.id_produto, p.nome, p.preco_base, p.ativo,
+    "SELECT f.id_favorito, p.id_produto, p.nome, p.preco_base, p.ativo, p.estoque_gerenciado,
             COALESCE(SUM(pv.estoque - pv.estoque_reservado), 0) AS disponivel,
             COALESCE(SUM(pv.estoque), 0) AS estoque_fisico,
             (SELECT caminho_arquivo FROM produto_fotos WHERE id_produto = p.id_produto ORDER BY ordem LIMIT 1) AS foto
@@ -24,7 +24,7 @@ $stmt = $pdo->prepare(
      JOIN produtos p ON p.id_produto = f.id_produto
      LEFT JOIN produto_variacoes pv ON pv.id_produto = p.id_produto
      WHERE f.id_cliente = :ic
-     GROUP BY f.id_favorito, p.id_produto, p.nome, p.preco_base, p.ativo
+     GROUP BY f.id_favorito, p.id_produto, p.nome, p.preco_base, p.ativo, p.estoque_gerenciado
      ORDER BY f.criado_em DESC
      LIMIT :limite OFFSET :offset"
 );
@@ -46,7 +46,7 @@ $placeholdersExcluir = !empty($idsFavoritados) ? implode(',', array_fill(0, coun
 $sqlRelacionados = "SELECT DISTINCT p2.id_produto, p2.nome, p2.preco_base
      FROM produtos p2
      JOIN produto_variacoes pv2 ON pv2.id_produto = p2.id_produto
-     WHERE p2.ativo = 1 AND (pv2.estoque - pv2.estoque_reservado) > 0"
+     WHERE p2.ativo = 1 AND (p2.estoque_gerenciado = 0 OR (pv2.estoque - pv2.estoque_reservado) > 0)"
      . ($placeholdersExcluir ? " AND p2.id_produto NOT IN ($placeholdersExcluir)" : '')
      . ' ORDER BY RAND() LIMIT 8';
 $stmtRelacionados = $pdo->prepare($sqlRelacionados);
@@ -84,11 +84,13 @@ $agoraServidor = $pdo->query('SELECT NOW()')->fetchColumn();
         <?php
             $disp = (int) $f['disponivel'];
             $ativo = (int) $f['ativo'] === 1;
+            $semControleEstoque = !(int) $f['estoque_gerenciado'];
             // Esgotado de verdade (não volta mais) é diferente de só estar preso no
             // carrinho de outro cliente (pode voltar a qualquer momento) — mesma
-            // distinção já usada no catálogo e na página do produto.
-            $reservado = $ativo && $disp <= 0 && (int) $f['estoque_fisico'] > 0;
-            $indisponivel = !$ativo || (int) $f['estoque_fisico'] <= 0;
+            // distinção já usada no catálogo e na página do produto. Produto sem
+            // controle de estoque nunca entra em nenhum desses dois estados.
+            $reservado = !$semControleEstoque && $ativo && $disp <= 0 && (int) $f['estoque_fisico'] > 0;
+            $indisponivel = !$ativo || (!$semControleEstoque && (int) $f['estoque_fisico'] <= 0);
         ?>
         <a href="/loja/produto.php?id=<?= $f['id_produto'] ?>" class="product-card<?= $indisponivel ? ' indisponivel' : '' ?><?= $reservado ? ' reservado' : '' ?>" data-id-produto="<?= $f['id_produto'] ?>">
             <?php if ($reservado): ?><span class="tag-reservado">Em um carrinho</span><?php endif; ?>
@@ -106,7 +108,7 @@ $agoraServidor = $pdo->query('SELECT NOW()')->fetchColumn();
                 <div class="tag-indisponivel">Já vendido</div>
             <?php elseif ($reservado): ?>
                 <div class="disponibilidade card disponibilidade-baixa">Aguardando pagamento de outro cliente</div>
-            <?php else: ?>
+            <?php elseif (!$semControleEstoque): ?>
                 <div class="disponibilidade card<?= $disp <= 3 ? ' disponibilidade-baixa' : '' ?>"><?= $disp ?> disponíve<?= $disp === 1 ? 'l' : 'is' ?></div>
             <?php endif; ?>
         </a>
@@ -170,8 +172,8 @@ document.getElementById('grade-favoritos')?.addEventListener('click', function (
     if (!grade) { return; }
     let ultimaChecagem = <?= json_encode($agoraServidor) ?>;
 
-    function sincronizarFavorito(card, disponivel) {
-        if (card.classList.contains('indisponivel')) { return; }
+    function sincronizarFavorito(card, disponivel, estoqueGerenciado) {
+        if (card.classList.contains('indisponivel') || estoqueGerenciado === 0) { return; }
         const reservado = disponivel <= 0;
         card.classList.toggle('reservado', reservado);
 
@@ -208,7 +210,7 @@ document.getElementById('grade-favoritos')?.addEventListener('click', function (
                 ultimaChecagem = data.agora;
                 (data.status || []).forEach(function (s) {
                     const card = grade.querySelector('[data-id-produto="' + s.id_produto + '"]');
-                    if (card) { sincronizarFavorito(card, s.disponivel); }
+                    if (card) { sincronizarFavorito(card, s.disponivel, s.estoque_gerenciado); }
                 });
             })
             .catch(function () {});

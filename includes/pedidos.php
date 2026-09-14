@@ -36,7 +36,16 @@ function cancelarPedidoPago(PDO $pdo, int $id_venda, int $id_usuario_admin, stri
             $porVariacao[$id_pv] = ($porVariacao[$id_pv] ?? 0) + (int) $item['quantidade'];
         }
         ksort($porVariacao);
+        // Produto com estoque não controlado nunca teve nada descontado na
+        // finalização — devolver aqui só inflaria o número à toa.
         foreach ($porVariacao as $id_pv => $qtd) {
+            $stmtGerenciado = $pdo->prepare(
+                'SELECT p.estoque_gerenciado FROM produto_variacoes pv JOIN produtos p ON p.id_produto = pv.id_produto WHERE pv.id_produto_variacao = :id'
+            );
+            $stmtGerenciado->execute([':id' => $id_pv]);
+            if (!(int) $stmtGerenciado->fetchColumn()) {
+                continue;
+            }
             $pdo->prepare('UPDATE produto_variacoes SET estoque = estoque + :qtd, liberado_em = NOW() WHERE id_produto_variacao = :id')
                 ->execute([':qtd' => $qtd, ':id' => $id_pv]);
         }

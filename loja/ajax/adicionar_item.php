@@ -33,27 +33,15 @@ if (!clienteEmailVerificado($pdo, $id_cliente)) {
 
 $pdo->beginTransaction();
 try {
-    $reservou = $pdo->prepare(
-        'UPDATE produto_variacoes SET estoque_reservado = estoque_reservado + :qtd
-         WHERE id_produto_variacao = :id AND (estoque - estoque_reservado) >= :qtd2'
-    );
-    $reservou->execute([':qtd' => $quantidade, ':id' => $id_produto_variacao, ':qtd2' => $quantidade]);
-
-    if ($reservou->rowCount() === 0) {
-        $pdo->rollBack();
-        echo json_encode(['success' => false, 'message' => 'Esse item não está mais disponível nessa quantidade.']);
-        exit;
-    }
-
     $stmtProduto = $pdo->prepare(
-        'SELECT p.nome AS nome_produto, COALESCE(pv.preco, p.preco_base) AS preco,
+        'SELECT p.nome AS nome_produto, p.estoque_gerenciado, COALESCE(pv.preco, p.preco_base) AS preco,
                 GROUP_CONCAT(vv.valor SEPARATOR " / ") AS descricao_combinacao
          FROM produto_variacoes pv
          JOIN produtos p ON p.id_produto = pv.id_produto
          LEFT JOIN produto_variacao_valores pvv ON pvv.id_produto_variacao = pv.id_produto_variacao
          LEFT JOIN variacao_valores vv ON vv.id_valor = pvv.id_valor
          WHERE pv.id_produto_variacao = :id AND p.ativo = 1
-         GROUP BY p.nome, pv.preco, p.preco_base'
+         GROUP BY p.nome, p.estoque_gerenciado, pv.preco, p.preco_base'
     );
     $stmtProduto->execute([':id' => $id_produto_variacao]);
     $produto = $stmtProduto->fetch();
@@ -62,6 +50,22 @@ try {
         $pdo->rollBack();
         echo json_encode(['success' => false, 'message' => 'Produto não encontrado.']);
         exit;
+    }
+
+    // Produto sem controle de estoque pode ser adicionado livremente, sem
+    // reservar nada em produto_variacoes — não há quantidade pra checar.
+    if ((int) $produto['estoque_gerenciado']) {
+        $reservou = $pdo->prepare(
+            'UPDATE produto_variacoes SET estoque_reservado = estoque_reservado + :qtd
+             WHERE id_produto_variacao = :id AND (estoque - estoque_reservado) >= :qtd2'
+        );
+        $reservou->execute([':qtd' => $quantidade, ':id' => $id_produto_variacao, ':qtd2' => $quantidade]);
+
+        if ($reservou->rowCount() === 0) {
+            $pdo->rollBack();
+            echo json_encode(['success' => false, 'message' => 'Esse item não está mais disponível nessa quantidade.']);
+            exit;
+        }
     }
 
     $id_venda = buscarCarrinhoDoCliente($pdo, $id_cliente);

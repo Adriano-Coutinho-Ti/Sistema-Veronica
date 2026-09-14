@@ -107,11 +107,21 @@ function finalizarVenda(PDO $pdo, int $id_venda, array $pagamentos, ?string $id_
         ksort($quantidadePorVariacao);
 
         foreach ($quantidadePorVariacao as $id_pv => $quantidadeTotal) {
-            $stmtPv = $pdo->prepare('SELECT estoque FROM produto_variacoes WHERE id_produto_variacao = :id FOR UPDATE');
+            $stmtPv = $pdo->prepare(
+                'SELECT pv.estoque, p.estoque_gerenciado FROM produto_variacoes pv
+                 JOIN produtos p ON p.id_produto = pv.id_produto
+                 WHERE pv.id_produto_variacao = :id FOR UPDATE'
+            );
             $stmtPv->execute([':id' => $id_pv]);
             $pv = $stmtPv->fetch();
-            if (!$pv || $pv['estoque'] < $quantidadeTotal) {
+            // Produto com estoque não controlado (checkbox desmarcado em
+            // produtos/editar.php) pode ser vendido livremente, sem checar nem
+            // descontar as quantidades de produto_variacoes.
+            if (!$pv || ((int) $pv['estoque_gerenciado'] && $pv['estoque'] < $quantidadeTotal)) {
                 throw new Exception('Estoque insuficiente para um dos itens da venda.');
+            }
+            if (!(int) $pv['estoque_gerenciado']) {
+                unset($quantidadePorVariacao[$id_pv]);
             }
         }
 

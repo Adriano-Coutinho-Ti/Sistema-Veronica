@@ -26,16 +26,40 @@ $linkCompartilharWhatsapp = montarLinkCompartilharWhatsapp($produto['nome'], (fl
 
 $erro = '';
 
-// Backfill pra produto cadastrado antes do código existir no sistema.
+// Gera um novo código de 3 dígitos e SOBRESCREVE o que já existir — ação
+// explícita do lojista a partir do modal (deixou de ser só um backfill
+// automático "apenas se vazio" quando o modal ganhou a opção manual).
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'gerar_codigo') {
-    if (empty($produto['codigo'])) {
-        $novoCodigo = gerarCodigoProdutoUnico($pdo);
-        $pdo->prepare('UPDATE produtos SET codigo = :c WHERE id_produto = :id')
-            ->execute([':c' => $novoCodigo, ':id' => $id_produto]);
-        $produto['codigo'] = $novoCodigo;
-    }
+    $novoCodigo = gerarCodigoProdutoUnico($pdo);
+    $pdo->prepare('UPDATE produtos SET codigo = :c WHERE id_produto = :id')
+        ->execute([':c' => $novoCodigo, ':id' => $id_produto]);
+    $produto['codigo'] = $novoCodigo;
     header('Location: /produtos/editar.php?id=' . $id_produto . '&codigo_gerado=1');
     exit;
+}
+
+// Alternativa ao código de 3 dígitos gerado pelo sistema: o lojista digita
+// (ou escaneia com um leitor de código de barras, que funciona como
+// teclado) o código de barras original da peça.
+$erroCodigo = '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'definir_codigo_manual') {
+    $codigoManual = trim($_POST['codigo_manual'] ?? '');
+    if ($codigoManual === '') {
+        $erroCodigo = 'Informe um código.';
+    } elseif (in_array($codigoManual, CODIGOS_PRODUTO_BLOQUEADOS, true)) {
+        $erroCodigo = 'Esse código não pode ser usado.';
+    } else {
+        $existe = $pdo->prepare('SELECT id_produto FROM produtos WHERE codigo = :c AND id_produto != :id');
+        $existe->execute([':c' => $codigoManual, ':id' => $id_produto]);
+        if ($existe->fetch()) {
+            $erroCodigo = 'Esse código já está sendo usado por outro produto.';
+        } else {
+            $pdo->prepare('UPDATE produtos SET codigo = :c WHERE id_produto = :id')
+                ->execute([':c' => $codigoManual, ':id' => $id_produto]);
+            header('Location: /produtos/editar.php?id=' . $id_produto . '&codigo_gerado=1');
+            exit;
+        }
+    }
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'atualizar_dados') {
@@ -43,12 +67,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'atualiz
     $descricao = trim($_POST['descricao'] ?? '') ?: null;
     $preco_base = (float) str_replace(',', '.', $_POST['preco_base'] ?? '0');
     $ativo = isset($_POST['ativo']) ? 1 : 0;
+    $estoqueGerenciado = isset($_POST['estoque_gerenciado']) ? 1 : 0;
 
     if ($nome === '' || $preco_base <= 0) {
         $erro = 'Nome e preço base são obrigatórios.';
     } else {
-        $pdo->prepare('UPDATE produtos SET nome = :nome, descricao = :descricao, preco_base = :preco_base, ativo = :ativo WHERE id_produto = :id')
-            ->execute([':nome' => $nome, ':descricao' => $descricao, ':preco_base' => $preco_base, ':ativo' => $ativo, ':id' => $id_produto]);
+        $pdo->prepare('UPDATE produtos SET nome = :nome, descricao = :descricao, preco_base = :preco_base, ativo = :ativo, estoque_gerenciado = :eg WHERE id_produto = :id')
+            ->execute([':nome' => $nome, ':descricao' => $descricao, ':preco_base' => $preco_base, ':ativo' => $ativo, ':eg' => $estoqueGerenciado, ':id' => $id_produto]);
 
         header('Location: /produtos/editar.php?id=' . $id_produto . '&atualizado=1');
         exit;
@@ -216,11 +241,9 @@ $idsValoresEmUso = $stmtValoresEmUso->fetchAll(PDO::FETCH_COLUMN);
         </div>
         <?php if (!empty($produto['codigo'])): ?>
         <span class="codigo-produto"><span class="codigo-rotulo">Código</span> <?= htmlspecialchars($produto['codigo']) ?></span>
+        <button type="button" class="btn-sm btn-outline" id="btn-abrir-codigo">Editar código</button>
         <?php else: ?>
-        <form method="post" style="margin-left:auto;">
-            <input type="hidden" name="acao" value="gerar_codigo">
-            <button type="submit" class="btn-outline btn-sm">Gerar código do produto</button>
-        </form>
+        <button type="button" class="btn-outline btn-sm" id="btn-abrir-codigo" style="margin-left:auto;">Definir código do produto</button>
         <?php endif; ?>
     </div>
 
@@ -234,7 +257,7 @@ $idsValoresEmUso = $stmtValoresEmUso->fetchAll(PDO::FETCH_COLUMN);
 
     <?php if (isset($_GET['atualizado'])): ?><p class="alert alert-sucesso">Produto atualizado.</p><?php endif; ?>
     <?php if (isset($_GET['criado'])): ?><p class="alert alert-sucesso">Produto criado com sucesso.</p><?php endif; ?>
-    <?php if (isset($_GET['codigo_gerado'])): ?><p class="alert alert-sucesso">Código <strong><?= htmlspecialchars($produto['codigo']) ?></strong> gerado pra este produto.</p><?php endif; ?>
+    <?php if (isset($_GET['codigo_gerado'])): ?><p class="alert alert-sucesso">Código <strong><?= htmlspecialchars($produto['codigo']) ?></strong> definido pra este produto.</p><?php endif; ?>
     <?php if (isset($_GET['variacoes_atualizadas'])): ?><p class="alert alert-sucesso">Variações atualizadas — defina estoque e preço das combinações novas em "Combinações".</p><?php endif; ?>
     <?php if (isset($_GET['variacoes_parcial'])): ?><p class="alert alert-erro">Variações atualizadas, mas uma ou mais combinações desmarcadas não foram removidas por estarem reservadas agora no carrinho de um cliente — tente de novo daqui a pouco.</p><?php endif; ?>
     <?php if (isset($_GET['combinacoes_atualizadas'])): ?><p class="alert alert-sucesso">Combinações salvas.</p><?php endif; ?>
@@ -288,11 +311,18 @@ $idsValoresEmUso = $stmtValoresEmUso->fetchAll(PDO::FETCH_COLUMN);
             <form method="post">
                 <div class="card-cabecalho">
                     <h2>Dados do produto</h2>
-                    <label class="toggle-switch" title="Visível na loja online. Desmarcado, fica escondido da vitrine sem apagar nada.">
-                        <input type="checkbox" name="ativo" <?= $produto['ativo'] ? 'checked' : '' ?>>
-                        <span class="toggle-slider"></span>
-                        <span class="toggle-texto">Ativo</span>
-                    </label>
+                    <div style="display:flex; gap:14px; flex-wrap:wrap;">
+                        <label class="toggle-switch" title="Visível na loja online. Desmarcado, fica escondido da vitrine sem apagar nada.">
+                            <input type="checkbox" name="ativo" <?= $produto['ativo'] ? 'checked' : '' ?>>
+                            <span class="toggle-slider"></span>
+                            <span class="toggle-texto">Ativo</span>
+                        </label>
+                        <label class="toggle-switch" title="Desmarcado, este produto fica sempre disponível pra venda (loja online e PDV), sem checar nem descontar estoque.">
+                            <input type="checkbox" name="estoque_gerenciado" <?= $produto['estoque_gerenciado'] ? 'checked' : '' ?>>
+                            <span class="toggle-slider"></span>
+                            <span class="toggle-texto">Controlar estoque</span>
+                        </label>
+                    </div>
                 </div>
                 <input type="hidden" name="acao" value="atualizar_dados">
                 <label>Nome<input type="text" name="nome" value="<?= htmlspecialchars($produto['nome']) ?>" required></label>
@@ -312,6 +342,9 @@ $idsValoresEmUso = $stmtValoresEmUso->fetchAll(PDO::FETCH_COLUMN);
             <form method="post">
                 <input type="hidden" name="acao" value="atualizar_combinacoes">
                 <h3 style="margin-top:28px;">Combinações</h3>
+                <?php if (!$produto['estoque_gerenciado']): ?>
+                <p class="alert alert-info">Estoque não controlado — este produto pode ser vendido livremente, sem checar nem descontar as quantidades abaixo.</p>
+                <?php endif; ?>
                 <div class="tabela-wrap">
                 <table>
                     <tr><th>Combinação</th><th>Estoque</th><th>Preço (branco = usa o base)</th></tr>
@@ -360,6 +393,26 @@ $idsValoresEmUso = $stmtValoresEmUso->fetchAll(PDO::FETCH_COLUMN);
         </div>
     </div>
 
+    <div class="modal-overlay" id="modal-codigo" <?= $erroCodigo ? '' : 'hidden' ?>>
+        <div class="modal-card">
+            <h3>Código do produto</h3>
+            <p style="color:var(--cor-texto-suave); font-size:0.9rem; margin-bottom:14px;">Usado na busca rápida do PDV e nas etiquetas físicas. Pode ser o código de 3 dígitos gerado pelo sistema ou o código de barras original da peça — digite ou escaneie com o leitor.</p>
+            <?php if ($erroCodigo): ?><p class="alert alert-erro"><?= htmlspecialchars($erroCodigo) ?></p><?php endif; ?>
+            <form method="post">
+                <input type="hidden" name="acao" value="definir_codigo_manual">
+                <label>Código<input type="text" name="codigo_manual" value="<?= htmlspecialchars($codigoManual ?? $produto['codigo'] ?? '') ?>" placeholder="Digite ou escaneie um código de barras" maxlength="30"></label>
+                <div class="modal-acoes">
+                    <button type="button" class="btn-outline" id="btn-cancelar-codigo">Cancelar</button>
+                    <button type="submit" class="btn">Salvar código</button>
+                </div>
+            </form>
+            <form method="post" style="margin-top:14px; border-top:1px solid var(--cor-borda); padding-top:14px;">
+                <input type="hidden" name="acao" value="gerar_codigo">
+                <button type="submit" class="btn-outline btn-bloco">Gerar código automático (3 dígitos)</button>
+            </form>
+        </div>
+    </div>
+
     <div class="modal-overlay" id="modal-recorte" hidden>
         <div class="modal-card">
             <h3>Ajustar foto</h3>
@@ -382,6 +435,19 @@ $idsValoresEmUso = $stmtValoresEmUso->fetchAll(PDO::FETCH_COLUMN);
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
 <script>
+(function () {
+    const modalCodigo = document.getElementById('modal-codigo');
+    if (modalCodigo) {
+        function fecharModalCodigo() { modalCodigo.hidden = true; }
+        document.getElementById('btn-abrir-codigo')?.addEventListener('click', function () {
+            modalCodigo.hidden = false;
+        });
+        document.getElementById('btn-cancelar-codigo').addEventListener('click', fecharModalCodigo);
+        modalCodigo.addEventListener('click', function (e) { if (e.target === modalCodigo) { fecharModalCodigo(); } });
+        document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !modalCodigo.hidden) { fecharModalCodigo(); } });
+    }
+})();
+
 (function () {
     const modalVariacoes = document.getElementById('modal-variacoes');
     if (modalVariacoes) {

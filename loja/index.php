@@ -34,8 +34,8 @@ $sqlTotal = "SELECT COUNT(*) FROM (
     FROM produtos p
     JOIN produto_variacoes pv ON pv.id_produto = p.id_produto
     WHERE p.ativo = 1 $filtros
-    GROUP BY p.id_produto
-    HAVING SUM(pv.estoque) > 0
+    GROUP BY p.id_produto, p.estoque_gerenciado
+    HAVING p.estoque_gerenciado = 0 OR SUM(pv.estoque) > 0
 ) t";
 $stmtTotal = $pdo->prepare($sqlTotal);
 $stmtTotal->execute($params);
@@ -44,14 +44,14 @@ $totalPaginas = max(1, (int) ceil($totalProdutos / PRODUTOS_POR_PAGINA));
 $pagina = min($pagina, $totalPaginas);
 $offset = ($pagina - 1) * PRODUTOS_POR_PAGINA;
 
-$sql = "SELECT p.id_produto, p.nome, p.preco_base,
+$sql = "SELECT p.id_produto, p.nome, p.preco_base, p.estoque_gerenciado,
                SUM(pv.estoque - pv.estoque_reservado) AS disponivel,
                SUM(pv.estoque) AS estoque_fisico
         FROM produtos p
         JOIN produto_variacoes pv ON pv.id_produto = p.id_produto
         WHERE p.ativo = 1 $filtros
-        GROUP BY p.id_produto, p.nome, p.preco_base
-        HAVING estoque_fisico > 0
+        GROUP BY p.id_produto, p.nome, p.preco_base, p.estoque_gerenciado
+        HAVING p.estoque_gerenciado = 0 OR estoque_fisico > 0
         ORDER BY p.nome
         LIMIT :limite OFFSET :offset";
 $stmt = $pdo->prepare($sql);
@@ -74,7 +74,7 @@ if (!empty($_GET['voltou'])) {
 $temReservadoNaPagina = false;
 $temVoltouNaPagina = false;
 foreach ($produtos as $p) {
-    if ((int) $p['disponivel'] <= 0) {
+    if ((int) $p['estoque_gerenciado'] && (int) $p['disponivel'] <= 0) {
         $temReservadoNaPagina = true;
     }
     if (in_array((int) $p['id_produto'], $voltouIds, true)) {
@@ -178,8 +178,9 @@ function montarLinkPagina(int $p, int $categoria, string $busca): string
                 <?php
                     $fotos = $fotosPorProduto[(int) $p['id_produto']] ?? [];
                     $ehOportunidade = in_array((int) $p['id_produto'], $voltouIds, true);
+                    $semControleEstoque = !(int) $p['estoque_gerenciado'];
                     $disp = (int) $p['disponivel'];
-                    $reservado = $disp <= 0;
+                    $reservado = !$semControleEstoque && $disp <= 0;
                     $ehFavorito = in_array((int) $p['id_produto'], $favoritoIds, true);
                     $linkWhatsappCard = montarLinkCompartilharWhatsapp($p['nome'], (float) $p['preco_base'], 'https://brechodaveve.codernex.com.br/loja/produto.php?id=' . $p['id_produto']);
                 ?>
@@ -216,7 +217,7 @@ function montarLinkPagina(int $p, int $categoria, string $busca): string
                     <div class="price">R$ <?= number_format($p['preco_base'], 2, ',', '.') ?></div>
                     <?php if ($reservado): ?>
                         <div class="disponibilidade card disponibilidade-baixa">Aguardando pagamento de outro cliente</div>
-                    <?php else: ?>
+                    <?php elseif (!$semControleEstoque): ?>
                         <div class="disponibilidade card<?= $disp <= 3 ? ' disponibilidade-baixa' : '' ?>"><?= $disp ?> disponíve<?= $disp === 1 ? 'l' : 'is' ?></div>
                     <?php endif; ?>
                 </a>
@@ -288,7 +289,8 @@ function montarLinkPagina(int $p, int $categoria, string $busca): string
     // depois de já ter sido liberado (nem o contrário, se alguém acabou de
     // reservar o que restava). É essa reafirmação total, e não um "avisa só o que
     // mudou", que garante 100% de acerto mesmo se uma rodada de poll falhar.
-    function sincronizarCard(card, disponivel) {
+    function sincronizarCard(card, disponivel, estoqueGerenciado) {
+        if (estoqueGerenciado === 0) { return; }
         const reservado = disponivel <= 0;
         card.classList.toggle('reservado', reservado);
 
@@ -363,7 +365,7 @@ function montarLinkPagina(int $p, int $categoria, string $busca): string
                 // independe de ter mudado ou não desde a última rodada.
                 (data.status || []).forEach(function (s) {
                     const card = grade.querySelector('[data-id-produto="' + s.id_produto + '"]');
-                    if (card) { sincronizarCard(card, s.disponivel); }
+                    if (card) { sincronizarCard(card, s.disponivel, s.estoque_gerenciado); }
                 });
 
                 // 2) Camada extra só pra celebrar quem voltou AGORA: borda dourada,

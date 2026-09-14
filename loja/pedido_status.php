@@ -52,7 +52,7 @@ $placeholdersExcluir = !empty($idsNoPedido) ? implode(',', array_fill(0, count($
 $sqlRelacionados = "SELECT DISTINCT p2.id_produto, p2.nome, p2.preco_base
      FROM produtos p2
      JOIN produto_variacoes pv2 ON pv2.id_produto = p2.id_produto
-     WHERE p2.ativo = 1 AND (pv2.estoque - pv2.estoque_reservado) > 0"
+     WHERE p2.ativo = 1 AND (p2.estoque_gerenciado = 0 OR (pv2.estoque - pv2.estoque_reservado) > 0)"
      . ($placeholdersExcluir ? " AND p2.id_produto NOT IN ($placeholdersExcluir)" : '')
      . ' ORDER BY RAND() LIMIT 8';
 $stmtRelacionados = $pdo->prepare($sqlRelacionados);

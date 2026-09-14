@@ -21,14 +21,14 @@ if (!$stmtV->fetch()) {
 }
 
 $stmt = $pdo->prepare(
-    'SELECT pv.estoque, pv.estoque_reservado, COALESCE(pv.preco, p.preco_base) AS preco, p.nome AS nome_produto,
+    'SELECT pv.estoque, pv.estoque_reservado, p.estoque_gerenciado, COALESCE(pv.preco, p.preco_base) AS preco, p.nome AS nome_produto,
             GROUP_CONCAT(vv.valor SEPARATOR " / ") AS descricao_combinacao
      FROM produto_variacoes pv
      JOIN produtos p ON p.id_produto = pv.id_produto
      LEFT JOIN produto_variacao_valores pvv ON pvv.id_produto_variacao = pv.id_produto_variacao
      LEFT JOIN variacao_valores vv ON vv.id_valor = pvv.id_valor
      WHERE pv.id_produto_variacao = :id
-     GROUP BY pv.estoque, pv.estoque_reservado, pv.preco, p.preco_base, p.nome'
+     GROUP BY pv.estoque, pv.estoque_reservado, p.estoque_gerenciado, pv.preco, p.preco_base, p.nome'
 );
 $stmt->execute([':id' => $id_produto_variacao]);
 $produto = $stmt->fetch();
@@ -38,10 +38,12 @@ if (!$produto) {
     exit;
 }
 
-$disponivel = $produto['estoque'] - $produto['estoque_reservado'];
-if ($disponivel < $quantidade) {
-    echo json_encode(['success' => false, 'message' => 'Estoque insuficiente (disponível: ' . $disponivel . ').']);
-    exit;
+if ((int) $produto['estoque_gerenciado']) {
+    $disponivel = $produto['estoque'] - $produto['estoque_reservado'];
+    if ($disponivel < $quantidade) {
+        echo json_encode(['success' => false, 'message' => 'Estoque insuficiente (disponível: ' . $disponivel . ').']);
+        exit;
+    }
 }
 
 $preco_unit = (float) $produto['preco'];

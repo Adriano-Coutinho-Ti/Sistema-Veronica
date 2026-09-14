@@ -19,11 +19,12 @@ $idsProdutos = [];
 if ($id_venda) {
     $stmt = $pdo->prepare(
         "SELECT iv.id_item, iv.nome_produto, iv.descricao_combinacao, iv.quantidade, iv.preco_unit, iv.subtotal,
-                iv.id_produto_variacao, pv.id_produto,
+                iv.id_produto_variacao, pv.id_produto, COALESCE(p.estoque_gerenciado, 1) AS estoque_gerenciado,
                 (SELECT caminho_arquivo FROM produto_fotos WHERE id_produto = pv.id_produto ORDER BY ordem LIMIT 1) AS foto,
                 (pv.estoque - pv.estoque_reservado) AS disponivel_adicional
          FROM itens_venda iv
          LEFT JOIN produto_variacoes pv ON pv.id_produto_variacao = iv.id_produto_variacao
+         LEFT JOIN produtos p ON p.id_produto = pv.id_produto
          WHERE iv.id_venda = :id
          ORDER BY iv.id_item"
     );
@@ -119,9 +120,11 @@ if ($id_venda) {
                     <?php if ($item['descricao_combinacao']): ?>
                         <div class="variacao"><?= htmlspecialchars($item['descricao_combinacao']) ?></div>
                     <?php endif; ?>
-                    <?php if ($item['id_produto_variacao'] !== null):
+                    <?php
+                        $semControleEstoqueItem = $item['id_produto_variacao'] !== null && !(int) $item['estoque_gerenciado'];
                         $totalDisponivel = (int) $item['disponivel_adicional'] + (int) $item['quantidade'];
                     ?>
+                    <?php if ($item['id_produto_variacao'] !== null && !$semControleEstoqueItem): ?>
                         <div class="disponibilidade<?= $totalDisponivel <= 3 ? ' disponibilidade-baixa' : '' ?>"><?= $totalDisponivel ?> disponíve<?= $totalDisponivel === 1 ? 'l' : 'is' ?> no total</div>
                     <?php endif; ?>
                     <div class="linha-controle">
@@ -129,7 +132,7 @@ if ($id_venda) {
                         <div class="stepper">
                             <button type="button" class="btn-diminuir" aria-label="Diminuir quantidade">−</button>
                             <span class="qtd"><?= (int) $item['quantidade'] ?></span>
-                            <button type="button" class="btn-aumentar" aria-label="Aumentar quantidade" <?= (int) $item['disponivel_adicional'] <= 0 ? 'disabled' : '' ?>>+</button>
+                            <button type="button" class="btn-aumentar" aria-label="Aumentar quantidade" <?= (!$semControleEstoqueItem && (int) $item['disponivel_adicional'] <= 0) ? 'disabled' : '' ?>>+</button>
                         </div>
                         <?php else: ?>
                             <span></span>

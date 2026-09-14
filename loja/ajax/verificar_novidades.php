@@ -88,14 +88,19 @@ $status = [];
 if (!empty($idsVisiveis)) {
     $placeholdersStatus = implode(',', array_fill(0, count($idsVisiveis), '?'));
     $stmtStatus = $pdo->prepare(
-        "SELECT id_produto, SUM(estoque - estoque_reservado) AS disponivel
-         FROM produto_variacoes
-         WHERE id_produto IN ($placeholdersStatus)
-         GROUP BY id_produto"
+        "SELECT pv.id_produto, MAX(p.estoque_gerenciado) AS estoque_gerenciado, SUM(pv.estoque - pv.estoque_reservado) AS disponivel
+         FROM produto_variacoes pv
+         JOIN produtos p ON p.id_produto = pv.id_produto
+         WHERE pv.id_produto IN ($placeholdersStatus)
+         GROUP BY pv.id_produto"
     );
     $stmtStatus->execute($idsVisiveis);
     foreach ($stmtStatus->fetchAll() as $s) {
-        $status[] = ['id_produto' => (int) $s['id_produto'], 'disponivel' => (int) $s['disponivel']];
+        $status[] = [
+            'id_produto' => (int) $s['id_produto'],
+            'disponivel' => (int) $s['disponivel'],
+            'estoque_gerenciado' => (int) $s['estoque_gerenciado'],
+        ];
     }
 }
 
