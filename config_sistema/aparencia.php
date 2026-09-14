@@ -98,36 +98,42 @@ $config = $pdo->query('SELECT * FROM config_loja WHERE id_config = 1')->fetch();
     </div>
     <?php if (isset($_GET['salvo'])): ?><p class="alert alert-sucesso">Configuração salva.</p><?php endif; ?>
     <?php if ($erro): ?><p class="alert alert-erro"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
-    <div class="card">
-    <?php if (!empty($config['logo_arquivo'])): ?>
-        <img src="/<?= htmlspecialchars($config['logo_arquivo']) ?>?v=<?= time() ?>" width="150" alt="Logo atual" style="border-radius:var(--raio-sm); margin-bottom:16px; display:block;">
-    <?php endif; ?>
     <form method="post" enctype="multipart/form-data">
-        <label>Nome da loja<input type="text" name="nome_loja" value="<?= htmlspecialchars($config['nome_loja']) ?>" required></label>
-        <label>Logo (JPEG ou PNG)<input type="file" name="logo" accept="image/png,image/jpeg"></label>
-        <label>Tema
-            <select name="tema" id="tema">
-                <option value="claro" <?= $config['tema'] === 'claro' ? 'selected' : '' ?>>Claro</option>
-                <option value="escuro" <?= $config['tema'] === 'escuro' ? 'selected' : '' ?>>Escuro</option>
-                <option value="personalizado" <?= $config['tema'] === 'personalizado' ? 'selected' : '' ?>>Personalizado</option>
-            </select>
-        </label>
-        <div id="cores-personalizadas" class="form-linha" style="<?= $config['tema'] !== 'personalizado' ? 'display:none;' : '' ?>">
-            <label>Cor primária<input type="color" name="cor_primaria" value="<?= htmlspecialchars($config['cor_primaria']) ?>"></label>
-            <label>Cor secundária<input type="color" name="cor_secundaria" value="<?= htmlspecialchars($config['cor_secundaria']) ?>"></label>
-            <label>Cor de fundo<input type="color" name="cor_fundo" value="<?= htmlspecialchars($config['cor_fundo']) ?>"></label>
-            <label>Cor do texto<input type="color" name="cor_texto" value="<?= htmlspecialchars($config['cor_texto']) ?>"></label>
+    <div class="grade-2col">
+        <div class="card">
+            <h2>Identidade visual</h2>
+            <?php if (!empty($config['logo_arquivo'])): ?>
+                <img src="/<?= htmlspecialchars($config['logo_arquivo']) ?>?v=<?= time() ?>" width="150" alt="Logo atual" style="border-radius:var(--raio-sm); margin-bottom:16px; display:block;">
+            <?php endif; ?>
+            <label>Nome da loja<input type="text" name="nome_loja" value="<?= htmlspecialchars($config['nome_loja']) ?>" required></label>
+            <label>Logo (JPEG ou PNG)<input type="file" name="logo" accept="image/png,image/jpeg"></label>
+            <label>Tema
+                <select name="tema" id="tema">
+                    <option value="claro" <?= $config['tema'] === 'claro' ? 'selected' : '' ?>>Claro</option>
+                    <option value="escuro" <?= $config['tema'] === 'escuro' ? 'selected' : '' ?>>Escuro</option>
+                    <option value="personalizado" <?= $config['tema'] === 'personalizado' ? 'selected' : '' ?>>Personalizado</option>
+                </select>
+            </label>
+            <div id="cores-personalizadas" class="form-linha" style="<?= $config['tema'] !== 'personalizado' ? 'display:none;' : '' ?>">
+                <label>Cor primária<input type="color" name="cor_primaria" value="<?= htmlspecialchars($config['cor_primaria']) ?>"></label>
+                <label>Cor secundária<input type="color" name="cor_secundaria" value="<?= htmlspecialchars($config['cor_secundaria']) ?>"></label>
+                <label>Cor de fundo<input type="color" name="cor_fundo" value="<?= htmlspecialchars($config['cor_fundo']) ?>"></label>
+                <label>Cor do texto<input type="color" name="cor_texto" value="<?= htmlspecialchars($config['cor_texto']) ?>"></label>
+            </div>
         </div>
-        <h2>Contato da loja</h2>
-        <p style="color:var(--cor-texto-suave); font-size:0.9rem; margin-top:-8px;">Aparece no rodapé e no botão flutuante de WhatsApp de todas as páginas da loja online. Deixe em branco o que não se aplica.</p>
-        <label>WhatsApp (com DDD)<input type="text" name="whatsapp_loja" placeholder="11987654321" value="<?= htmlspecialchars($config['whatsapp_loja'] ?? '') ?>"></label>
-        <label>E-mail<input type="email" name="email_loja" value="<?= htmlspecialchars($config['email_loja'] ?? '') ?>"></label>
-        <label>Endereço<input type="text" name="endereco_loja" placeholder="Ex: Atendimento online para todo o país" value="<?= htmlspecialchars($config['endereco_loja'] ?? '') ?>"></label>
-        <label>Horário de atendimento<input type="text" name="horario_atendimento" placeholder="Ex: Segunda a sexta, 9h às 18h" value="<?= htmlspecialchars($config['horario_atendimento'] ?? '') ?>"></label>
 
-        <button type="submit">Salvar</button>
-    </form>
+        <div class="card">
+            <h2>Contato da loja</h2>
+            <p style="color:var(--cor-texto-suave); font-size:0.9rem; margin-top:-8px;">Aparece no rodapé e no botão flutuante de WhatsApp de todas as páginas da loja online. Deixe em branco o que não se aplica.</p>
+            <label>WhatsApp (com DDD)<input type="text" name="whatsapp_loja" placeholder="11987654321" value="<?= htmlspecialchars($config['whatsapp_loja'] ?? '') ?>"></label>
+            <label>E-mail<input type="email" name="email_loja" value="<?= htmlspecialchars($config['email_loja'] ?? '') ?>"></label>
+            <label>Endereço<input type="text" name="endereco_loja" placeholder="Ex: Atendimento online para todo o país" value="<?= htmlspecialchars($config['endereco_loja'] ?? '') ?>"></label>
+            <label>Horário de atendimento<input type="text" name="horario_atendimento" placeholder="Ex: Segunda a sexta, 9h às 18h" value="<?= htmlspecialchars($config['horario_atendimento'] ?? '') ?>"></label>
+        </div>
     </div>
+
+    <button type="submit" class="btn-bloco" style="max-width:300px; margin-top:20px;">Salvar</button>
+    </form>
 <script>
 document.getElementById('tema').addEventListener('change', function () {
     document.getElementById('cores-personalizadas').style.display = this.value === 'personalizado' ? '' : 'none';

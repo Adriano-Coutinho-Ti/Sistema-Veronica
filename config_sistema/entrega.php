@@ -51,28 +51,36 @@ $entregas = array_values(array_filter($formas, fn($f) => (int) $f['fixa'] === 0)
     </div>
     <?php if ($erro): ?><p class="alert alert-erro"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
 
-    <?php if ($retirada): ?>
-    <div class="card">
-    <h3>Retirar na loja (fixa)</h3>
-    <form method="post" class="form-linha-compacta">
-        <input type="hidden" name="acao" value="atualizar_retirada">
-        <label>Prazo de tolerância para retirada (dias)
-            <input type="number" min="0" name="prazo_retirada" value="<?= (int) $retirada['prazo_dias'] ?>">
-        </label>
-        <button type="submit">Salvar prazo</button>
-    </form>
+    <div class="grade-2col">
+        <?php if ($retirada): ?>
+        <div class="card">
+        <h3>Retirar na loja (fixa)</h3>
+        <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:-8px;">Sempre disponível pro cliente — não pode ser desativada nem excluída.</p>
+        <form method="post" class="form-linha-compacta">
+            <input type="hidden" name="acao" value="atualizar_retirada">
+            <label>Prazo de tolerância para retirada (dias)
+                <input type="number" min="0" name="prazo_retirada" value="<?= (int) $retirada['prazo_dias'] ?>">
+            </label>
+            <button type="submit">Salvar prazo</button>
+        </form>
+        </div>
+        <?php endif; ?>
+
+        <div class="card">
+        <h3>Adicionar forma de entrega</h3>
+        <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:-8px;">Ex: motoboy, transportadora, correios.</p>
+        <form method="post" class="linha-form-rapido">
+            <input type="hidden" name="acao" value="criar">
+            <input type="text" name="nome" placeholder="Nome (ex: Motoboy)" required>
+            <input type="number" name="prazo_dias" placeholder="Prazo em dias">
+            <input type="text" name="custo" placeholder="Custo (R$)">
+            <button type="submit">Adicionar</button>
+        </form>
+        </div>
     </div>
-    <?php endif; ?>
 
     <div class="card" style="margin-top:20px;">
-    <h3>Outras formas de entrega</h3>
-    <form method="post" class="linha-form-rapido" style="max-width:600px;">
-        <input type="hidden" name="acao" value="criar">
-        <input type="text" name="nome" placeholder="Nome (ex: Motoboy)" required>
-        <input type="number" name="prazo_dias" placeholder="Prazo em dias">
-        <input type="text" name="custo" placeholder="Custo (R$)">
-        <button type="submit">Adicionar</button>
-    </form>
+    <h3>Outras formas de entrega cadastradas</h3>
     <?php if (empty($entregas)): ?>
     <p class="alert alert-info">Nenhuma outra forma de entrega cadastrada ainda.</p>
     <?php else: ?>
