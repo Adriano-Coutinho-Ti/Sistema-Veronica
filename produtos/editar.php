@@ -343,15 +343,17 @@ $idsValoresEmUso = $stmtValoresEmUso->fetchAll(PDO::FETCH_COLUMN);
                 <input type="hidden" name="acao" value="atualizar_combinacoes">
                 <h3 style="margin-top:28px;">Combinações</h3>
                 <?php if (!$produto['estoque_gerenciado']): ?>
-                <p class="alert alert-info">Estoque não controlado — este produto pode ser vendido livremente, sem checar nem descontar as quantidades abaixo.</p>
+                <p class="alert alert-info">Estoque não controlado — este produto pode ser vendido livremente, sem limite de quantidade.</p>
                 <?php endif; ?>
                 <div class="tabela-wrap">
                 <table>
-                    <tr><th>Combinação</th><th>Estoque</th><th>Preço (branco = usa o base)</th></tr>
+                    <tr><th>Combinação</th><?php if ($produto['estoque_gerenciado']): ?><th>Estoque</th><?php endif; ?><th>Preço (branco = usa o base)</th></tr>
                     <?php foreach ($listaCombinacoes as $c): ?>
                     <tr>
                         <td><?= htmlspecialchars($c['descricao'] ?? 'Padrão (sem variação)') ?></td>
+                        <?php if ($produto['estoque_gerenciado']): ?>
                         <td><input type="number" min="0" name="estoque[<?= $c['id_produto_variacao'] ?>]" value="<?= (int) $c['estoque'] ?>"></td>
+                        <?php endif; ?>
                         <td><input type="text" name="preco[<?= $c['id_produto_variacao'] ?>]" value="<?= $c['preco'] !== null ? number_format($c['preco'], 2, ',', '') : '' ?>"></td>
                     </tr>
                     <?php endforeach; ?>
