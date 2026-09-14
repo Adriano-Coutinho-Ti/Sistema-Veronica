@@ -478,12 +478,16 @@ $idsValoresEmUso = $stmtValoresEmUso->fetchAll(PDO::FETCH_COLUMN);
         document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !modalCodigo.hidden) { fecharModalCodigo(); } });
     }
 
-    iniciarLeitorCodigoBarras(
-        'btn-abrir-scanner-produto',
-        function (codigo) { document.getElementById('input-codigo-manual').value = codigo; },
-        function () { if (modalCodigo) { modalCodigo.hidden = true; } },
-        function () { if (modalCodigo) { modalCodigo.hidden = false; } }
-    );
+    // iniciarLeitorCodigoBarras() vive em admin.js, carregado com "defer" —
+    // só existe depois que o HTML inteiro terminar de ser interpretado.
+    document.addEventListener('DOMContentLoaded', function () {
+        iniciarLeitorCodigoBarras(
+            'btn-abrir-scanner-produto',
+            function (codigo) { document.getElementById('input-codigo-manual').value = codigo; },
+            function () { if (modalCodigo) { modalCodigo.hidden = true; } },
+            function () { if (modalCodigo) { modalCodigo.hidden = false; } }
+        );
+    });
 })();
 
 (function () {

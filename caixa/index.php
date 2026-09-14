@@ -262,25 +262,32 @@ function carregarCarrinho() {
         });
 }
 
-iniciarLeitorCodigoBarras('btn-abrir-scanner-pdv', function (codigo) {
-    const campoBusca = document.getElementById('termo-busca');
-    const containerResultados = document.getElementById('resultados-busca');
-    campoBusca.value = codigo;
-    fetch('/caixa/ajax/buscar_produtos.php?termo=' + encodeURIComponent(codigo))
-        .then(function (r) { return r.json(); })
-        .then(function (data) {
-            // Código só é ambíguo se o mesmo produto tiver mais de uma
-            // combinação (cor/tamanho) — nesse caso mostra a lista normal
-            // pro operador escolher qual. Uma única combinação encontrada
-            // já vai direto pro carrinho, sem precisar clicar "Adicionar".
-            if (data.produtos.length === 1) {
-                adicionarItem(data.produtos[0].id_produto_variacao);
-                campoBusca.value = '';
-                containerResultados.innerHTML = '';
-            } else {
-                campoBusca.dispatchEvent(new Event('input'));
-            }
-        });
+// iniciarLeitorCodigoBarras() vive em admin.js, carregado com "defer" — ele
+// só existe depois que o HTML inteiro terminar de ser interpretado. Chamar
+// direto aqui (fora de DOMContentLoaded) lançava ReferenceError e travava
+// TODO o restante deste script, inclusive a busca de cliente e o
+// carregarCarrinho() final lá embaixo.
+document.addEventListener('DOMContentLoaded', function () {
+    iniciarLeitorCodigoBarras('btn-abrir-scanner-pdv', function (codigo) {
+        const campoBusca = document.getElementById('termo-busca');
+        const containerResultados = document.getElementById('resultados-busca');
+        campoBusca.value = codigo;
+        fetch('/caixa/ajax/buscar_produtos.php?termo=' + encodeURIComponent(codigo))
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                // Código só é ambíguo se o mesmo produto tiver mais de uma
+                // combinação (cor/tamanho) — nesse caso mostra a lista normal
+                // pro operador escolher qual. Uma única combinação encontrada
+                // já vai direto pro carrinho, sem precisar clicar "Adicionar".
+                if (data.produtos.length === 1) {
+                    adicionarItem(data.produtos[0].id_produto_variacao);
+                    campoBusca.value = '';
+                    containerResultados.innerHTML = '';
+                } else {
+                    campoBusca.dispatchEvent(new Event('input'));
+                }
+            });
+    });
 });
 
 document.getElementById('termo-cliente').addEventListener('input', function () {
