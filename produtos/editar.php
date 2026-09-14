@@ -318,7 +318,7 @@ $idsValoresEmUso = $stmtValoresEmUso->fetchAll(PDO::FETCH_COLUMN);
                             <span class="toggle-texto">Ativo</span>
                         </label>
                         <label class="toggle-switch" title="Desmarcado, este produto fica sempre disponível pra venda (loja online e PDV), sem checar nem descontar estoque.">
-                            <input type="checkbox" name="estoque_gerenciado" <?= $produto['estoque_gerenciado'] ? 'checked' : '' ?>>
+                            <input type="checkbox" name="estoque_gerenciado" id="checkbox-estoque-gerenciado" <?= $produto['estoque_gerenciado'] ? 'checked' : '' ?>>
                             <span class="toggle-slider"></span>
                             <span class="toggle-texto">Controlar estoque</span>
                         </label>
@@ -332,36 +332,35 @@ $idsValoresEmUso = $stmtValoresEmUso->fetchAll(PDO::FETCH_COLUMN);
                 <button type="submit" class="btn-bloco">Salvar dados do produto</button>
             </form>
 
-            <h3 style="margin-top:28px;">Variações do produto</h3>
-            <?php if (empty($gruposVariacaoCategoria)): ?>
-            <p class="alert alert-info">A categoria "<?= htmlspecialchars($produto['categoria']) ?>" ainda não tem variações cadastradas. <a href="/produtos/variacoes.php?id_categoria=<?= $produto['id_categoria'] ?>">Cadastrar variações</a>.</p>
-            <?php else: ?>
-            <button type="button" class="btn-outline" id="btn-abrir-variacoes">Editar Variações do produto</button>
-            <?php endif; ?>
-
-            <form method="post">
-                <input type="hidden" name="acao" value="atualizar_combinacoes">
-                <h3 style="margin-top:28px;">Combinações</h3>
-                <?php if (!$produto['estoque_gerenciado']): ?>
-                <p class="alert alert-info">Estoque não controlado — este produto pode ser vendido livremente, sem limite de quantidade.</p>
+            <div id="secao-variacoes-combinacoes" <?= $produto['estoque_gerenciado'] ? '' : 'hidden' ?>>
+                <h3 style="margin-top:28px;">Variações do produto</h3>
+                <?php if (empty($gruposVariacaoCategoria)): ?>
+                <p class="alert alert-info">A categoria "<?= htmlspecialchars($produto['categoria']) ?>" ainda não tem variações cadastradas. <a href="/produtos/variacoes.php?id_categoria=<?= $produto['id_categoria'] ?>">Cadastrar variações</a>.</p>
+                <?php else: ?>
+                <button type="button" class="btn-outline" id="btn-abrir-variacoes">Editar Variações do produto</button>
                 <?php endif; ?>
-                <div class="tabela-wrap">
-                <table>
-                    <tr><th>Combinação</th><?php if ($produto['estoque_gerenciado']): ?><th>Estoque</th><?php endif; ?><th>Preço (branco = usa o base)</th></tr>
-                    <?php foreach ($listaCombinacoes as $c): ?>
-                    <tr>
-                        <td><?= htmlspecialchars($c['descricao'] ?? 'Padrão (sem variação)') ?></td>
-                        <?php if ($produto['estoque_gerenciado']): ?>
-                        <td><input type="number" min="0" name="estoque[<?= $c['id_produto_variacao'] ?>]" value="<?= (int) $c['estoque'] ?>"></td>
-                        <?php endif; ?>
-                        <td><input type="text" name="preco[<?= $c['id_produto_variacao'] ?>]" value="<?= $c['preco'] !== null ? number_format($c['preco'], 2, ',', '') : '' ?>"></td>
-                    </tr>
-                    <?php endforeach; ?>
-                </table>
-                </div>
 
-                <button type="submit" class="btn-bloco">Salvar combinações</button>
-            </form>
+                <form method="post">
+                    <input type="hidden" name="acao" value="atualizar_combinacoes">
+                    <h3 style="margin-top:28px;">Combinações</h3>
+                    <div class="tabela-wrap">
+                    <table>
+                        <tr><th>Combinação</th><th>Estoque</th><th>Preço (branco = usa o base)</th></tr>
+                        <?php foreach ($listaCombinacoes as $c): ?>
+                        <tr>
+                            <td><?= htmlspecialchars($c['descricao'] ?? 'Padrão (sem variação)') ?></td>
+                            <td><input type="number" min="0" name="estoque[<?= $c['id_produto_variacao'] ?>]" value="<?= (int) $c['estoque'] ?>"></td>
+                            <td><input type="text" name="preco[<?= $c['id_produto_variacao'] ?>]" value="<?= $c['preco'] !== null ? number_format($c['preco'], 2, ',', '') : '' ?>"></td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </table>
+                    </div>
+
+                    <button type="submit" class="btn-bloco">Salvar combinações</button>
+                </form>
+            </div>
+
+            <p class="alert alert-info" id="aviso-estoque-livre" <?= $produto['estoque_gerenciado'] ? 'hidden' : '' ?> style="margin-top:28px;">Estoque não controlado — este produto pode ser vendido livremente, sem limite de quantidade. Variações e combinações ficam ocultas enquanto "Controlar estoque" estiver desmarcado.</p>
         </div>
     </div>
 
@@ -437,6 +436,16 @@ $idsValoresEmUso = $stmtValoresEmUso->fetchAll(PDO::FETCH_COLUMN);
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
 <script>
+(function () {
+    const checkboxEstoque = document.getElementById('checkbox-estoque-gerenciado');
+    const secaoVariacoesCombinacoes = document.getElementById('secao-variacoes-combinacoes');
+    const avisoEstoqueLivre = document.getElementById('aviso-estoque-livre');
+    checkboxEstoque?.addEventListener('change', function () {
+        secaoVariacoesCombinacoes.hidden = !this.checked;
+        avisoEstoqueLivre.hidden = this.checked;
+    });
+})();
+
 (function () {
     const modalCodigo = document.getElementById('modal-codigo');
     if (modalCodigo) {
