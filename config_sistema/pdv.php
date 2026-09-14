@@ -10,8 +10,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $prazo = (int) ($_POST['prazo_reserva_minutos'] ?? 0);
     $imprimirAuto = isset($_POST['imprimir_automatico']) ? 1 : 0;
 
-    if ($prazo < 1) {
-        $erro = 'O tempo de espera do carrinho precisa ser de pelo menos 1 minuto.';
+    if ($prazo < 0) {
+        $erro = 'O tempo de espera do carrinho não pode ser negativo.';
     } else {
         $pdo->prepare('UPDATE config_loja SET prazo_reserva_minutos = :prazo, imprimir_automatico = :imp WHERE id_config = 1')
             ->execute([':prazo' => $prazo, ':imp' => $imprimirAuto]);
@@ -41,9 +41,9 @@ $config = $pdo->query('SELECT prazo_reserva_minutos, imprimir_automatico FROM co
         <h2>Carrinho da loja online</h2>
         <form method="post">
             <label>Tempo de espera antes de liberar o carrinho de volta pro estoque (minutos)
-                <input type="number" min="1" name="prazo_reserva_minutos" value="<?= (int) $config['prazo_reserva_minutos'] ?>" required>
+                <input type="number" min="0" name="prazo_reserva_minutos" value="<?= (int) $config['prazo_reserva_minutos'] ?>" required>
             </label>
-            <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:-8px; margin-bottom:16px;">Enquanto o cliente está com um produto no carrinho (ou pagando), esse produto fica reservado por esse tempo. Se ele não finalizar a compra, o produto volta a ficar disponível pros outros clientes.</p>
+            <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:-8px; margin-bottom:16px;">Enquanto o cliente está com um produto no carrinho (ou pagando), esse produto fica reservado por esse tempo. Se ele não finalizar a compra, o produto volta a ficar disponível pros outros clientes. Coloque 0 pra desligar o cronômetro — o carrinho fica livre, sem prazo, e o produto só volta pros outros clientes se o próprio cliente removê-lo ou a venda não for finalizada.</p>
 
             <h2 style="margin-top:8px;">Impressão do comprovante</h2>
             <div class="lista-checkbox">

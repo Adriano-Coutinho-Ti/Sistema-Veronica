@@ -42,7 +42,7 @@ if ($id_venda) {
     // do PHP/navegador dá uma contagem errada — podendo zerar na hora e deixar a página num
     // laço infinito de reload.
     $stmtV = $pdo->prepare(
-        "SELECT v.valor_total, v.data_venda,
+        "SELECT v.valor_total, v.data_venda, cl.prazo_reserva_minutos,
                 GREATEST(0, TIMESTAMPDIFF(SECOND, NOW(), DATE_ADD(v.data_venda, INTERVAL cl.prazo_reserva_minutos MINUTE))) AS segundos_restantes
          FROM vendas v
          JOIN config_loja cl ON cl.id_config = 1
@@ -51,7 +51,12 @@ if ($id_venda) {
     $stmtV->execute([':id' => $id_venda]);
     $venda = $stmtV->fetch();
     $total = (float) $venda['valor_total'];
-    $dataVenda = $venda['data_venda'];
+    // prazo_reserva_minutos = 0 é o "carrinho livre" — sem cronômetro, sem prazo
+    // nenhum. Sem isso a conta acima daria 0 segundos restantes (data_venda +
+    // 0 minutos já passou) e a página achava que o tempo tinha acabado na hora,
+    // redirecionando o cliente pro catálogo assim que abrisse o carrinho.
+    $carrinhoLivre = (int) $venda['prazo_reserva_minutos'] === 0;
+    $dataVenda = $carrinhoLivre ? null : $venda['data_venda'];
     $segundosRestantes = (int) $venda['segundos_restantes'];
 }
 ?>

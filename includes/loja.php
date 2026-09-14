@@ -16,14 +16,17 @@ function liberarReservasExpiradas(PDO $pdo): void
     // ver loja/ajax/gerar_checkout.php), o prazo normal do carrinho não vale mais:
     // só o prazo do próprio pagamento (10 min) decide se a venda expirou. Isso evita
     // devolver ao estoque um item que o cliente está no meio de pagar no Mercado
-    // Pago. Sem pagamento em andamento, vale a regra de sempre (prazo do carrinho).
+    // Pago. Sem pagamento em andamento, vale a regra de sempre (prazo do carrinho) —
+    // a menos que prazo_reserva_minutos seja 0 (carrinho livre, sem cronômetro),
+    // caso em que o item nunca expira sozinho por tempo; o prazo de pagamento do
+    // Mercado Pago continua valendo normalmente mesmo com o carrinho livre.
     $stmt = $pdo->prepare(
         "SELECT v.id_venda
          FROM vendas v
          JOIN config_loja cl ON cl.id_config = 1
          WHERE v.status = 'Reservado' AND v.origem = 'loja'
            AND (
-                (v.pagamento_expira_em IS NULL AND v.data_venda < DATE_SUB(NOW(), INTERVAL cl.prazo_reserva_minutos MINUTE))
+                (v.pagamento_expira_em IS NULL AND cl.prazo_reserva_minutos > 0 AND v.data_venda < DATE_SUB(NOW(), INTERVAL cl.prazo_reserva_minutos MINUTE))
                 OR (v.pagamento_expira_em IS NOT NULL AND v.pagamento_expira_em < NOW())
            )"
     );
