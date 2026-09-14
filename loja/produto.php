@@ -32,7 +32,7 @@ $combinacoes = $pdo->prepare(
      LEFT JOIN produto_variacao_valores pvv ON pvv.id_produto_variacao = pv.id_produto_variacao
      LEFT JOIN variacao_valores vv ON vv.id_valor = pvv.id_valor
      WHERE pv.id_produto = :id
-     GROUP BY pv.id_produto_variacao, pv.preco, p.preco_base, pv.estoque, pv.estoque_reservado
+     GROUP BY pv.id_produto_variacao, pv.preco, p.preco_base, pv.estoque, pv.estoque_reservado, p.estoque_gerenciado
      HAVING p.estoque_gerenciado = 0 OR disponivel > 0
      ORDER BY descricao_combinacao'
 );
