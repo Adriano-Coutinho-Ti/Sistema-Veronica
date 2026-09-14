@@ -1,0 +1,100 @@
+<?php
+require_once __DIR__ . '/../conecta_bd.php';
+require_once __DIR__ . '/../includes/auth.php';
+exigirAdmin();
+
+$id_usuario = (int) ($_GET['id'] ?? 0);
+$stmt = $pdo->prepare('SELECT * FROM usuarios WHERE id_usuario = :id');
+$stmt->execute([':id' => $id_usuario]);
+$usuario = $stmt->fetch();
+if (!$usuario) {
+    header('Location: /usuarios/lista.php');
+    exit;
+}
+
+// Um admin não pode tirar o próprio perfil de Admin nem desativar a própria
+// conta por aqui — evita se trancar fora do sistema sem ter outro admin
+// disponível para desfazer.
+$ehVoceMesmo = $id_usuario === (int) $_SESSION['id_usuario'];
+
+$erro = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $nome = trim($_POST['nome'] ?? '');
+    $email = trim($_POST['email'] ?? '');
+    $senha = $_POST['senha'] ?? '';
+    $perfil = $_POST['perfil'] === 'Admin' ? 'Admin' : 'Funcionario';
+    $ativo = isset($_POST['ativo']) ? 1 : 0;
+
+    if ($nome === '' || $email === '') {
+        $erro = 'Preencha nome e e-mail.';
+    } elseif ($senha !== '' && strlen($senha) < 6) {
+        $erro = 'A nova senha precisa ter pelo menos 6 caracteres.';
+    } elseif ($ehVoceMesmo && ($perfil !== 'Admin' || $ativo === 0)) {
+        $erro = 'Você não pode remover seu próprio perfil de Admin nem desativar sua própria conta.';
+    } else {
+        $existe = $pdo->prepare('SELECT id_usuario FROM usuarios WHERE email = :email AND id_usuario != :id');
+        $existe->execute([':email' => $email, ':id' => $id_usuario]);
+        if ($existe->fetch()) {
+            $erro = 'Já existe outro usuário com esse e-mail.';
+        } else {
+            if ($senha !== '') {
+                $pdo->prepare('UPDATE usuarios SET nome = :nome, email = :email, senha_hash = :hash, perfil = :perfil, ativo = :ativo WHERE id_usuario = :id')
+                    ->execute([
+                        ':nome' => $nome, ':email' => $email, ':hash' => password_hash($senha, PASSWORD_DEFAULT),
+                        ':perfil' => $perfil, ':ativo' => $ativo, ':id' => $id_usuario,
+                    ]);
+            } else {
+                $pdo->prepare('UPDATE usuarios SET nome = :nome, email = :email, perfil = :perfil, ativo = :ativo WHERE id_usuario = :id')
+                    ->execute([':nome' => $nome, ':email' => $email, ':perfil' => $perfil, ':ativo' => $ativo, ':id' => $id_usuario]);
+            }
+            header('Location: /usuarios/lista.php?atualizado=1');
+            exit;
+        }
+    }
+
+    $usuario['nome'] = $nome;
+    $usuario['email'] = $email;
+    $usuario['perfil'] = $perfil;
+    $usuario['ativo'] = $ativo;
+}
+?>
+<!DOCTYPE html>
+<html lang="pt-br">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Editar usuário</title></head>
+<body>
+<?php require __DIR__ . '/../includes/admin_header.php'; ?>
+    <div class="page-title">
+        <span class="icone-titulo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 20v-1a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v1M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm7 4a3 3 0 1 0 0-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <div>
+            <h1>Editar usuário</h1>
+            <span class="subtitulo"><?= htmlspecialchars($usuario['nome']) ?></span>
+        </div>
+    </div>
+    <?php if ($erro): ?><p class="alert alert-erro"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
+    <?php if ($ehVoceMesmo): ?><p class="alert alert-info">Esta é a sua própria conta — perfil e status ficam travados em Admin/Ativo aqui.</p><?php endif; ?>
+
+    <div class="card">
+    <form method="post">
+        <label>Nome<input type="text" name="nome" value="<?= htmlspecialchars($usuario['nome']) ?>" required></label>
+        <label>E-mail<input type="email" name="email" value="<?= htmlspecialchars($usuario['email']) ?>" required></label>
+        <label>Nova senha<input type="password" name="senha" minlength="6" placeholder="Deixe em branco para manter a senha atual"></label>
+        <label>Perfil
+            <select name="perfil" <?= $ehVoceMesmo ? 'disabled' : '' ?>>
+                <option value="Funcionario" <?= $usuario['perfil'] === 'Funcionario' ? 'selected' : '' ?>>Funcionário</option>
+                <option value="Admin" <?= $usuario['perfil'] === 'Admin' ? 'selected' : '' ?>>Admin</option>
+            </select>
+        </label>
+        <?php if ($ehVoceMesmo): ?><input type="hidden" name="perfil" value="Admin"><?php endif; ?>
+        <label style="display:flex; align-items:center; gap:8px; flex-direction:row;">
+            <input type="checkbox" name="ativo" value="1" style="width:auto; min-height:0;" <?= $usuario['ativo'] ? 'checked' : '' ?> <?= $ehVoceMesmo ? 'disabled' : '' ?>>
+            Ativo
+        </label>
+        <?php if ($ehVoceMesmo): ?><input type="hidden" name="ativo" value="1"><?php endif; ?>
+        <button type="submit">Salvar</button>
+    </form>
+    </div>
+    <p><a href="/usuarios/lista.php" class="btn-texto">← Ver usuários</a></p>
+</main>
+</body>
+</html>

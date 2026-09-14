@@ -18,6 +18,7 @@ $usuarios = $pdo->query('SELECT id_usuario, nome, email, perfil, ativo FROM usua
         </div>
     </div>
     <?php if (isset($_GET['criado'])): ?><p class="alert alert-sucesso">Usuário criado com sucesso.</p><?php endif; ?>
+    <?php if (isset($_GET['atualizado'])): ?><p class="alert alert-sucesso">Usuário atualizado com sucesso.</p><?php endif; ?>
     <p class="acoes-topo"><a href="/usuarios/novo.php" class="btn">+ Novo usuário</a></p>
 
     <div class="card">
@@ -36,13 +37,14 @@ $usuarios = $pdo->query('SELECT id_usuario, nome, email, perfil, ativo FROM usua
         <div id="visualizacao-lista">
         <div class="tabela-wrap">
         <table>
-            <tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th>Ativo</th></tr>
+            <tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th>Ativo</th><th></th></tr>
             <?php foreach ($usuarios as $u): ?>
             <tr>
                 <td><?= htmlspecialchars($u['nome']) ?></td>
                 <td><?= htmlspecialchars($u['email']) ?></td>
                 <td><span class="status-pill<?= $u['perfil'] === 'Admin' ? ' sucesso' : '' ?>"><?= htmlspecialchars($u['perfil']) ?></span></td>
                 <td><span class="status-pill<?= $u['ativo'] ? ' sucesso' : ' erro' ?>"><?= $u['ativo'] ? 'Ativo' : 'Inativo' ?></span></td>
+                <td><a href="/usuarios/editar.php?id=<?= (int) $u['id_usuario'] ?>" class="btn-sm btn-outline"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" width="14" height="14"><path d="M4 20h4l10.5-10.5a2 2 0 0 0 0-2.83l-1.17-1.17a2 2 0 0 0-2.83 0L4 16v4Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Editar</a></td>
             </tr>
             <?php endforeach; ?>
         </table>
@@ -59,6 +61,9 @@ $usuarios = $pdo->query('SELECT id_usuario, nome, email, perfil, ativo FROM usua
                 </div>
                 <p><?= htmlspecialchars($u['email']) ?></p>
                 <p><span class="status-pill<?= $u['ativo'] ? ' sucesso' : ' erro' ?>"><?= $u['ativo'] ? 'Ativo' : 'Inativo' ?></span></p>
+                <div class="celula-acoes">
+                    <a href="/usuarios/editar.php?id=<?= (int) $u['id_usuario'] ?>" class="btn-sm btn-outline">Editar</a>
+                </div>
             </div>
             <?php endforeach; ?>
         </div>
