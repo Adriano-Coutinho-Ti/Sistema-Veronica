@@ -89,7 +89,13 @@ $config = $pdo->query('SELECT * FROM config_loja WHERE id_config = 1')->fetch();
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Aparência da loja</title></head>
 <body>
 <?php require __DIR__ . '/../includes/admin_header.php'; ?>
-    <h1>Aparência da loja</h1>
+    <div class="page-title">
+        <span class="icone-titulo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.5-.7 1.5-1.5 0-.4-.15-.75-.4-1.05-.25-.3-.4-.65-.4-1.05 0-.83.67-1.5 1.5-1.5H16a4 4 0 0 0 4-4c0-4.42-3.58-8-8-8Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="7.5" cy="10.5" r="1.1" fill="currentColor"/><circle cx="11" cy="7" r="1.1" fill="currentColor"/><circle cx="15.5" cy="8" r="1.1" fill="currentColor"/></svg></span>
+        <div>
+            <h1>Aparência da loja</h1>
+            <span class="subtitulo">Tema, logo e contato exibidos na loja online</span>
+        </div>
+    </div>
     <?php if (isset($_GET['salvo'])): ?><p class="alert alert-sucesso">Configuração salva.</p><?php endif; ?>
     <?php if ($erro): ?><p class="alert alert-erro"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
     <div class="card">

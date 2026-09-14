@@ -22,14 +22,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'iniciar
     header('Location: ' . $auth_url);
     exit;
 }
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'desconectar') {
+    $pdo->prepare(
+        'UPDATE config_pagamento SET mp_access_token = NULL, mp_refresh_token = NULL, mp_public_key = NULL, mp_user_id = NULL, mp_token_expira = NULL WHERE id_config = 1'
+    )->execute();
+    header('Location: /integracoes/mercado_pago/conectar.php?desconectado=1');
+    exit;
+}
 ?>
 <!DOCTYPE html>
 <html lang="pt-br">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Conectar Mercado Pago</title></head>
 <body>
 <?php require __DIR__ . '/../../includes/admin_header.php'; ?>
-    <h1>Mercado Pago</h1>
+    <div class="page-title">
+        <span class="icone-titulo"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M2 10h20" stroke="currentColor" stroke-width="1.8"/></svg></span>
+        <div>
+            <h1>Mercado Pago</h1>
+            <span class="subtitulo">Recebimento de pagamentos via Pix e cartão</span>
+        </div>
+    </div>
     <?php if (isset($_GET['conectado'])): ?><p class="alert alert-sucesso">Conectado com sucesso!</p><?php endif; ?>
+    <?php if (isset($_GET['desconectado'])): ?><p class="alert alert-sucesso">Conta desconectada.</p><?php endif; ?>
     <?php if (isset($_GET['erro'])): ?><p class="alert alert-erro"><?= htmlspecialchars($_GET['erro']) ?></p><?php endif; ?>
     <div class="card" style="max-width:480px;">
     <p><span class="status-pill<?= $conectado ? ' sucesso' : '' ?>"><?= $conectado ? 'Conectado (usuário MP #' . htmlspecialchars((string) $config['mp_user_id']) . ')' : 'Não conectado' ?></span></p>
@@ -37,6 +52,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'iniciar
         <input type="hidden" name="acao" value="iniciar">
         <button type="submit" class="btn-bloco"><?= $conectado ? 'Reconectar' : 'Conectar' ?> minha conta Mercado Pago</button>
     </form>
+    <?php if ($conectado): ?>
+    <form method="post" data-confirm="Remover a conexão com o Mercado Pago? A loja online e o PDV não vão conseguir receber pagamentos via Pix/cartão até reconectar." style="margin-top:10px;">
+        <input type="hidden" name="acao" value="desconectar">
+        <button type="submit" class="btn-bloco btn-perigo">Remover conta conectada</button>
+    </form>
+    <?php endif; ?>
     </div>
 </main>
 </body>

@@ -6,6 +6,12 @@ exigirLogin();
 
 $categorias = $pdo->query('SELECT id_categoria, nome FROM categorias ORDER BY nome')->fetchAll();
 
+$mpNaoConectado = false;
+if (($_SESSION['perfil'] ?? '') === 'Admin') {
+    $configPagamento = $pdo->query('SELECT mp_access_token FROM config_pagamento WHERE id_config = 1')->fetch();
+    $mpNaoConectado = empty($configPagamento['mp_access_token']);
+}
+
 $busca = trim($_GET['busca'] ?? '');
 $id_categoria = (int) ($_GET['categoria'] ?? 0);
 $statusFiltro = $_GET['status'] ?? '';
@@ -79,6 +85,12 @@ function montarLinkFiltroProdutos(int $pagina, int $categoria, string $status, s
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Produtos</title></head>
 <body>
 <?php require __DIR__ . '/../includes/admin_header.php'; ?>
+    <?php if ($mpNaoConectado): ?>
+    <p class="alert alert-erro">
+        A conta do Mercado Pago não está conectada — a loja online e o PDV não conseguem receber pagamentos via Pix/cartão até conectar.
+        <a href="/integracoes/mercado_pago/conectar.php">Conectar agora</a>
+    </p>
+    <?php endif; ?>
     <div class="page-title">
         <span class="icone-titulo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.4 12.2a2 2 0 0 0 2 1.8h7.2a2 2 0 0 0 2-1.6L20 8H6M9 21a1 1 0 1 0 0-2 1 1 0 0 0 0 2Zm8 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
         <div>

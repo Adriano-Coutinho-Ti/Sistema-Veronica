@@ -42,7 +42,13 @@ $entregas = array_values(array_filter($formas, fn($f) => (int) $f['fixa'] === 0)
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Formas de entrega</title></head>
 <body>
 <?php require __DIR__ . '/../includes/admin_header.php'; ?>
-    <h1>Formas de entrega</h1>
+    <div class="page-title">
+        <span class="icone-titulo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 16V6a1 1 0 0 1 1-1h9v11M3 16h10M3 16a2 2 0 1 0 4 0M13 16a2 2 0 1 0 4 0M17 16h3v-4l-2.5-3H16v7M13 9h4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <div>
+            <h1>Formas de entrega</h1>
+            <span class="subtitulo">Retirada na loja e opções de entrega da loja online</span>
+        </div>
+    </div>
     <?php if ($erro): ?><p class="alert alert-erro"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
 
     <?php if ($retirada): ?>
@@ -58,6 +64,7 @@ $entregas = array_values(array_filter($formas, fn($f) => (int) $f['fixa'] === 0)
     </div>
     <?php endif; ?>
 
+    <div class="card" style="margin-top:20px;">
     <h3>Outras formas de entrega</h3>
     <form method="post" class="linha-form-rapido" style="max-width:600px;">
         <input type="hidden" name="acao" value="criar">
@@ -66,6 +73,9 @@ $entregas = array_values(array_filter($formas, fn($f) => (int) $f['fixa'] === 0)
         <input type="text" name="custo" placeholder="Custo (R$)">
         <button type="submit">Adicionar</button>
     </form>
+    <?php if (empty($entregas)): ?>
+    <p class="alert alert-info">Nenhuma outra forma de entrega cadastrada ainda.</p>
+    <?php else: ?>
     <div class="tabela-wrap">
     <table>
         <tr><th>Nome</th><th>Prazo (dias)</th><th>Custo</th><th>Ativo</th><th></th></tr>
@@ -74,7 +84,7 @@ $entregas = array_values(array_filter($formas, fn($f) => (int) $f['fixa'] === 0)
             <td><?= htmlspecialchars($e['nome']) ?></td>
             <td><?= $e['prazo_dias'] !== null ? (int) $e['prazo_dias'] : '—' ?></td>
             <td>R$ <?= number_format($e['custo'], 2, ',', '.') ?></td>
-            <td><span class="status-pill<?= $e['ativo'] ? ' sucesso' : '' ?>"><?= $e['ativo'] ? 'Sim' : 'Não' ?></span></td>
+            <td><span class="status-pill<?= $e['ativo'] ? ' sucesso' : ' erro' ?>"><?= $e['ativo'] ? 'Ativo' : 'Inativo' ?></span></td>
             <td class="celula-acoes">
                 <form method="post">
                     <input type="hidden" name="acao" value="alternar_ativo">
@@ -90,6 +100,8 @@ $entregas = array_values(array_filter($formas, fn($f) => (int) $f['fixa'] === 0)
         </tr>
         <?php endforeach; ?>
     </table>
+    </div>
+    <?php endif; ?>
     </div>
 </main>
 </body>

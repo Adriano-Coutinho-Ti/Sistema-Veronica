@@ -19,17 +19,24 @@ $ehVoceMesmo = $id_usuario === (int) $_SESSION['id_usuario'];
 
 $erro = '';
 
+$trocarSenhaMarcado = false;
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nome = trim($_POST['nome'] ?? '');
     $email = trim($_POST['email'] ?? '');
+    $trocarSenha = isset($_POST['trocar_senha']);
     $senha = $_POST['senha'] ?? '';
+    $confirmarSenha = $_POST['confirmar_senha'] ?? '';
     $perfil = $_POST['perfil'] === 'Admin' ? 'Admin' : 'Funcionario';
     $ativo = isset($_POST['ativo']) ? 1 : 0;
+    $trocarSenhaMarcado = $trocarSenha;
 
     if ($nome === '' || $email === '') {
         $erro = 'Preencha nome e e-mail.';
-    } elseif ($senha !== '' && strlen($senha) < 6) {
+    } elseif ($trocarSenha && strlen($senha) < 6) {
         $erro = 'A nova senha precisa ter pelo menos 6 caracteres.';
+    } elseif ($trocarSenha && $senha !== $confirmarSenha) {
+        $erro = 'As senhas não coincidem.';
     } elseif ($ehVoceMesmo && ($perfil !== 'Admin' || $ativo === 0)) {
         $erro = 'Você não pode remover seu próprio perfil de Admin nem desativar sua própria conta.';
     } else {
@@ -38,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($existe->fetch()) {
             $erro = 'Já existe outro usuário com esse e-mail.';
         } else {
-            if ($senha !== '') {
+            if ($trocarSenha) {
                 $pdo->prepare('UPDATE usuarios SET nome = :nome, email = :email, senha_hash = :hash, perfil = :perfil, ativo = :ativo WHERE id_usuario = :id')
                     ->execute([
                         ':nome' => $nome, ':email' => $email, ':hash' => password_hash($senha, PASSWORD_DEFAULT),
@@ -75,10 +82,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <?php if ($ehVoceMesmo): ?><p class="alert alert-info">Esta é a sua própria conta — perfil e status ficam travados em Admin/Ativo aqui.</p><?php endif; ?>
 
     <div class="card">
-    <form method="post">
+    <form method="post" id="form-editar-usuario">
         <label>Nome<input type="text" name="nome" value="<?= htmlspecialchars($usuario['nome']) ?>" required></label>
         <label>E-mail<input type="email" name="email" value="<?= htmlspecialchars($usuario['email']) ?>" required></label>
-        <label>Nova senha<input type="password" name="senha" minlength="6" placeholder="Deixe em branco para manter a senha atual"></label>
+        <label style="display:flex; align-items:center; gap:8px; flex-direction:row;">
+            <input type="checkbox" name="trocar_senha" id="trocar-senha" style="width:auto; min-height:0;" <?= $trocarSenhaMarcado ? 'checked' : '' ?>>
+            Trocar senha
+        </label>
+        <div id="campos-senha" <?= $trocarSenhaMarcado ? '' : 'hidden' ?>>
+            <label>Nova senha<input type="password" name="senha" id="campo-senha" minlength="6" <?= $trocarSenhaMarcado ? 'required' : '' ?>></label>
+            <label>Confirmar nova senha<input type="password" name="confirmar_senha" id="campo-confirmar-senha" minlength="6" <?= $trocarSenhaMarcado ? 'required' : '' ?>></label>
+            <p id="erro-senha" class="alert alert-erro" hidden></p>
+        </div>
         <label>Perfil
             <select name="perfil" <?= $ehVoceMesmo ? 'disabled' : '' ?>>
                 <option value="Funcionario" <?= $usuario['perfil'] === 'Funcionario' ? 'selected' : '' ?>>Funcionário</option>
@@ -95,6 +110,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </form>
     </div>
     <p><a href="/usuarios/lista.php" class="btn-texto">← Ver usuários</a></p>
+<script>
+document.getElementById('trocar-senha').addEventListener('change', function () {
+    const campoSenha = document.getElementById('campo-senha');
+    const campoConfirmar = document.getElementById('campo-confirmar-senha');
+    document.getElementById('campos-senha').hidden = !this.checked;
+    campoSenha.required = this.checked;
+    campoConfirmar.required = this.checked;
+    if (!this.checked) {
+        campoSenha.value = '';
+        campoConfirmar.value = '';
+        document.getElementById('erro-senha').hidden = true;
+    }
+});
+
+document.getElementById('form-editar-usuario').addEventListener('submit', function (e) {
+    if (!document.getElementById('trocar-senha').checked) {
+        return;
+    }
+    const erroSenha = document.getElementById('erro-senha');
+    const senha = document.getElementById('campo-senha').value;
+    const confirmar = document.getElementById('campo-confirmar-senha').value;
+    if (senha.length < 6) {
+        e.preventDefault();
+        erroSenha.textContent = 'A nova senha precisa ter pelo menos 6 caracteres.';
+        erroSenha.hidden = false;
+        return;
+    }
+    if (senha !== confirmar) {
+        e.preventDefault();
+        erroSenha.textContent = 'As senhas não coincidem.';
+        erroSenha.hidden = false;
+        return;
+    }
+    erroSenha.hidden = true;
+});
+</script>
 </main>
 </body>
 </html>
