@@ -36,6 +36,8 @@ foreach ($stmt->fetchAll() as $c) {
 }
 usort($devedores, fn($a, $b) => $b['total_vencido'] <=> $a['total_vencido']);
 
+$nomeLoja = $pdo->query('SELECT nome_loja FROM config_loja WHERE id_config = 1')->fetchColumn() ?: 'a loja';
+
 const DEVEDORES_POR_PAGINA = 20;
 $pagina = max(1, (int) ($_GET['pagina'] ?? 1));
 $totalDevedores = count($devedores);
@@ -92,10 +94,14 @@ function montarLinkDevedores(int $pagina, string $busca): string
                 <td><?= htmlspecialchars($d['nome']) ?></td>
                 <td><?= htmlspecialchars(formatarWhatsappExibicao($d['whatsapp'])) ?></td>
                 <td><?= $d['prazo_dias_credito'] ?>d</td>
-                <td>R$ <?= number_format($d['total_aberto'], 2, ',', '.') ?></td>
+                <td><span class="status-pill">R$ <?= number_format($d['total_aberto'], 2, ',', '.') ?></span></td>
                 <td><?php if ($d['total_vencido'] > 0): ?><span class="status-pill erro">R$ <?= number_format($d['total_vencido'], 2, ',', '.') ?></span><?php else: ?>—<?php endif; ?></td>
                 <td class="celula-acoes">
                     <button type="button" class="btn-sm btn-outline btn-ver-extrato" data-id-cliente="<?= $d['id_cliente'] ?>" data-nome-cliente="<?= htmlspecialchars($d['nome']) ?>">Ver extrato</button>
+                    <button type="button" class="btn-sm btn-outline btn-lembrete-whatsapp" data-nome-cliente="<?= htmlspecialchars($d['nome']) ?>" data-whatsapp="<?= htmlspecialchars($d['whatsapp']) ?>" data-aberto="<?= $d['total_aberto'] ?>" data-vencido="<?= $d['total_vencido'] ?>" title="Enviar lembrete pelo WhatsApp">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" width="14" height="14"><path d="M12.04 2c-5.46 0-9.9 4.44-9.9 9.9 0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.9-4.44 9.9-9.9 0-2.64-1.03-5.12-2.9-6.98A9.82 9.82 0 0 0 12.04 2Zm0 1.67c2.19 0 4.25.85 5.8 2.4a8.2 8.2 0 0 1 2.4 5.83c0 4.54-3.7 8.23-8.24 8.23a8.2 8.2 0 0 1-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.18 8.18 0 0 1-1.26-4.37c0-4.54 3.7-8.23 8.24-8.23h.04Zm-4.6 4.2c-.16 0-.42.06-.64.31-.22.25-.85.83-.85 2.02s.87 2.35.99 2.51c.12.16 1.7 2.7 4.2 3.68 2.07.82 2.49.66 2.94.62.45-.04 1.45-.59 1.65-1.16.2-.57.2-1.06.14-1.16-.06-.1-.22-.16-.46-.28-.24-.12-1.45-.72-1.68-.8-.22-.08-.39-.12-.55.12-.16.24-.63.8-.77.96-.14.16-.28.18-.52.06-.24-.12-1.02-.38-1.94-1.2-.72-.64-1.2-1.44-1.34-1.68-.14-.24-.02-.37.1-.49.11-.11.24-.28.36-.42.12-.14.16-.24.24-.4.08-.16.04-.3-.02-.42-.06-.12-.55-1.35-.76-1.85-.2-.48-.4-.42-.55-.42Z"/></svg>
+                        Lembrete
+                    </button>
                     <a href="/clientes/detalhe.php?id=<?= $d['id_cliente'] ?>" class="btn-sm btn-outline">Abrir cliente</a>
                 </td>
             </tr>
@@ -114,10 +120,14 @@ function montarLinkDevedores(int $pagina, string $busca): string
                 </div>
                 <p><?= htmlspecialchars(formatarWhatsappExibicao($d['whatsapp'])) ?></p>
                 <p>Prazo: <?= $d['prazo_dias_credito'] ?> dias</p>
-                <p>Em aberto: R$ <?= number_format($d['total_aberto'], 2, ',', '.') ?></p>
-                <?php if ($d['total_vencido'] > 0): ?><p>Vencido: R$ <?= number_format($d['total_vencido'], 2, ',', '.') ?></p><?php endif; ?>
+                <p>Em aberto: <span class="status-pill">R$ <?= number_format($d['total_aberto'], 2, ',', '.') ?></span></p>
+                <?php if ($d['total_vencido'] > 0): ?><p>Vencido: <span class="status-pill erro">R$ <?= number_format($d['total_vencido'], 2, ',', '.') ?></span></p><?php endif; ?>
                 <div class="celula-acoes">
                     <button type="button" class="btn-sm btn-outline btn-ver-extrato" data-id-cliente="<?= $d['id_cliente'] ?>" data-nome-cliente="<?= htmlspecialchars($d['nome']) ?>">Ver extrato</button>
+                    <button type="button" class="btn-sm btn-outline btn-lembrete-whatsapp" data-nome-cliente="<?= htmlspecialchars($d['nome']) ?>" data-whatsapp="<?= htmlspecialchars($d['whatsapp']) ?>" data-aberto="<?= $d['total_aberto'] ?>" data-vencido="<?= $d['total_vencido'] ?>" title="Enviar lembrete pelo WhatsApp">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" width="14" height="14"><path d="M12.04 2c-5.46 0-9.9 4.44-9.9 9.9 0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.9-4.44 9.9-9.9 0-2.64-1.03-5.12-2.9-6.98A9.82 9.82 0 0 0 12.04 2Zm0 1.67c2.19 0 4.25.85 5.8 2.4a8.2 8.2 0 0 1 2.4 5.83c0 4.54-3.7 8.23-8.24 8.23a8.2 8.2 0 0 1-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.18 8.18 0 0 1-1.26-4.37c0-4.54 3.7-8.23 8.24-8.23h.04Zm-4.6 4.2c-.16 0-.42.06-.64.31-.22.25-.85.83-.85 2.02s.87 2.35.99 2.51c.12.16 1.7 2.7 4.2 3.68 2.07.82 2.49.66 2.94.62.45-.04 1.45-.59 1.65-1.16.2-.57.2-1.06.14-1.16-.06-.1-.22-.16-.46-.28-.24-.12-1.45-.72-1.68-.8-.22-.08-.39-.12-.55.12-.16.24-.63.8-.77.96-.14.16-.28.18-.52.06-.24-.12-1.02-.38-1.94-1.2-.72-.64-1.2-1.44-1.34-1.68-.14-.24-.02-.37.1-.49.11-.11.24-.28.36-.42.12-.14.16-.24.24-.4.08-.16.04-.3-.02-.42-.06-.12-.55-1.35-.76-1.85-.2-.48-.4-.42-.55-.42Z"/></svg>
+                        Lembrete
+                    </button>
                     <a href="/clientes/detalhe.php?id=<?= $d['id_cliente'] ?>" class="btn-sm btn-outline">Abrir cliente</a>
                 </div>
             </div>
@@ -135,6 +145,23 @@ function montarLinkDevedores(int $pagina, string $busca): string
         </nav>
         <?php endif; ?>
         <?php endif; ?>
+    </div>
+
+    <div class="modal-overlay" id="modal-lembrete" hidden>
+        <div class="modal-card">
+            <h3>Enviar lembrete pelo WhatsApp</h3>
+            <p style="color:var(--cor-texto-suave); font-size:0.9rem; margin-bottom:14px;">Confira o número antes de enviar — o WhatsApp abre com a mensagem já pronta pra só conferir e mandar.</p>
+            <label>Número<input type="text" id="numero-lembrete" placeholder="Número com DDD"></label>
+            <label>Mensagem<textarea id="texto-lembrete" rows="9"></textarea></label>
+            <p id="erro-lembrete" class="alert alert-erro" style="display:none; margin-top:10px;"></p>
+            <div class="modal-acoes">
+                <button type="button" class="btn-outline" id="btn-cancelar-lembrete">Cancelar</button>
+                <button type="button" class="btn" id="btn-enviar-lembrete">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" width="16" height="16"><path d="M12.04 2c-5.46 0-9.9 4.44-9.9 9.9 0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.9-4.44 9.9-9.9 0-2.64-1.03-5.12-2.9-6.98A9.82 9.82 0 0 0 12.04 2Zm0 1.67c2.19 0 4.25.85 5.8 2.4a8.2 8.2 0 0 1 2.4 5.83c0 4.54-3.7 8.23-8.24 8.23a8.2 8.2 0 0 1-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.18 8.18 0 0 1-1.26-4.37c0-4.54 3.7-8.23 8.24-8.23h.04Zm-4.6 4.2c-.16 0-.42.06-.64.31-.22.25-.85.83-.85 2.02s.87 2.35.99 2.51c.12.16 1.7 2.7 4.2 3.68 2.07.82 2.49.66 2.94.62.45-.04 1.45-.59 1.65-1.16.2-.57.2-1.06.14-1.16-.06-.1-.22-.16-.46-.28-.24-.12-1.45-.72-1.68-.8-.22-.08-.39-.12-.55.12-.16.24-.63.8-.77.96-.14.16-.28.18-.52.06-.24-.12-1.02-.38-1.94-1.2-.72-.64-1.2-1.44-1.34-1.68-.14-.24-.02-.37.1-.49.11-.11.24-.28.36-.42.12-.14.16-.24.24-.4.08-.16.04-.3-.02-.42-.06-.12-.55-1.35-.76-1.85-.2-.48-.4-.42-.55-.42Z"/></svg>
+                    Abrir WhatsApp
+                </button>
+            </div>
+        </div>
     </div>
 
     <div class="modal-overlay" id="modal-extrato" hidden>
@@ -277,6 +304,65 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('btn-fechar-extrato').addEventListener('click', fecharModal);
     modal.addEventListener('click', function (e) { if (e.target === modal) { fecharModal(); } });
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !modal.hidden) { fecharModal(); } });
+
+    // Lembrete amigável por WhatsApp — nunca é cobrança, só um empurrãozinho
+    // gentil lembrando o cliente da Linha de Crédito dele.
+    const nomeLoja = <?= json_encode($nomeLoja) ?>;
+    const modalLembrete = document.getElementById('modal-lembrete');
+    const campoNumeroLembrete = document.getElementById('numero-lembrete');
+    const campoTextoLembrete = document.getElementById('texto-lembrete');
+    const erroLembrete = document.getElementById('erro-lembrete');
+
+    function formatarReal(valor) {
+        return 'R$ ' + valor.toFixed(2).replace('.', ',');
+    }
+
+    function montarMensagemLembrete(nome, totalAberto, totalVencido) {
+        const primeiroNome = nome.split(' ')[0];
+        let msg = 'Oi, ' + primeiroNome + '! 😊\n\n';
+        msg += 'Passando aqui com carinho pra lembrar da sua Linha de Crédito na ' + nomeLoja + '.\n\n';
+        if (totalVencido > 0) {
+            msg += 'Você está com ' + formatarReal(totalAberto) + ' em aberto, sendo ' + formatarReal(totalVencido) + ' já vencido.\n\n';
+            msg += 'Quando puder, dá uma olhadinha pra gente organizar certinho, tá bem?';
+        } else {
+            msg += 'Você tem ' + formatarReal(totalAberto) + ' em aberto — nada vencido ainda, mas já deixamos esse lembrete com carinho pra você se organizar.';
+        }
+        msg += '\n\nQualquer dúvida ou pra combinar a forma de pagamento, é só chamar por aqui. Obrigada por fazer parte da nossa lojinha! 💜';
+        return msg;
+    }
+
+    function fecharModalLembrete() { modalLembrete.hidden = true; }
+
+    document.querySelectorAll('.btn-lembrete-whatsapp').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            erroLembrete.style.display = 'none';
+            campoNumeroLembrete.value = btn.dataset.whatsapp;
+            campoTextoLembrete.value = montarMensagemLembrete(
+                btn.dataset.nomeCliente,
+                parseFloat(btn.dataset.aberto),
+                parseFloat(btn.dataset.vencido)
+            );
+            modalLembrete.hidden = false;
+        });
+    });
+
+    document.getElementById('btn-cancelar-lembrete').addEventListener('click', fecharModalLembrete);
+    modalLembrete.addEventListener('click', function (e) { if (e.target === modalLembrete) { fecharModalLembrete(); } });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !modalLembrete.hidden) { fecharModalLembrete(); } });
+
+    document.getElementById('btn-enviar-lembrete').addEventListener('click', function () {
+        let numero = campoNumeroLembrete.value.replace(/\D/g, '');
+        if (numero.length === 10 || numero.length === 11) {
+            numero = '55' + numero;
+        }
+        if (numero.length !== 12 && numero.length !== 13) {
+            erroLembrete.textContent = 'Número inválido — confira o DDD.';
+            erroLembrete.style.display = '';
+            return;
+        }
+        window.open('https://wa.me/' + numero + '?text=' + encodeURIComponent(campoTextoLembrete.value), '_blank');
+        fecharModalLembrete();
+    });
 });
 </script>
 </main>
