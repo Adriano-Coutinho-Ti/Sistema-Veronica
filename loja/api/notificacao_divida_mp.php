@@ -11,12 +11,13 @@ $dataId = $_GET['data_id'] ?? ($_GET['id'] ?? null);
 $xSignature = $_SERVER['HTTP_X_SIGNATURE'] ?? '';
 $xRequestId = $_SERVER['HTTP_X_REQUEST_ID'] ?? '';
 
-if (!$dataId || !$xSignature || !defined('MP_WEBHOOK_SECRET')) {
+$webhookSecret = mpAppCredenciais($pdo)['webhook_secret'];
+if (!$dataId || !$xSignature || !$webhookSecret) {
     echo json_encode(['received' => true]);
     exit;
 }
 
-if (!mpValidarAssinaturaWebhook($xSignature, $xRequestId, strtolower((string) $dataId), MP_WEBHOOK_SECRET)) {
+if (!mpValidarAssinaturaWebhook($xSignature, $xRequestId, strtolower((string) $dataId), $webhookSecret)) {
     error_log('Webhook divida MP: assinatura inválida para data.id=' . $dataId);
     echo json_encode(['received' => true]);
     exit;

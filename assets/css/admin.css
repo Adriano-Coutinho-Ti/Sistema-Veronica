@@ -642,9 +642,15 @@ td a { font-weight: 600; }
     padding: 14px 16px;
 }
 .stat-credito .stat-label { display: block; font-size: 0.76rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--cor-texto-suave); margin-bottom: 4px; }
-.stat-credito .stat-valor { display: block; font-family: var(--fonte-titulo); font-size: 1.3rem; font-weight: 700; }
+.stat-credito .stat-valor { display: block; font-family: var(--fonte-titulo); font-size: 1.3rem; font-weight: 700; color: var(--cor-texto); }
 .stat-credito .stat-valor.sucesso { color: var(--cor-sucesso); }
 .stat-credito .stat-valor.erro { color: var(--cor-erro); }
+.stat-credito .stat-valor.alerta { color: var(--cor-alerta); }
+.stat-credito .stat-obs { display: block; font-size: 0.75rem; color: var(--cor-texto-suave); margin-top: 4px; }
+/* stat-credito também é usado como link clicável (ex: dashboard.php) — reseta
+   o sublinhado/cor padrão de <a> e dá um feedback visual sutil no hover. */
+a.stat-credito { display: block; text-decoration: none; transition: border-color 0.15s ease; }
+a.stat-credito:hover { border-color: var(--cor-primaria); }
 
 /* Extrato de crédito (clientes/detalhe.php) */
 .lista-extrato { list-style: none; margin: 0; padding: 0; }

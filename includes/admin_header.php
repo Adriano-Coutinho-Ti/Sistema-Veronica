@@ -9,8 +9,10 @@
  */
 ?>
 <?php
+require_once __DIR__ . '/config_dev.php';
 $versaoCssAdmin = @filemtime(__DIR__ . '/../assets/css/admin.css') ?: time();
 $versaoJsAdmin = @filemtime(__DIR__ . '/../assets/js/admin.js') ?: time();
+$nomeSistemaAtual = nomeDoSistema($pdo);
 ?>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -18,11 +20,12 @@ $versaoJsAdmin = @filemtime(__DIR__ . '/../assets/js/admin.js') ?: time();
 <link rel="stylesheet" href="/assets/css/admin.css?v=<?= $versaoCssAdmin ?>">
 <header class="site-header">
     <div class="site-header-inner">
-        <a href="/produtos/lista.php" class="site-logo">Sistema Veronica</a>
+        <a href="/dashboard.php" class="site-logo"><?= htmlspecialchars($nomeSistemaAtual) ?></a>
         <button type="button" class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="site-nav" aria-label="Abrir menu">
             <span></span><span></span><span></span>
         </button>
         <nav class="site-nav" id="site-nav">
+            <a href="/dashboard.php">Dashboard</a>
             <div class="nav-grupo">
                 <button type="button" class="nav-grupo-trigger">Produtos</button>
                 <div class="nav-submenu">

@@ -14,7 +14,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'iniciar
 
     $redirect_uri = 'https://brechodaveve.codernex.com.br/integracoes/mercado_pago/callback.php';
     $auth_url = 'https://auth.mercadopago.com/authorization?' . http_build_query([
-        'client_id' => MP_APP_CLIENT_ID,
+        'client_id' => mpAppCredenciais($pdo)['client_id'],
         'response_type' => 'code',
         'state' => $nonce,
         'redirect_uri' => $redirect_uri,

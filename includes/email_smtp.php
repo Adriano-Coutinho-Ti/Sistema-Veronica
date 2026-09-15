@@ -44,25 +44,45 @@ function montarEmailHtmlLoja(PDO $pdo, string $titulo, array $paragrafos, string
 }
 
 /**
+ * Credenciais SMTP: vêm do painel_dev (config_dev) se o desenvolvedor já
+ * preencheu por lá, senão caem nas constantes SMTP_* definidas em
+ * brechodaveve_config_credenciais.php, do jeito que sempre funcionou.
+ */
+function smtpCredenciais(PDO $pdo): array
+{
+    $configDev = $pdo->query('SELECT smtp_host, smtp_port, smtp_user, smtp_pass, smtp_from_email, smtp_from_name FROM config_dev WHERE id_config = 1')->fetch();
+
+    return [
+        'host' => $configDev['smtp_host'] ?? null ?: (defined('SMTP_HOST') ? SMTP_HOST : null),
+        'port' => $configDev['smtp_port'] ?? null ?: (defined('SMTP_PORT') ? SMTP_PORT : null),
+        'user' => $configDev['smtp_user'] ?? null ?: (defined('SMTP_USER') ? SMTP_USER : null),
+        'pass' => $configDev['smtp_pass'] ?? null ?: (defined('SMTP_PASS') ? SMTP_PASS : null),
+        'from_email' => $configDev['smtp_from_email'] ?? null ?: (defined('SMTP_FROM_EMAIL') ? SMTP_FROM_EMAIL : null),
+        'from_name' => $configDev['smtp_from_name'] ?? null ?: (defined('SMTP_FROM_NAME') ? SMTP_FROM_NAME : 'Loja'),
+    ];
+}
+
+/**
  * $corpoTexto é opcional — se não informado, é gerado automaticamente a partir do
  * HTML (tags removidas), pra clientes de e-mail que não mostram HTML caírem numa
  * versão em texto puro em vez de ver o código HTML cru.
  */
-function enviarEmailSMTP(string $destinatario, string $assunto, string $corpoHtml, ?string $corpoTexto = null): array
+function enviarEmailSMTP(PDO $pdo, string $destinatario, string $assunto, string $corpoHtml, ?string $corpoTexto = null): array
 {
-    if (!defined('SMTP_HOST') || !defined('SMTP_USER') || !defined('SMTP_PASS')) {
-        return ['success' => false, 'message' => 'SMTP não configurado (brechodaveve_config_credenciais.php).'];
+    $smtp = smtpCredenciais($pdo);
+    if (!$smtp['host'] || !$smtp['user'] || !$smtp['pass']) {
+        return ['success' => false, 'message' => 'SMTP não configurado (painel_dev ou brechodaveve_config_credenciais.php).'];
     }
 
     // Porta 465 = SSL implícito (a conexão já nasce criptografada, sem handshake em
     // texto puro antes). Porta 587 (ou qualquer outra) = STARTTLS (conecta em texto
     // puro e só depois manda "STARTTLS" pra criptografar). São protocolos diferentes —
     // usar o esquema errado pra porta trava ou é recusado pelo servidor.
-    $usa_ssl_implicito = ((int) SMTP_PORT === 465);
+    $usa_ssl_implicito = ((int) $smtp['port'] === 465);
     $esquema = $usa_ssl_implicito ? 'ssl://' : 'tcp://';
 
     $socket = @stream_socket_client(
-        $esquema . SMTP_HOST . ':' . SMTP_PORT,
+        $esquema . $smtp['host'] . ':' . $smtp['port'],
         $errno, $errstr, 15
     );
     if (!$socket) {
@@ -111,9 +131,9 @@ function enviarEmailSMTP(string $destinatario, string $assunto, string $corpoHtm
 
     $enviarComando('AUTH LOGIN');
     $lerResposta();
-    $enviarComando(base64_encode(SMTP_USER));
+    $enviarComando(base64_encode($smtp['user']));
     $lerResposta();
-    $enviarComando(base64_encode(SMTP_PASS));
+    $enviarComando(base64_encode($smtp['pass']));
     $respAuth = $lerResposta();
     if ($codigo($respAuth) !== 235) {
         $enviarComando('QUIT');
@@ -121,7 +141,7 @@ function enviarEmailSMTP(string $destinatario, string $assunto, string $corpoHtm
         return ['success' => false, 'message' => 'Autenticação SMTP recusada (usuário/senha). Resposta: ' . trim($respAuth)];
     }
 
-    $remetente = SMTP_FROM_EMAIL;
+    $remetente = $smtp['from_email'];
     $enviarComando("MAIL FROM:<$remetente>");
     $lerResposta();
     $enviarComando("RCPT TO:<$destinatario>");
@@ -142,7 +162,7 @@ function enviarEmailSMTP(string $destinatario, string $assunto, string $corpoHtm
     }
 
     $assuntoCodificado = '=?UTF-8?B?' . base64_encode($assunto) . '?=';
-    $nomeRemetente = defined('SMTP_FROM_NAME') ? SMTP_FROM_NAME : 'Loja';
+    $nomeRemetente = $smtp['from_name'];
 
     // multipart/alternative: manda as duas versões (texto puro + HTML) na mesma
     // mensagem. Cliente de e-mail que entende HTML mostra a versão bonita; quem não

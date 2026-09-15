@@ -28,14 +28,15 @@ if (!$nonceInfo['nonce_valido']) {
 $pdo->prepare('UPDATE config_pagamento SET mp_oauth_nonce = NULL, mp_oauth_nonce_expira = NULL WHERE id_config = 1')->execute();
 
 $redirect_uri = 'https://brechodaveve.codernex.com.br/integracoes/mercado_pago/callback.php';
+$credenciaisApp = mpAppCredenciais($pdo);
 
 $ch = curl_init('https://api.mercadopago.com/oauth/token');
 curl_setopt_array($ch, [
     CURLOPT_RETURNTRANSFER => true,
     CURLOPT_POST => true,
     CURLOPT_POSTFIELDS => http_build_query([
-        'client_id' => MP_APP_CLIENT_ID,
-        'client_secret' => MP_APP_CLIENT_SECRET,
+        'client_id' => $credenciaisApp['client_id'],
+        'client_secret' => $credenciaisApp['client_secret'],
         'grant_type' => 'authorization_code',
         'code' => $code,
         'redirect_uri' => $redirect_uri,

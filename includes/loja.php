@@ -224,7 +224,7 @@ function dispararVerificacaoEmail(PDO $pdo, int $id_cliente, string $email, stri
         $link
     );
 
-    $resultado = enviarEmailSMTP($email, 'Confirme seu e-mail — ' . $nomeLoja, $corpo);
+    $resultado = enviarEmailSMTP($pdo, $email, 'Confirme seu e-mail — ' . $nomeLoja, $corpo);
     if (!$resultado['success']) {
         error_log('Falha ao enviar e-mail de verificação (cliente ' . $id_cliente . '): ' . $resultado['message']);
     }

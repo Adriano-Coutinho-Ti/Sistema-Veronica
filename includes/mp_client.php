@@ -7,6 +7,25 @@ function mpConfig(PDO $pdo): ?array
 }
 
 /**
+ * Credenciais do APLICATIVO Mercado Pago (a integração OAuth da própria
+ * CoderNex, não o token de cada loja) — vêm do painel_dev (config_dev) se o
+ * desenvolvedor já preencheu por lá, senão caem nas constantes MP_APP_* /
+ * MP_WEBHOOK_SECRET definidas em brechodaveve_config_credenciais.php, do
+ * jeito que sempre funcionou. Isso deixa o painel opcional: nada quebra pra
+ * quem nunca abriu o painel_dev.
+ */
+function mpAppCredenciais(PDO $pdo): array
+{
+    $configDev = $pdo->query('SELECT mp_app_client_id, mp_app_client_secret, mp_webhook_secret FROM config_dev WHERE id_config = 1')->fetch();
+
+    return [
+        'client_id' => $configDev['mp_app_client_id'] ?? null ?: (defined('MP_APP_CLIENT_ID') ? MP_APP_CLIENT_ID : null),
+        'client_secret' => $configDev['mp_app_client_secret'] ?? null ?: (defined('MP_APP_CLIENT_SECRET') ? MP_APP_CLIENT_SECRET : null),
+        'webhook_secret' => $configDev['mp_webhook_secret'] ?? null ?: (defined('MP_WEBHOOK_SECRET') ? MP_WEBHOOK_SECRET : null),
+    ];
+}
+
+/**
  * Chamada genérica à API do Mercado Pago. $metodo é 'GET' ou 'POST'.
  */
 function mpChamarApi(string $metodo, string $url, ?array $payload, string $access_token, array $headersExtra = []): array

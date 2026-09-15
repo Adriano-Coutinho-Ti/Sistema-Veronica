@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/conecta_bd.php';
 require_once __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/config_dev.php';
 
 $erro = '';
 
@@ -17,7 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['nome'] = $usuario['nome'];
         $_SESSION['perfil'] = $usuario['perfil'];
         session_regenerate_id(true);
-        header('Location: /produtos/lista.php');
+        header('Location: /dashboard.php');
         exit;
     }
 
@@ -25,13 +26,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $versaoCssAdmin = @filemtime(__DIR__ . '/assets/css/admin.css') ?: time();
+$nomeSistemaAtual = nomeDoSistema($pdo);
 ?>
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Entrar — Sistema Veronica</title>
+    <title>Entrar — <?= htmlspecialchars($nomeSistemaAtual) ?></title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap">
@@ -40,7 +42,7 @@ $versaoCssAdmin = @filemtime(__DIR__ . '/assets/css/admin.css') ?: time();
 <body>
 <main class="container">
     <div class="auth-card">
-        <h1>Sistema Veronica</h1>
+        <h1><?= htmlspecialchars($nomeSistemaAtual) ?></h1>
         <?php if ($erro): ?>
             <p class="alert alert-erro"><?= htmlspecialchars($erro) ?></p>
         <?php endif; ?>
