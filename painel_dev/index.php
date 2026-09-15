@@ -32,21 +32,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'atualiz
     $sucesso = 'Crédito do rodapé atualizado.';
 } elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'atualizar_smtp') {
     $porta = trim($_POST['smtp_port'] ?? '');
-    $campos = 'smtp_host = :host, smtp_port = :port, smtp_user = :user, smtp_from_email = :from_email, smtp_from_name = :from_name';
-    $params = [
+    // O campo de senha agora vem preenchido com o valor real salvo (painel do
+    // dev, não tem por que esconder) — então, diferente de antes, o que for
+    // enviado aqui É a nova senha, igual a todo o resto do formulário.
+    $pdo->prepare(
+        'UPDATE config_dev SET smtp_host = :host, smtp_port = :port, smtp_user = :user, smtp_pass = :pass, smtp_from_email = :from_email, smtp_from_name = :from_name WHERE id_config = 1'
+    )->execute([
         ':host' => trim($_POST['smtp_host'] ?? '') ?: null,
         ':port' => $porta !== '' ? (int) $porta : null,
         ':user' => trim($_POST['smtp_user'] ?? '') ?: null,
+        ':pass' => ($_POST['smtp_pass'] ?? '') ?: null,
         ':from_email' => trim($_POST['smtp_from_email'] ?? '') ?: null,
         ':from_name' => trim($_POST['smtp_from_name'] ?? '') ?: null,
-    ];
-    // Senha só entra na atualização se foi digitada de novo — campo em branco
-    // significa "manter a que já está salva", nunca "apagar a senha".
-    if (($_POST['smtp_pass'] ?? '') !== '') {
-        $campos .= ', smtp_pass = :pass';
-        $params[':pass'] = $_POST['smtp_pass'];
-    }
-    $pdo->prepare("UPDATE config_dev SET $campos WHERE id_config = 1")->execute($params);
+    ]);
     $sucesso = 'Configurações de e-mail atualizadas.';
 }
 
@@ -76,6 +74,12 @@ try {
     <div class="card" style="max-width:560px;">
         <h2>Conexão com o banco de dados</h2>
         <p><span class="status-pill<?= $conexaoOk ? ' sucesso' : ' erro' ?>"><?= $conexaoOk ? 'Conectado' : 'Falha na conexão' ?></span></p>
+        <div style="margin-top:12px; font-size:0.85rem;">
+            <p style="margin:0 0 4px;"><strong>Host:</strong> <?= htmlspecialchars($host ?? '') ?></p>
+            <p style="margin:0 0 4px;"><strong>Nome do banco:</strong> <?= htmlspecialchars($dbname ?? '') ?></p>
+            <p style="margin:0 0 4px;"><strong>Usuário:</strong> <?= htmlspecialchars($username ?? '') ?></p>
+            <p style="margin:0;"><strong>Senha:</strong> <?= htmlspecialchars($password ?? '') ?></p>
+        </div>
         <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:10px;">
             Host, usuário, senha e nome do banco <strong>não dá pra editar por aqui</strong> — o sistema precisa desses dados só pra conseguir abrir esta tela, então eles não podem depender de já estar conectado. Pra trocar, edite o arquivo <code>config_credenciais.php</code> (raiz do projeto) direto por FTP, ou apague-o e faça login de novo — a tela de login abre o assistente de configuração automaticamente quando não encontra um banco conectado.
         </p>
@@ -129,7 +133,7 @@ try {
             <label>Host<input type="text" name="smtp_host" value="<?= htmlspecialchars($config['smtp_host'] ?? '') ?>" placeholder="Deixado em branco = usa o arquivo"></label>
             <label>Porta<input type="number" name="smtp_port" value="<?= htmlspecialchars((string) ($config['smtp_port'] ?? '')) ?>" placeholder="465 ou 587"></label>
             <label>Usuário<input type="text" name="smtp_user" value="<?= htmlspecialchars($config['smtp_user'] ?? '') ?>" placeholder="Deixado em branco = usa o arquivo"></label>
-            <label>Senha<input type="password" name="smtp_pass" value="" placeholder="Deixe em branco pra manter a atual"></label>
+            <label>Senha<input type="text" name="smtp_pass" value="<?= htmlspecialchars($config['smtp_pass'] ?? '') ?>" autocomplete="off"></label>
             <label>E-mail de envio<input type="email" name="smtp_from_email" value="<?= htmlspecialchars($config['smtp_from_email'] ?? '') ?>"></label>
             <label>Nome de exibição<input type="text" name="smtp_from_name" value="<?= htmlspecialchars($config['smtp_from_name'] ?? '') ?>" placeholder="Ex: Brechó da Veve"></label>
             <button type="submit" class="btn-bloco">Salvar e-mail</button>
