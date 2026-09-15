@@ -319,7 +319,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function montarMensagemLembrete(nome, totalAberto, totalVencido) {
         const primeiroNome = nome.split(' ')[0];
-        let msg = 'Oi, ' + primeiroNome + '! \u{1F60A}\n\n';
+        let msg = 'Oi, ' + primeiroNome + '!\n\n';
         msg += 'Passando aqui com carinho pra lembrar da sua Linha de Crédito na ' + nomeLoja + '.\n\n';
         if (totalVencido > 0) {
             msg += 'Você está com ' + formatarReal(totalAberto) + ' em aberto, sendo ' + formatarReal(totalVencido) + ' já vencido.\n\n';
@@ -327,7 +327,7 @@ document.addEventListener('DOMContentLoaded', function () {
         } else {
             msg += 'Você tem ' + formatarReal(totalAberto) + ' em aberto — nada vencido ainda, mas já deixamos esse lembrete com carinho pra você se organizar.';
         }
-        msg += '\n\nQualquer dúvida ou pra combinar a forma de pagamento, é só chamar por aqui. Obrigada por fazer parte da nossa lojinha! \u{1F49C}';
+        msg += '\n\nQualquer dúvida ou pra combinar a forma de pagamento, é só chamar por aqui. Obrigada por fazer parte da nossa lojinha!';
         return msg;
     }
 
