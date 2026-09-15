@@ -3,3 +3,4 @@
 /assets/img/logo/*
 !/assets/img/logo/.gitkeep
 /.claude/
+/config_credenciais.php

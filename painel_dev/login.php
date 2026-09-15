@@ -2,31 +2,88 @@
 require_once __DIR__ . '/../conecta_bd.php';
 require_once __DIR__ . '/../includes/auth_dev.php';
 
-if (!empty($_SESSION['dev_usuario_id'])) {
-    header('Location: /painel_dev/index.php');
-    exit;
+$mensagemConexao = '';
+$tipoMensagemConexao = '';
+
+// Assistente de configuração do banco — só entra em jogo quando o banco
+// ainda não está acessível (config_credenciais.php não existe, ou existe mas
+// a conexão falhou: senha errada, banco fora do ar, etc). Testa a conexão
+// ANTES de gravar qualquer coisa, pra nunca salvar um dado que não funciona.
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'configurar_banco') {
+    $hostForm = trim($_POST['db_host'] ?? '');
+    $dbnameForm = trim($_POST['db_dbname'] ?? '');
+    $usernameForm = trim($_POST['db_username'] ?? '');
+    $passwordForm = $_POST['db_password'] ?? '';
+
+    try {
+        new PDO(
+            "mysql:host=$hostForm;dbname=$dbnameForm;charset=utf8mb4",
+            $usernameForm,
+            $passwordForm,
+            [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_TIMEOUT => 5]
+        );
+
+        $conteudoArquivo = "<?php\n"
+            . "// Gerado pelo assistente de configuração em /painel_dev/login.php — não versionado (.gitignore).\n"
+            . '$host = ' . var_export($hostForm, true) . ";\n"
+            . '$dbname = ' . var_export($dbnameForm, true) . ";\n"
+            . '$username = ' . var_export($usernameForm, true) . ";\n"
+            . '$password = ' . var_export($passwordForm, true) . ";\n";
+
+        $gravou = @file_put_contents(__DIR__ . '/../config_credenciais.php', $conteudoArquivo, LOCK_EX);
+
+        if ($gravou === false) {
+            $mensagemConexao = 'Conectou, mas não consegui gravar o arquivo config_credenciais.php. Confira a permissão de escrita na pasta do sistema e tente de novo.';
+            $tipoMensagemConexao = 'erro';
+        } else {
+            $mensagemConexao = 'Conectado ao banco de dados com sucesso!';
+            $tipoMensagemConexao = 'sucesso';
+        }
+    } catch (Throwable $e) {
+        error_log('painel_dev/login.php: falha ao testar conexão informada no assistente: ' . $e->getMessage());
+        $mensagemConexao = 'Não foi possível conectar ao banco de dados. Confira os dados e tente novamente.';
+        $tipoMensagemConexao = 'erro';
+    }
 }
+
+$bancoDisponivel = BANCO_CONFIGURADO && isset($pdo) && $pdo instanceof PDO;
 
 $erro = '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $usuario = trim($_POST['usuario'] ?? '');
-    $senha = $_POST['senha'] ?? '';
-
-    $stmt = $pdo->prepare('SELECT id_dev_usuario, senha_hash FROM dev_usuarios WHERE usuario = :usuario');
-    $stmt->execute([':usuario' => $usuario]);
-    $dev = $stmt->fetch();
-
-    if ($dev && password_verify($senha, $dev['senha_hash'])) {
-        $_SESSION['dev_usuario_id'] = $dev['id_dev_usuario'];
-        $_SESSION['dev_usuario_nome'] = $usuario;
-        session_regenerate_id(true);
+if ($bancoDisponivel) {
+    if (!empty($_SESSION['dev_usuario_id'])) {
         header('Location: /painel_dev/index.php');
         exit;
     }
 
-    $erro = 'Usuário ou senha incorretos.';
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === '') {
+        $usuario = trim($_POST['usuario'] ?? '');
+        $senha = $_POST['senha'] ?? '';
+
+        $stmt = $pdo->prepare('SELECT id_dev_usuario, senha_hash FROM dev_usuarios WHERE usuario = :usuario');
+        $stmt->execute([':usuario' => $usuario]);
+        $dev = $stmt->fetch();
+
+        if ($dev && password_verify($senha, $dev['senha_hash'])) {
+            $_SESSION['dev_usuario_id'] = $dev['id_dev_usuario'];
+            $_SESSION['dev_usuario_nome'] = $usuario;
+            session_regenerate_id(true);
+            header('Location: /painel_dev/index.php');
+            exit;
+        }
+
+        $erro = 'Usuário ou senha incorretos.';
+    }
 }
+
+// Prefill do assistente: prioriza o que acabou de ser digitado (pra não
+// perder o que a pessoa já tinha preenchido se um teste falhar); na falta
+// disso, usa o que já está no arquivo de credenciais (útil quando o arquivo
+// existe mas a senha está errada — só esse campo fica em branco). Senha
+// nunca é preenchida de volta, por segurança.
+$valorHost = $_POST['db_host'] ?? ($host ?? '');
+$valorDbname = $_POST['db_dbname'] ?? ($dbname ?? '');
+$valorUsername = $_POST['db_username'] ?? ($username ?? '');
 
 $versaoCssAdmin = @filemtime(__DIR__ . '/../assets/css/admin.css') ?: time();
 ?>
@@ -43,18 +100,59 @@ $versaoCssAdmin = @filemtime(__DIR__ . '/../assets/css/admin.css') ?: time();
 </head>
 <body style="background:#0F172A;">
 <main class="container">
-    <div class="auth-card">
-        <p style="text-align:center; text-transform:uppercase; letter-spacing:0.08em; font-size:0.75rem; font-weight:700; color:var(--cor-primaria); margin-bottom:6px;">Área restrita</p>
-        <h1>Painel do desenvolvedor</h1>
-        <?php if ($erro): ?>
-            <p class="alert alert-erro"><?= htmlspecialchars($erro) ?></p>
+    <?php if (!$bancoDisponivel): ?>
+
+        <?php if ($tipoMensagemConexao): ?>
+        <div class="auth-card" id="alerta-conexao">
+            <p class="alert alert-<?= $tipoMensagemConexao ?>" style="margin:0;"><?= htmlspecialchars($mensagemConexao) ?></p>
+        </div>
         <?php endif; ?>
-        <form method="post">
-            <label>Usuário<input type="text" name="usuario" autocomplete="off" required autofocus></label>
-            <label>Senha<input type="password" name="senha" required></label>
-            <button type="submit" class="btn-bloco">Entrar</button>
-        </form>
-    </div>
+
+        <div class="auth-card" id="form-configurar-banco" <?= $tipoMensagemConexao ? 'hidden' : '' ?>>
+            <p style="text-align:center; text-transform:uppercase; letter-spacing:0.08em; font-size:0.75rem; font-weight:700; color:var(--cor-primaria); margin-bottom:6px;">Configuração inicial</p>
+            <h1>Conectar ao banco de dados</h1>
+            <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:-8px; margin-bottom:16px;">O sistema ainda não está conectado a um banco de dados. Preencha os dados de acesso abaixo — depois de conectar, o resto da configuração (Mercado Pago, e-mail, nome do sistema) fica disponível aqui mesmo no painel.</p>
+            <form method="post">
+                <input type="hidden" name="acao" value="configurar_banco">
+                <label>Host<input type="text" name="db_host" value="<?= htmlspecialchars($valorHost) ?>" required autofocus></label>
+                <label>Nome do banco<input type="text" name="db_dbname" value="<?= htmlspecialchars($valorDbname) ?>" required></label>
+                <label>Usuário<input type="text" name="db_username" value="<?= htmlspecialchars($valorUsername) ?>" required></label>
+                <label>Senha<input type="password" name="db_password" required></label>
+                <button type="submit" class="btn-bloco">Conectar e salvar</button>
+            </form>
+        </div>
+
+        <?php if ($tipoMensagemConexao): ?>
+        <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            setTimeout(function () {
+                <?php if ($tipoMensagemConexao === 'sucesso'): ?>
+                window.location.href = '/painel_dev/login.php';
+                <?php else: ?>
+                document.getElementById('alerta-conexao').hidden = true;
+                document.getElementById('form-configurar-banco').hidden = false;
+                <?php endif; ?>
+            }, 3000);
+        });
+        </script>
+        <?php endif; ?>
+
+    <?php else: ?>
+
+        <div class="auth-card">
+            <p style="text-align:center; text-transform:uppercase; letter-spacing:0.08em; font-size:0.75rem; font-weight:700; color:var(--cor-primaria); margin-bottom:6px;">Área restrita</p>
+            <h1>Painel do desenvolvedor</h1>
+            <?php if ($erro): ?>
+                <p class="alert alert-erro"><?= htmlspecialchars($erro) ?></p>
+            <?php endif; ?>
+            <form method="post">
+                <label>Usuário<input type="text" name="usuario" autocomplete="off" required autofocus></label>
+                <label>Senha<input type="password" name="senha" required></label>
+                <button type="submit" class="btn-bloco">Entrar</button>
+            </form>
+        </div>
+
+    <?php endif; ?>
 </main>
 </body>
 </html>
