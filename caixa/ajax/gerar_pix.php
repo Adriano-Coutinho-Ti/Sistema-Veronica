@@ -21,7 +21,7 @@ if (!$config || empty($config['mp_access_token'])) {
     exit;
 }
 
-$notification_url = 'https://brechodaveve.codernex.com.br/caixa/api/notificacao_mp.php';
+$notification_url = urlBaseAtual() . '/caixa/api/notificacao_mp.php';
 
 $valor_total = (float) $venda['valor_total'];
 $application_fee = ceil($valor_total * 0.01 * 100) / 100;

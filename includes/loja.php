@@ -209,7 +209,7 @@ function dispararVerificacaoEmail(PDO $pdo, int $id_cliente, string $email, stri
     $configLoja = $pdo->query('SELECT nome_loja FROM config_loja WHERE id_config = 1')->fetch();
     $nomeLoja = $configLoja['nome_loja'] ?? 'a loja';
 
-    $link = 'https://brechodaveve.codernex.com.br/loja/verificar_email.php?token=' . $token;
+    $link = urlBaseAtual() . '/loja/verificar_email.php?token=' . $token;
     $primeiroNome = explode(' ', trim($nome))[0];
 
     $corpo = montarEmailHtmlLoja(

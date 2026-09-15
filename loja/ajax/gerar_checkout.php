@@ -86,11 +86,11 @@ $expiraEm = (clone $agora)->modify('+10 minutes');
 $preference = [
     'items' => $itensMp,
     'external_reference' => 'loja_' . $id_venda,
-    'notification_url' => 'https://brechodaveve.codernex.com.br/loja/api/notificacao_mp.php',
+    'notification_url' => urlBaseAtual() . '/loja/api/notificacao_mp.php',
     'back_urls' => [
-        'success' => 'https://brechodaveve.codernex.com.br/loja/pedido_status.php?id_venda=' . $id_venda,
-        'pending' => 'https://brechodaveve.codernex.com.br/loja/pedido_status.php?id_venda=' . $id_venda,
-        'failure' => 'https://brechodaveve.codernex.com.br/loja/pedido_status.php?id_venda=' . $id_venda,
+        'success' => urlBaseAtual() . '/loja/pedido_status.php?id_venda=' . $id_venda,
+        'pending' => urlBaseAtual() . '/loja/pedido_status.php?id_venda=' . $id_venda,
+        'failure' => urlBaseAtual() . '/loja/pedido_status.php?id_venda=' . $id_venda,
     ],
     'auto_return' => 'approved',
     'marketplace_fee' => $application_fee,

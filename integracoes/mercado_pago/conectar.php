@@ -12,7 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'iniciar
     $pdo->prepare('UPDATE config_pagamento SET mp_oauth_nonce = :nonce, mp_oauth_nonce_expira = DATE_ADD(NOW(), INTERVAL 10 MINUTE) WHERE id_config = 1')
         ->execute([':nonce' => $nonce]);
 
-    $redirect_uri = 'https://brechodaveve.codernex.com.br/integracoes/mercado_pago/callback.php';
+    $redirect_uri = urlBaseAtual() . '/integracoes/mercado_pago/callback.php';
     $auth_url = 'https://auth.mercadopago.com/authorization?' . http_build_query([
         'client_id' => mpAppCredenciais($pdo)['client_id'],
         'response_type' => 'code',

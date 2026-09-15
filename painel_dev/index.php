@@ -24,6 +24,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'atualiz
         ':webhook' => trim($_POST['mp_webhook_secret'] ?? '') ?: null,
     ]);
     $sucesso = 'Credenciais do Mercado Pago atualizadas.';
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'atualizar_rodape') {
+    $pdo->prepare('UPDATE config_dev SET footer_nome = :nome, footer_link = :link WHERE id_config = 1')->execute([
+        ':nome' => trim($_POST['footer_nome'] ?? '') ?: null,
+        ':link' => trim($_POST['footer_link'] ?? '') ?: null,
+    ]);
+    $sucesso = 'Crédito do rodapé atualizado.';
 } elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'atualizar_smtp') {
     $porta = trim($_POST['smtp_port'] ?? '');
     $campos = 'smtp_host = :host, smtp_port = :port, smtp_user = :user, smtp_from_email = :from_email, smtp_from_name = :from_name';
@@ -45,6 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'atualiz
 }
 
 $config = buscarConfigDev($pdo);
+$dominio = urlBaseAtual();
 
 $conexaoOk = false;
 try {
@@ -70,17 +77,28 @@ try {
         <h2>Conexão com o banco de dados</h2>
         <p><span class="status-pill<?= $conexaoOk ? ' sucesso' : ' erro' ?>"><?= $conexaoOk ? 'Conectado' : 'Falha na conexão' ?></span></p>
         <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:10px;">
-            Host, usuário, senha e nome do banco <strong>não dá pra editar por aqui</strong> — o sistema precisa desses dados só pra conseguir abrir esta tela, então eles não podem depender de já estar conectado. Pra alterar, edite o arquivo <code>brechodaveve_config_credenciais.php</code> direto por FTP.
+            Host, usuário, senha e nome do banco <strong>não dá pra editar por aqui</strong> — o sistema precisa desses dados só pra conseguir abrir esta tela, então eles não podem depender de já estar conectado. Pra trocar, edite o arquivo <code>config_credenciais.php</code> (raiz do projeto) direto por FTP, ou apague-o e faça login de novo — a tela de login abre o assistente de configuração automaticamente quando não encontra um banco conectado.
         </p>
     </div>
 
     <div class="card" style="max-width:560px; margin-top:20px;">
         <h2>Nome do sistema</h2>
-        <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:-8px; margin-bottom:16px;">Aparece no lugar de "Sistema Veronica" no cabeçalho do admin e na tela de login.</p>
+        <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:-8px; margin-bottom:16px;">Aparece no cabeçalho do admin e na tela de login.</p>
         <form method="post">
             <input type="hidden" name="acao" value="atualizar_nome">
-            <label>Nome<input type="text" name="nome_sistema" value="<?= htmlspecialchars($config['nome_sistema'] ?? 'Sistema Veronica') ?>" required></label>
+            <label>Nome<input type="text" name="nome_sistema" value="<?= htmlspecialchars($config['nome_sistema'] ?? 'Sistema CoderNex') ?>" required></label>
             <button type="submit" class="btn-bloco">Salvar nome</button>
+        </form>
+    </div>
+
+    <div class="card" style="max-width:560px; margin-top:20px;">
+        <h2>Crédito no rodapé da loja</h2>
+        <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:-8px; margin-bottom:16px;">O "Desenvolvido por ..." no rodapé da loja online. Deixe em branco pra continuar mostrando CoderNex.</p>
+        <form method="post">
+            <input type="hidden" name="acao" value="atualizar_rodape">
+            <label>Nome<input type="text" name="footer_nome" value="<?= htmlspecialchars($config['footer_nome'] ?? '') ?>" placeholder="CoderNex"></label>
+            <label>Link<input type="url" name="footer_link" value="<?= htmlspecialchars($config['footer_link'] ?? '') ?>" placeholder="https://codernex.com.br"></label>
+            <button type="submit" class="btn-bloco">Salvar rodapé</button>
         </form>
     </div>
 
@@ -94,6 +112,13 @@ try {
             <label>Webhook Secret<input type="text" name="mp_webhook_secret" value="<?= htmlspecialchars($config['mp_webhook_secret'] ?? '') ?>" placeholder="Deixado em branco = usa o arquivo"></label>
             <button type="submit" class="btn-bloco">Salvar Mercado Pago</button>
         </form>
+        <div style="margin-top:18px; padding-top:16px; border-top:1px solid var(--cor-borda);">
+            <p style="font-size:0.85rem; font-weight:600; margin-bottom:8px;">URLs de webhook pra cadastrar no painel do Mercado Pago</p>
+            <p style="color:var(--cor-texto-suave); font-size:0.8rem; margin-top:-4px; margin-bottom:12px;">Já montadas com o domínio deste site. Cada uma recebe a notificação de um fluxo de pagamento diferente — cole a que a tela do Mercado Pago pedir.</p>
+            <label style="font-size:0.8rem;">Loja / Checkout<input type="text" readonly value="<?= htmlspecialchars($dominio) ?>/loja/api/notificacao_mp.php" onclick="this.select()"></label>
+            <label style="font-size:0.8rem;">PDV / Caixa (Pix no balcão)<input type="text" readonly value="<?= htmlspecialchars($dominio) ?>/caixa/api/notificacao_mp.php" onclick="this.select()"></label>
+            <label style="font-size:0.8rem;">Pagamento de dívida (Linha de Crédito)<input type="text" readonly value="<?= htmlspecialchars($dominio) ?>/loja/api/notificacao_divida_mp.php" onclick="this.select()"></label>
+        </div>
     </div>
 
     <div class="card" style="max-width:560px; margin-top:20px;">

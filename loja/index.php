@@ -182,7 +182,7 @@ function montarLinkPagina(int $p, int $categoria, string $busca): string
                     $disp = (int) $p['disponivel'];
                     $reservado = !$semControleEstoque && $disp <= 0;
                     $ehFavorito = in_array((int) $p['id_produto'], $favoritoIds, true);
-                    $linkWhatsappCard = montarLinkCompartilharWhatsapp($p['nome'], (float) $p['preco_base'], 'https://brechodaveve.codernex.com.br/loja/produto.php?id=' . $p['id_produto']);
+                    $linkWhatsappCard = montarLinkCompartilharWhatsapp($p['nome'], (float) $p['preco_base'], urlBaseAtual() . '/loja/produto.php?id=' . $p['id_produto']);
                 ?>
                 <a href="/loja/produto.php?id=<?= $p['id_produto'] ?>" class="product-card<?= $ehOportunidade ? ' voltou' : '' ?><?= $reservado ? ' reservado' : '' ?>" data-id-produto="<?= $p['id_produto'] ?>">
                     <?php if ($ehOportunidade): ?><span class="tag-oportunidade"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8L12 2Z"/></svg> Nova oportunidade</span>
@@ -268,7 +268,7 @@ function montarLinkPagina(int $p, int $categoria, string $busca): string
         a.dataset.idProduto = String(produto.id_produto);
         const dispClasse = produto.disponivel <= 3 ? ' disponibilidade-baixa' : '';
         const dispTexto = produto.disponivel + (produto.disponivel === 1 ? ' disponível' : ' disponíveis');
-        const textoWhatsapp = '🛍️ *' + produto.nome + '*\nR$ ' + precoFormatado + '\n\nhttps://brechodaveve.codernex.com.br/loja/produto.php?id=' + produto.id_produto;
+        const textoWhatsapp = '🛍️ *' + produto.nome + '*\nR$ ' + precoFormatado + '\n\n' + window.location.origin + '/loja/produto.php?id=' + produto.id_produto;
         const linkWhatsapp = 'https://api.whatsapp.com/send?text=' + encodeURIComponent(textoWhatsapp);
         a.innerHTML =
             '<span class="tag-oportunidade"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8L12 2Z"/></svg> Nova oportunidade</span>' +

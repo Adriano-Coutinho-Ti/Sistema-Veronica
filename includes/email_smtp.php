@@ -22,7 +22,7 @@ function montarEmailHtmlLoja(PDO $pdo, string $titulo, array $paragrafos, string
 
     $linkEscapado = htmlspecialchars($linkBotao);
     $cabecalhoLogo = !empty($configLoja['logo_arquivo'])
-        ? '<img src="https://brechodaveve.codernex.com.br/' . htmlspecialchars($configLoja['logo_arquivo']) . '" alt="' . htmlspecialchars($nomeLoja) . '" style="max-height:48px; width:auto;">'
+        ? '<img src="' . htmlspecialchars(urlBaseAtual()) . '/' . htmlspecialchars($configLoja['logo_arquivo']) . '" alt="' . htmlspecialchars($nomeLoja) . '" style="max-height:48px; width:auto;">'
         : '<span style="font-family:Georgia,serif; font-size:22px; font-weight:600; color:#222222;">' . htmlspecialchars($nomeLoja) . '</span>';
 
     return '
@@ -111,7 +111,7 @@ function enviarEmailSMTP(PDO $pdo, string $destinatario, string $assunto, string
 
     $lerResposta(); // saudação inicial do servidor
 
-    $enviarComando('EHLO brechodaveve.codernex.com.br');
+    $enviarComando('EHLO ' . dominioAtual());
     $lerResposta();
 
     // Se a conexão já é SSL implícito (porta 465), não faz STARTTLS — já está
@@ -124,7 +124,7 @@ function enviarEmailSMTP(PDO $pdo, string $destinatario, string $assunto, string
                 fclose($socket);
                 return ['success' => false, 'message' => 'Falha ao negociar TLS com o servidor SMTP.'];
             }
-            $enviarComando('EHLO brechodaveve.codernex.com.br');
+            $enviarComando('EHLO ' . dominioAtual());
             $lerResposta();
         }
     }

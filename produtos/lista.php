@@ -143,7 +143,7 @@ function montarLinkFiltroProdutos(int $pagina, int $categoria, string $status, s
                 <tr><th></th><th>Código</th><th>Nome</th><th>Categoria</th><th>Preço</th><th>Estoque</th><th>Status</th><th></th><th></th></tr>
                 <?php foreach ($produtos as $p): ?>
                 <?php
-                    $urlProdutoP = 'https://brechodaveve.codernex.com.br/loja/produto.php?id=' . $p['id_produto'];
+                    $urlProdutoP = urlBaseAtual() . '/loja/produto.php?id=' . $p['id_produto'];
                     $linkWhatsappP = montarLinkCompartilharWhatsapp($p['nome'], (float) $p['preco_base'], $urlProdutoP);
                 ?>
                 <tr>

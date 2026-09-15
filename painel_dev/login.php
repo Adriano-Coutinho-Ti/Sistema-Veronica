@@ -2,14 +2,30 @@
 require_once __DIR__ . '/../conecta_bd.php';
 require_once __DIR__ . '/../includes/auth_dev.php';
 
+// Senha de instalação — trava quem consegue ver o formulário de configuração
+// do banco. Não é uma senha secreta forte (é o mesmo "DevMaster" usado como
+// usuário do painel), só evita que qualquer visitante que caia nesta tela
+// durante uma falha real de conexão em produção já veja o formulário.
+const SENHA_INSTALACAO_MD5 = 'be1e875d04b3c459e88990acfa7eb5ad'; // md5('DevMaster')
+
 $mensagemConexao = '';
 $tipoMensagemConexao = '';
+$erroSenhaInstalacao = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'verificar_senha_instalacao') {
+    if (md5($_POST['senha_instalacao'] ?? '') === SENHA_INSTALACAO_MD5) {
+        $_SESSION['assistente_banco_autorizado'] = true;
+    } else {
+        $erroSenhaInstalacao = 'Senha de instalação incorreta.';
+    }
+}
 
 // Assistente de configuração do banco — só entra em jogo quando o banco
 // ainda não está acessível (config_credenciais.php não existe, ou existe mas
-// a conexão falhou: senha errada, banco fora do ar, etc). Testa a conexão
-// ANTES de gravar qualquer coisa, pra nunca salvar um dado que não funciona.
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'configurar_banco') {
+// a conexão falhou: senha errada, banco fora do ar, etc) E a senha de
+// instalação já foi confirmada nesta sessão. Testa a conexão ANTES de
+// gravar qualquer coisa, pra nunca salvar um dado que não funciona.
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'configurar_banco' && !empty($_SESSION['assistente_banco_autorizado'])) {
     $hostForm = trim($_POST['db_host'] ?? '');
     $dbnameForm = trim($_POST['db_dbname'] ?? '');
     $usernameForm = trim($_POST['db_username'] ?? '');
@@ -38,6 +54,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'configu
         } else {
             $mensagemConexao = 'Conectado ao banco de dados com sucesso!';
             $tipoMensagemConexao = 'sucesso';
+            // Não desmarca $_SESSION['assistente_banco_autorizado'] aqui: isso
+            // faria esta MESMA resposta (que ainda precisa mostrar o alerta de
+            // sucesso por 3s antes de redirecionar) cair de volta na tela de
+            // senha de instalação. Uma vez conectado, $bancoDisponivel passa a
+            // ser true no próximo carregamento e essa flag nunca mais é lida.
         }
     } catch (Throwable $e) {
         error_log('painel_dev/login.php: falha ao testar conexão informada no assistente: ' . $e->getMessage());
@@ -100,7 +121,23 @@ $versaoCssAdmin = @filemtime(__DIR__ . '/../assets/css/admin.css') ?: time();
 </head>
 <body style="background:#0F172A;">
 <main class="container">
-    <?php if (!$bancoDisponivel): ?>
+    <?php if (!$bancoDisponivel && empty($_SESSION['assistente_banco_autorizado'])): ?>
+
+        <div class="auth-card">
+            <p style="text-align:center; text-transform:uppercase; letter-spacing:0.08em; font-size:0.75rem; font-weight:700; color:var(--cor-primaria); margin-bottom:6px;">Configuração inicial</p>
+            <h1>Senha de instalação</h1>
+            <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:-8px; margin-bottom:16px;">O sistema ainda não está conectado a um banco de dados. Confirme a senha de instalação pra abrir o assistente de configuração.</p>
+            <?php if ($erroSenhaInstalacao): ?>
+                <p class="alert alert-erro"><?= htmlspecialchars($erroSenhaInstalacao) ?></p>
+            <?php endif; ?>
+            <form method="post">
+                <input type="hidden" name="acao" value="verificar_senha_instalacao">
+                <label>Senha de instalação<input type="password" name="senha_instalacao" required autofocus></label>
+                <button type="submit" class="btn-bloco">Continuar</button>
+            </form>
+        </div>
+
+    <?php elseif (!$bancoDisponivel): ?>
 
         <?php if ($tipoMensagemConexao): ?>
         <div class="auth-card" id="alerta-conexao">
@@ -111,7 +148,7 @@ $versaoCssAdmin = @filemtime(__DIR__ . '/../assets/css/admin.css') ?: time();
         <div class="auth-card" id="form-configurar-banco" <?= $tipoMensagemConexao ? 'hidden' : '' ?>>
             <p style="text-align:center; text-transform:uppercase; letter-spacing:0.08em; font-size:0.75rem; font-weight:700; color:var(--cor-primaria); margin-bottom:6px;">Configuração inicial</p>
             <h1>Conectar ao banco de dados</h1>
-            <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:-8px; margin-bottom:16px;">O sistema ainda não está conectado a um banco de dados. Preencha os dados de acesso abaixo — depois de conectar, o resto da configuração (Mercado Pago, e-mail, nome do sistema) fica disponível aqui mesmo no painel.</p>
+            <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:-8px; margin-bottom:16px;">Preencha os dados de acesso abaixo — depois de conectar, o resto da configuração (Mercado Pago, e-mail, nome do sistema) fica disponível aqui mesmo no painel.</p>
             <form method="post">
                 <input type="hidden" name="acao" value="configurar_banco">
                 <label>Host<input type="text" name="db_host" value="<?= htmlspecialchars($valorHost) ?>" required autofocus></label>

@@ -3,6 +3,12 @@ require_once __DIR__ . '/conecta_bd.php';
 require_once __DIR__ . '/includes/auth.php';
 exigirLogin();
 
+$mpNaoConectado = false;
+if (($_SESSION['perfil'] ?? '') === 'Admin') {
+    $configPagamento = $pdo->query('SELECT mp_access_token FROM config_pagamento WHERE id_config = 1')->fetch();
+    $mpNaoConectado = empty($configPagamento['mp_access_token']);
+}
+
 $vendasHoje = $pdo->query(
     "SELECT COUNT(*) AS qtd, COALESCE(SUM(valor_total), 0) AS total FROM vendas WHERE DATE(data_venda) = CURDATE() AND status = 'Pago'"
 )->fetch();
@@ -65,6 +71,12 @@ $valoresFormas = array_map('floatval', array_column($formasPagamento, 'total'));
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Dashboard</title></head>
 <body>
 <?php require __DIR__ . '/includes/admin_header.php'; ?>
+    <?php if ($mpNaoConectado): ?>
+    <p class="alert alert-erro">
+        A conta do Mercado Pago não está conectada — a loja online e o PDV não conseguem receber pagamentos via Pix/cartão até conectar.
+        <a href="/integracoes/mercado_pago/conectar.php">Conectar agora</a>
+    </p>
+    <?php endif; ?>
     <div class="page-title">
         <span class="icone-titulo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19h16M6 19V9l5-4 5 4v10M10 19v-5h4v5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
         <div>

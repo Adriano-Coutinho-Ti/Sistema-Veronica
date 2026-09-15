@@ -77,6 +77,24 @@ function fotoComVersao(?string $caminhoRelativo): ?string
 }
 
 /**
+ * O sistema pode ser instalado em domínios diferentes por cliente (mesma
+ * estrutura de pastas, domínio muda) — então toda URL absoluta que o código
+ * precisa montar (webhook do Mercado Pago, redirect_uri do OAuth, back_urls
+ * do checkout, links de compartilhamento/e-mail) usa isto em vez de um
+ * domínio fixo no código.
+ */
+function dominioAtual(): string
+{
+    return $_SERVER['HTTP_HOST'] ?? 'localhost';
+}
+
+function urlBaseAtual(): string
+{
+    $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (($_SERVER['SERVER_PORT'] ?? '') == 443);
+    return ($https ? 'https' : 'http') . '://' . dominioAtual();
+}
+
+/**
  * Sorteia um código de 3 dígitos (000-999) ainda não usado por nenhum
  * produto — funciona como o código de barras/etiqueta física da peça.
  * De propósito não é sequencial (001, 002...): sorteia e verifica se já

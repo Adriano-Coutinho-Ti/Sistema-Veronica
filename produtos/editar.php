@@ -21,7 +21,7 @@ $fotos = $pdo->prepare('SELECT id_foto, ordem, caminho_arquivo FROM produto_foto
 $fotos->execute([':ip' => $id_produto]);
 $listaFotos = $fotos->fetchAll();
 
-$urlProdutoAbsoluta = 'https://brechodaveve.codernex.com.br/loja/produto.php?id=' . $id_produto;
+$urlProdutoAbsoluta = urlBaseAtual() . '/loja/produto.php?id=' . $id_produto;
 $linkCompartilharWhatsapp = montarLinkCompartilharWhatsapp($produto['nome'], (float) $produto['preco_base'], $urlProdutoAbsoluta);
 
 $erro = '';

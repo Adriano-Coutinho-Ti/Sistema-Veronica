@@ -7,9 +7,11 @@
  * definido pelo require de conecta_bd.php no arquivo que inclui este.
  */
 require_once __DIR__ . '/loja.php';
+require_once __DIR__ . '/config_dev.php';
 
 $configContato = $pdo->query('SELECT nome_loja, whatsapp_loja, endereco_loja, horario_atendimento, email_loja FROM config_loja WHERE id_config = 1')->fetch();
 $temContato = $configContato['whatsapp_loja'] || $configContato['endereco_loja'] || $configContato['horario_atendimento'] || $configContato['email_loja'];
+$creditoRodape = creditoRodape($pdo);
 ?>
 <footer class="site-footer">
     <?php if ($temContato): ?>
@@ -34,7 +36,7 @@ $temContato = $configContato['whatsapp_loja'] || $configContato['endereco_loja']
         <div class="container footer-final-inner">
             <span class="footer-logo"><?= htmlspecialchars($configContato['nome_loja']) ?></span>
             <span>© <?= date('Y') ?> <?= htmlspecialchars($configContato['nome_loja']) ?>. Todos os direitos reservados.</span>
-            <span>Desenvolvido por <a href="https://codernex.com.br" target="_blank" rel="noopener">CoderNex</a></span>
+            <span>Desenvolvido por <a href="<?= htmlspecialchars($creditoRodape['link']) ?>" target="_blank" rel="noopener"><?= htmlspecialchars($creditoRodape['nome']) ?></a></span>
         </div>
     </div>
 </footer>
