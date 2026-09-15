@@ -3,6 +3,7 @@ require_once __DIR__ . '/../conecta_bd.php';
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/caixa.php';
 require_once __DIR__ . '/../includes/loja.php';
+require_once __DIR__ . '/../includes/credito.php';
 exigirLogin();
 
 $id = (int) ($_GET['id'] ?? 0);
@@ -83,6 +84,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'atualiz
         $sucesso = 'Limite atualizado.';
         $cliente['limite_credito'] = $novoLimite;
     }
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'atualizar_prazo_credito') {
+    if (($_SESSION['perfil'] ?? '') !== 'Admin') {
+        http_response_code(403);
+        echo 'Acesso restrito ao administrador.';
+        exit;
+    }
+
+    $novoPrazo = (int) ($_POST['prazo_dias_credito'] ?? 0);
+    if ($novoPrazo < 1) {
+        $erro = 'O prazo precisa ser de pelo menos 1 dia.';
+    } else {
+        $pdo->prepare('UPDATE clientes SET prazo_dias_credito = :prazo WHERE id_cliente = :id')
+            ->execute([':prazo' => $novoPrazo, ':id' => $id]);
+        $sucesso = 'Prazo de pagamento atualizado.';
+        $cliente['prazo_dias_credito'] = $novoPrazo;
+    }
 } elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'registrar_pagamento') {
     $valor = (float) str_replace(',', '.', $_POST['valor'] ?? '0');
     $forma = trim($_POST['forma_pagamento'] ?? '');
@@ -149,6 +166,8 @@ $stmtExtrato = $pdo->prepare(
 );
 $stmtExtrato->execute([':id' => $id]);
 $extrato = $stmtExtrato->fetchAll();
+
+$situacaoCredito = calcularSituacaoCreditoCliente($pdo, $id, (int) $cliente['prazo_dias_credito']);
 
 $creditoDisponivel = (float) $cliente['limite_credito'] - (float) $cliente['saldo_devedor'];
 ?>
@@ -224,9 +243,14 @@ $creditoDisponivel = (float) $cliente['limite_credito'] - (float) $cliente['sald
             <span class="stat-label">Crédito disponível</span>
             <span class="stat-valor<?= $creditoDisponivel > 0 ? ' sucesso' : '' ?>">R$ <?= number_format($creditoDisponivel, 2, ',', '.') ?></span>
         </div>
+        <div class="stat-credito">
+            <span class="stat-label">Vencido</span>
+            <span class="stat-valor<?= $situacaoCredito['total_vencido'] > 0 ? ' erro' : '' ?>">R$ <?= number_format($situacaoCredito['total_vencido'], 2, ',', '.') ?></span>
+        </div>
     </div>
 
     <?php if (($_SESSION['perfil'] ?? '') === 'Admin'): ?>
+    <div style="display:flex; gap:24px; flex-wrap:wrap;">
     <form method="post" class="form-linha-compacta">
         <input type="hidden" name="acao" value="atualizar_limite">
         <label>Novo limite de crédito
@@ -234,6 +258,15 @@ $creditoDisponivel = (float) $cliente['limite_credito'] - (float) $cliente['sald
         </label>
         <button type="submit" class="btn-outline">Atualizar limite</button>
     </form>
+    <form method="post" class="form-linha-compacta">
+        <input type="hidden" name="acao" value="atualizar_prazo_credito">
+        <label>Prazo de pagamento (dias)
+            <input type="number" min="1" name="prazo_dias_credito" value="<?= (int) $cliente['prazo_dias_credito'] ?>" class="campo-valor-curto">
+        </label>
+        <button type="submit" class="btn-outline">Atualizar prazo</button>
+    </form>
+    </div>
+    <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:8px;">Quantos dias esse cliente tem pra pagar cada compra a partir da data dela — usado pra calcular se uma compra já venceu.</p>
     <?php endif; ?>
 
     <?php if ((float) $cliente['saldo_devedor'] > 0): ?>
@@ -263,11 +296,19 @@ $creditoDisponivel = (float) $cliente['limite_credito'] - (float) $cliente['sald
     <?php else: ?>
     <div class="tabela-wrap">
     <table>
-        <tr><th>Data</th><th>Tipo</th><th>Status</th><th>Valor</th><th>Forma</th><th>Registrado por</th></tr>
+        <tr><th>Data</th><th>Tipo</th><th>Situação</th><th>Status</th><th>Valor</th><th>Forma</th><th>Registrado por</th></tr>
         <?php foreach ($extrato as $mov): ?>
+        <?php $sitCompra = $mov['tipo'] === 'compra' ? ($situacaoCredito['compras'][(int) $mov['id_movimento']] ?? null) : null; ?>
         <tr>
             <td><?= htmlspecialchars($mov['data_movimento']) ?></td>
             <td><?= $mov['tipo'] === 'compra' ? 'Compra a prazo' : 'Pagamento' ?></td>
+            <td>
+                <?php if ($sitCompra === null): ?>—
+                <?php elseif ($sitCompra['vencido'] > 0): ?><span class="status-pill erro">Vencido há <?= $sitCompra['dias_atraso'] ?>d</span>
+                <?php elseif ($sitCompra['em_aberto'] > 0): ?><span class="status-pill">Em aberto</span>
+                <?php else: ?><span class="status-pill sucesso">Quitado</span>
+                <?php endif; ?>
+            </td>
             <td><span class="status-pill<?= $mov['status'] === 'Confirmado' ? ' sucesso' : '' ?>"><?= htmlspecialchars($mov['status']) ?></span></td>
             <td>R$ <?= number_format((float) $mov['valor'], 2, ',', '.') ?></td>
             <td><?= htmlspecialchars($mov['forma_pagamento'] ?? '—') ?></td>

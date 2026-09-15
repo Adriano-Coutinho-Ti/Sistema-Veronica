@@ -34,6 +34,7 @@ $versaoJsAdmin = @filemtime(__DIR__ . '/../assets/js/admin.js') ?: time();
                 <button type="button" class="nav-grupo-trigger">Clientes</button>
                 <div class="nav-submenu">
                     <a href="/clientes/lista.php">Todos os clientes</a>
+                    <a href="/clientes/devedores.php">Devedores</a>
                     <?php if (($_SESSION['perfil'] ?? '') === 'Admin'): ?>
                     <a href="/clientes/solicitacoes_credito.php">Solicitações de crédito</a>
                     <?php endif; ?>
