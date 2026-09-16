@@ -62,7 +62,12 @@ $preference = [
         'failure' => urlBaseAtual() . '/loja/minha_divida.php',
     ],
     'auto_return' => 'approved',
+    // Preferences (/checkout/preferences) documenta marketplace_fee como o campo
+    // certo -- manda application_fee junto só como reforço, caso o comportamento
+    // real da conta divirja da doc; um campo que o endpoint não reconhece é
+    // simplesmente ignorado, não quebra a chamada.
     'marketplace_fee' => $application_fee,
+    'application_fee' => $application_fee,
     'sponsor_id' => 194420711,
     'excluded_payment_types' => [
         ['id' => 'ticket'],

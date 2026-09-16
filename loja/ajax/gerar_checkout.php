@@ -95,7 +95,12 @@ $preference = [
         'failure' => urlBaseAtual() . '/loja/pedido_status.php?id_venda=' . $id_venda,
     ],
     'auto_return' => 'approved',
+    // Preferences (/checkout/preferences) documenta marketplace_fee como o campo
+    // certo -- manda application_fee junto só como reforço, caso o comportamento
+    // real da conta divirja da doc; um campo que o endpoint não reconhece é
+    // simplesmente ignorado, não quebra a chamada.
     'marketplace_fee' => $application_fee,
+    'application_fee' => $application_fee,
     'sponsor_id' => 194420711,
     // A loja online aceita só Pix e cartão. Boleto ('ticket') fica de fora porque leva de 1 a 3
     // dias pra compensar, incompatível com o prazo de reserva do carrinho (15 minutos).

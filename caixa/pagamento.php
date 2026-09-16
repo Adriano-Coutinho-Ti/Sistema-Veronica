@@ -69,7 +69,6 @@ if ($venda['id_cliente']) {
 
         <div id="campos-pix" style="display:none; margin-top:14px;">
             <button type="button" id="btn-gerar-pix" class="btn-outline">Gerar QR Code Pix</button>
-            <div id="pix-resultado" style="margin-top:14px;"></div>
         </div>
 
         <div class="stats-credito" style="margin-top:20px;">
@@ -84,6 +83,16 @@ if ($venda['id_cliente']) {
         </div>
 
         <button type="button" id="btn-finalizar" class="btn-bloco btn-lg" style="display:none; margin-top:20px;">Finalizar venda</button>
+    </div>
+
+    <div class="modal-overlay" id="modal-pix" hidden>
+        <div class="modal-card" style="text-align:center;">
+            <h3>Pix</h3>
+            <div id="pix-resultado" style="margin-top:14px;"></div>
+            <div class="modal-acoes">
+                <button type="button" class="btn-outline" id="btn-fechar-pix">Fechar</button>
+            </div>
+        </div>
     </div>
 
 <script>
@@ -186,6 +195,11 @@ document.getElementById('btn-finalizar').addEventListener('click', function () {
     });
 });
 
+const modalPix = document.getElementById('modal-pix');
+document.getElementById('btn-fechar-pix').addEventListener('click', function () { modalPix.hidden = true; });
+modalPix.addEventListener('click', function (e) { if (e.target === modalPix) { modalPix.hidden = true; } });
+document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !modalPix.hidden) { modalPix.hidden = true; } });
+
 document.getElementById('btn-gerar-pix').addEventListener('click', function () {
     this.disabled = true;
     fetch('/caixa/ajax/gerar_pix.php', {
@@ -210,6 +224,7 @@ document.getElementById('btn-gerar-pix').addEventListener('click', function () {
         p.className = 'lista-vazia';
         p.textContent = 'Aguardando pagamento...';
         div.appendChild(p);
+        modalPix.hidden = false;
         iniciarPolling();
     });
 });

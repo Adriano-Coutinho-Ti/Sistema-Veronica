@@ -271,12 +271,13 @@ $creditoDisponivel = (float) $cliente['limite_credito'] - (float) $cliente['sald
 
     <?php if ((float) $cliente['saldo_devedor'] > 0): ?>
     <h3 style="margin-top:28px;">Registrar pagamento da dívida</h3>
-    <form method="post" class="form-linha">
+    <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:-8px; margin-bottom:12px;">Dinheiro/Débito/Crédito são lançados manualmente (o pagamento já foi recebido por fora). Pix gera um QR Code de verdade pelo Mercado Pago, confirmado sozinho quando o cliente pagar.</p>
+    <form method="post" class="form-linha" id="form-pagamento-divida">
         <label>Valor recebido
-            <input type="text" name="valor" placeholder="0,00">
+            <input type="text" name="valor" id="valor-pagamento-divida" placeholder="0,00">
         </label>
         <label>Forma de pagamento
-            <select name="forma_pagamento">
+            <select name="forma_pagamento" id="forma-pagamento-divida">
                 <option value="Dinheiro">Dinheiro</option>
                 <option value="Débito">Débito</option>
                 <option value="Crédito">Crédito</option>
@@ -284,8 +285,20 @@ $creditoDisponivel = (float) $cliente['limite_credito'] - (float) $cliente['sald
             </select>
         </label>
         <input type="hidden" name="acao" value="registrar_pagamento">
-        <button type="submit" class="btn" style="align-self:flex-end; margin-bottom:14px;">Registrar pagamento</button>
+        <button type="submit" class="btn" id="btn-registrar-pagamento-divida" style="align-self:flex-end; margin-bottom:14px;">Registrar pagamento</button>
+        <button type="button" class="btn-outline" id="btn-gerar-pix-divida" style="display:none; align-self:flex-end; margin-bottom:14px;">Gerar QR Code Pix</button>
     </form>
+    <p id="erro-pix-divida" class="alert alert-erro" style="display:none;"></p>
+
+    <div class="modal-overlay" id="modal-pix-divida" hidden>
+        <div class="modal-card" style="text-align:center;">
+            <h3>Pix</h3>
+            <div id="pix-divida-resultado" style="margin-top:14px;"></div>
+            <div class="modal-acoes">
+                <button type="button" class="btn-outline" id="btn-fechar-pix-divida">Fechar</button>
+            </div>
+        </div>
+    </div>
     <?php endif; ?>
     </div>
 
@@ -319,6 +332,92 @@ $creditoDisponivel = (float) $cliente['limite_credito'] - (float) $cliente['sald
     </div>
     <?php endif; ?>
     </div>
+
+<?php if ((float) $cliente['saldo_devedor'] > 0): ?>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const idCliente = <?= (int) $id ?>;
+    const formPagamento = document.getElementById('form-pagamento-divida');
+    const selectForma = document.getElementById('forma-pagamento-divida');
+    const btnRegistrar = document.getElementById('btn-registrar-pagamento-divida');
+    const btnGerarPix = document.getElementById('btn-gerar-pix-divida');
+    const erroPix = document.getElementById('erro-pix-divida');
+
+    function alternarBotoes() {
+        const ehPix = selectForma.value === 'Pix';
+        btnRegistrar.style.display = ehPix ? 'none' : '';
+        btnGerarPix.style.display = ehPix ? '' : 'none';
+        erroPix.style.display = 'none';
+    }
+    selectForma.addEventListener('change', alternarBotoes);
+    alternarBotoes();
+
+    const modalPixDivida = document.getElementById('modal-pix-divida');
+    document.getElementById('btn-fechar-pix-divida').addEventListener('click', function () { modalPixDivida.hidden = true; });
+    modalPixDivida.addEventListener('click', function (e) { if (e.target === modalPixDivida) { modalPixDivida.hidden = true; } });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !modalPixDivida.hidden) { modalPixDivida.hidden = true; } });
+
+    let pollingPixDivida = null;
+
+    function iniciarPollingPixDivida(idMovimento) {
+        if (pollingPixDivida) { return; }
+        pollingPixDivida = setInterval(function () {
+            fetch('/clientes/ajax/verificar_pagamento_divida.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'id_movimento=' + idMovimento
+            }).then(function (r) { return r.json(); }).then(function (data) {
+                if (data.aprovado) {
+                    clearInterval(pollingPixDivida);
+                    window.location.reload();
+                } else if (!data.success) {
+                    clearInterval(pollingPixDivida);
+                    pollingPixDivida = null;
+                    erroPix.textContent = data.message;
+                    erroPix.style.display = '';
+                }
+            });
+        }, 4000);
+    }
+
+    btnGerarPix.addEventListener('click', function () {
+        erroPix.style.display = 'none';
+        const valor = document.getElementById('valor-pagamento-divida').value;
+        btnGerarPix.disabled = true;
+        fetch('/clientes/ajax/gerar_pix_divida.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: 'id_cliente=' + idCliente + '&valor=' + encodeURIComponent(valor)
+        }).then(function (r) { return r.json(); }).then(function (data) {
+            btnGerarPix.disabled = false;
+            if (!data.success) {
+                erroPix.textContent = data.message;
+                erroPix.style.display = '';
+                return;
+            }
+            const div = document.getElementById('pix-divida-resultado');
+            div.innerHTML = '';
+            const img = document.createElement('img');
+            img.src = 'data:image/png;base64,' + data.qr_code_base64;
+            img.width = 200;
+            div.appendChild(img);
+            const textarea = document.createElement('textarea');
+            textarea.readOnly = true;
+            textarea.style.width = '100%';
+            textarea.style.marginTop = '10px';
+            textarea.value = data.qr_code;
+            div.appendChild(textarea);
+            const p = document.createElement('p');
+            p.className = 'lista-vazia';
+            p.textContent = 'Aguardando pagamento...';
+            div.appendChild(p);
+            modalPixDivida.hidden = false;
+            iniciarPollingPixDivida(data.id_movimento);
+        });
+    });
+});
+</script>
+<?php endif; ?>
 </main>
 </body>
 </html>

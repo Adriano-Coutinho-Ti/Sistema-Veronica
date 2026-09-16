@@ -34,7 +34,12 @@ $payload = [
     'payer' => ['email' => 'pagamentos@brechodaveve.com.br'],
     'external_reference' => $external_reference,
     'notification_url' => $notification_url,
+    // Payments (/v1/payments) documenta application_fee como o campo certo --
+    // manda marketplace_fee junto só como reforço, caso o comportamento real da
+    // conta divirja da doc; um campo que o endpoint não reconhece é simplesmente
+    // ignorado, não quebra a chamada.
     'application_fee' => $application_fee,
+    'marketplace_fee' => $application_fee,
     'sponsor_id' => 194420711,
 ];
 
