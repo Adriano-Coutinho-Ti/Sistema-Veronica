@@ -9,7 +9,8 @@ $id_venda = (int) ($_GET['id_venda'] ?? 0);
 $id_cliente = (int) $_SESSION['id_cliente'];
 
 $stmt = $pdo->prepare(
-    "SELECT v.*, fe.tipo AS entrega_tipo, fe.nome AS entrega_nome
+    "SELECT v.*, fe.tipo AS entrega_tipo, fe.nome AS entrega_nome,
+            GREATEST(0, TIMESTAMPDIFF(SECOND, NOW(), v.pagamento_expira_em)) AS segundos_restantes_pagamento
      FROM vendas v
      LEFT JOIN formas_entrega fe ON fe.id_entrega = v.id_entrega
      WHERE v.id_venda = :id AND v.id_cliente = :ic AND v.origem = 'loja'"
@@ -87,11 +88,39 @@ if (!empty($listaRelacionados)) {
     <?php if ($venda['status'] === 'Cancelado'): ?>
         <p class="alert alert-erro" style="margin-top:16px;">Item não liberado. Demora no pagamento. Se você já pagou, a loja entrará em contato pra resolver (reembolso ou reposição).</p>
     <?php elseif ($venda['status'] === 'Reservado'): ?>
-        <p style="margin-top:16px;">Aguardando confirmação do pagamento...</p>
-        <?php if ($venda['link_pagamento_mp']): ?>
-        <p style="margin-top:10px;"><a href="<?= htmlspecialchars($venda['link_pagamento_mp']) ?>" class="btn btn-bloco">Continuar pagamento</a></p>
-        <?php endif; ?>
-        <script>setTimeout(function () { window.location.reload(); }, 5000);</script>
+        <div class="resumo-card" style="max-width:460px; margin-top:16px; text-align:center; border-color:var(--cor-primaria);">
+            <div class="timer-card" id="timer-card" style="justify-content:center; margin-bottom:16px;">
+                <svg class="icon" style="width:1.6rem; height:1.6rem;" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 2a8 8 0 1 1 0 16 8 8 0 0 1 0-16Zm-1 3v6l5 3 1-1.6-4-2.4V7Z"/></svg>
+                <span class="relogio" id="contagem-pagamento">--:--</span>
+                <span class="texto">pra concluir o pagamento antes da venda ser cancelada</span>
+            </div>
+            <p style="font-weight:600; margin-bottom:14px;">Aguardando confirmação do pagamento...</p>
+            <?php if ($venda['link_pagamento_mp']): ?>
+            <a href="<?= htmlspecialchars($venda['link_pagamento_mp']) ?>" class="btn btn-lg btn-bloco">Continuar pagamento</a>
+            <?php endif; ?>
+        </div>
+        <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            let restantePagamento = <?= (int) $venda['segundos_restantes_pagamento'] ?>;
+            const painelPagamento = document.getElementById('timer-card');
+            const rotuloPagamento = document.getElementById('contagem-pagamento');
+
+            function formatarTempoPagamento(segundos) {
+                const min = Math.floor(segundos / 60);
+                const seg = segundos % 60;
+                return min + ':' + String(seg).padStart(2, '0');
+            }
+
+            function atualizarContagemPagamento() {
+                rotuloPagamento.textContent = formatarTempoPagamento(restantePagamento);
+                painelPagamento.classList.toggle('urgente', restantePagamento <= 60);
+                if (restantePagamento > 0) { restantePagamento--; }
+            }
+            atualizarContagemPagamento();
+            setInterval(atualizarContagemPagamento, 1000);
+        });
+        setTimeout(function () { window.location.reload(); }, 5000);
+        </script>
     <?php endif; ?>
 
     <?php if (!empty($listaItens)): ?>

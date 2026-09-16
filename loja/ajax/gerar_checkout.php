@@ -75,13 +75,15 @@ if ((float) $entrega['custo'] > 0) {
 
 $application_fee = ceil($valorTotalComEntrega * 0.01 * 100) / 100;
 
-// A partir do clique em "Pagar com Mercado Pago", o cliente tem 10 minutos pra
-// concluir o pagamento — o prazo de reserva do carrinho para de contar (ver
+// A partir do clique em "Pagar com Mercado Pago", o cliente tem X minutos pra
+// concluir o pagamento (configurável em Configurações → PDV → "Carrinho da
+// loja online") — o prazo de reserva do carrinho para de contar (ver
 // includes/loja.php::liberarReservasExpiradas()) e quem passa a decidir o
 // destino da venda é o webhook, nunca mais o cronômetro original. Isso evita
 // devolver pro estoque um item que alguém está no meio de pagar.
+$prazoPagamentoMinutos = (int) $pdo->query('SELECT prazo_pagamento_minutos FROM config_loja WHERE id_config = 1')->fetchColumn();
 $agora = new DateTime();
-$expiraEm = (clone $agora)->modify('+10 minutes');
+$expiraEm = (clone $agora)->modify("+{$prazoPagamentoMinutos} minutes");
 
 $preference = [
     'items' => $itensMp,

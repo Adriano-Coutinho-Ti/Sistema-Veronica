@@ -9,7 +9,8 @@ $id_venda = (int) ($_GET['id_venda'] ?? 0);
 
 $stmt = $pdo->prepare(
     "SELECT v.*, c.nome AS cliente_nome, c.whatsapp AS cliente_whatsapp, c.endereco AS cliente_endereco,
-            fe.nome AS entrega_nome, fe.tipo AS entrega_tipo
+            fe.nome AS entrega_nome, fe.tipo AS entrega_tipo,
+            GREATEST(0, TIMESTAMPDIFF(SECOND, NOW(), v.pagamento_expira_em)) AS segundos_restantes_pagamento
      FROM vendas v
      LEFT JOIN clientes c ON c.id_cliente = v.id_cliente
      LEFT JOIN formas_entrega fe ON fe.id_entrega = v.id_entrega
@@ -88,7 +89,11 @@ $nomeLoja = $pdo->query('SELECT nome_loja FROM config_loja WHERE id_config = 1')
     <?php if ($pedido['status'] === 'Reservado' && $pedido['pagamento_expira_em'] !== null): ?>
     <div class="card" style="margin-top:20px; max-width:480px;">
     <h3>Pagamento pendente no Mercado Pago</h3>
-    <p style="color:var(--cor-texto-suave); font-size:0.9rem; margin-bottom:14px;">O cliente ainda não concluiu o pagamento. Expira em <?= htmlspecialchars(date('H:i', strtotime($pedido['pagamento_expira_em']))) ?> — se ele perdeu o QR Code, envie o link de pagamento de novo pelo WhatsApp.</p>
+    <p style="margin-bottom:6px;">
+        <span class="status-pill alerta" id="contagem-pagamento-admin" style="font-family:var(--fonte-titulo); font-size:1rem;">--:--</span>
+        <span style="color:var(--cor-texto-suave); font-size:0.85rem;"> restantes pra concluir o pagamento</span>
+    </p>
+    <p style="color:var(--cor-texto-suave); font-size:0.9rem; margin-bottom:14px;">O cliente ainda não concluiu o pagamento. Se ele perdeu o QR Code, envie o link de pagamento de novo pelo WhatsApp.</p>
     <button type="button" class="btn-outline" id="btn-compartilhar-pagamento">
         <svg viewBox="0 0 24 24" aria-hidden="true" width="16" height="16"><path d="M12.04 2c-5.46 0-9.9 4.44-9.9 9.9 0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.9-4.44 9.9-9.9 0-2.64-1.03-5.12-2.9-6.98A9.82 9.82 0 0 0 12.04 2Zm0 1.67c2.19 0 4.25.85 5.8 2.4a8.2 8.2 0 0 1 2.4 5.83c0 4.54-3.7 8.23-8.24 8.23a8.2 8.2 0 0 1-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.18 8.18 0 0 1-1.26-4.37c0-4.54 3.7-8.23 8.24-8.23h.04Zm-4.6 4.2c-.16 0-.42.06-.64.31-.22.25-.85.83-.85 2.02s.87 2.35.99 2.51c.12.16 1.7 2.7 4.2 3.68 2.07.82 2.49.66 2.94.62.45-.04 1.45-.59 1.65-1.16.2-.57.2-1.06.14-1.16-.06-.1-.22-.16-.46-.28-.24-.12-1.45-.72-1.68-.8-.22-.08-.39-.12-.55.12-.16.24-.63.8-.77.96-.14.16-.28.18-.52.06-.24-.12-1.02-.38-1.94-1.2-.72-.64-1.2-1.44-1.34-1.68-.14-.24-.02-.37.1-.49.11-.11.24-.28.36-.42.12-.14.16-.24.24-.4.08-.16.04-.3-.02-.42-.06-.12-.55-1.35-.76-1.85-.2-.48-.4-.42-.55-.42Z"/></svg>
         Compartilhar link no WhatsApp
@@ -154,6 +159,24 @@ $nomeLoja = $pdo->query('SELECT nome_loja FROM config_loja WHERE id_config = 1')
 
 <script>
 const idVenda = <?= $id_venda ?>;
+
+const contagemPagamentoAdmin = document.getElementById('contagem-pagamento-admin');
+if (contagemPagamentoAdmin) {
+    let restantePagamentoAdmin = <?= (int) ($pedido['segundos_restantes_pagamento'] ?? 0) ?>;
+
+    function formatarTempoPagamentoAdmin(segundos) {
+        const min = Math.floor(segundos / 60);
+        const seg = segundos % 60;
+        return min + ':' + String(seg).padStart(2, '0');
+    }
+
+    function atualizarContagemPagamentoAdmin() {
+        contagemPagamentoAdmin.textContent = formatarTempoPagamentoAdmin(restantePagamentoAdmin);
+        if (restantePagamentoAdmin > 0) { restantePagamentoAdmin--; }
+    }
+    atualizarContagemPagamentoAdmin();
+    setInterval(atualizarContagemPagamentoAdmin, 1000);
+}
 
 const formStatus = document.getElementById('form-status');
 if (formStatus) {

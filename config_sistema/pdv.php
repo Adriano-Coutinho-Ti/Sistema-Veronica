@@ -8,18 +8,21 @@ $erro = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $prazo = (int) ($_POST['prazo_reserva_minutos'] ?? 0);
+    $prazoPagamento = (int) ($_POST['prazo_pagamento_minutos'] ?? 10);
     $imprimirAuto = isset($_POST['imprimir_automatico']) ? 1 : 0;
 
     if ($prazo < 0) {
         $erro = 'O tempo de espera do carrinho não pode ser negativo.';
+    } elseif ($prazoPagamento < 1) {
+        $erro = 'O tempo pra concluir o pagamento precisa ser de pelo menos 1 minuto.';
     } else {
-        $pdo->prepare('UPDATE config_loja SET prazo_reserva_minutos = :prazo, imprimir_automatico = :imp WHERE id_config = 1')
-            ->execute([':prazo' => $prazo, ':imp' => $imprimirAuto]);
+        $pdo->prepare('UPDATE config_loja SET prazo_reserva_minutos = :prazo, prazo_pagamento_minutos = :prazoPg, imprimir_automatico = :imp WHERE id_config = 1')
+            ->execute([':prazo' => $prazo, ':prazoPg' => $prazoPagamento, ':imp' => $imprimirAuto]);
         $sucesso = 'Configurações salvas.';
     }
 }
 
-$config = $pdo->query('SELECT prazo_reserva_minutos, imprimir_automatico FROM config_loja WHERE id_config = 1')->fetch();
+$config = $pdo->query('SELECT prazo_reserva_minutos, prazo_pagamento_minutos, imprimir_automatico FROM config_loja WHERE id_config = 1')->fetch();
 ?>
 <!DOCTYPE html>
 <html lang="pt-br">
@@ -43,7 +46,12 @@ $config = $pdo->query('SELECT prazo_reserva_minutos, imprimir_automatico FROM co
             <label>Tempo de espera antes de liberar o carrinho de volta pro estoque (minutos)
                 <input type="number" min="0" name="prazo_reserva_minutos" value="<?= (int) $config['prazo_reserva_minutos'] ?>" required>
             </label>
-            <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:-8px; margin-bottom:16px;">Enquanto o cliente está com um produto no carrinho (ou pagando), esse produto fica reservado por esse tempo. Se ele não finalizar a compra, o produto volta a ficar disponível pros outros clientes. Coloque 0 pra desligar o cronômetro — o carrinho fica livre, sem prazo, e o produto só volta pros outros clientes se o próprio cliente removê-lo ou a venda não for finalizada.</p>
+            <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:-8px; margin-bottom:16px;">Enquanto o cliente está com um produto no carrinho, esse produto fica reservado por esse tempo. Se ele não finalizar a compra, o produto volta a ficar disponível pros outros clientes. Coloque 0 pra desligar o cronômetro — o carrinho fica livre, sem prazo, e o produto só volta pros outros clientes se o próprio cliente removê-lo ou a venda não for finalizada.</p>
+
+            <label>Tempo pra concluir o pagamento no Mercado Pago (minutos)
+                <input type="number" min="1" name="prazo_pagamento_minutos" value="<?= (int) $config['prazo_pagamento_minutos'] ?>" required>
+            </label>
+            <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:-8px; margin-bottom:16px;">A partir do momento que o cliente clica em "Pagar com Mercado Pago", esse é o prazo que ele tem pra concluir o pagamento (Pix ou cartão) antes da venda ser cancelada sozinha e o produto voltar pro estoque. Esse prazo já não depende mais do tempo de espera do carrinho acima — é um cronômetro à parte, específico do pagamento.</p>
 
             <h2 style="margin-top:8px;">Impressão do comprovante</h2>
             <div class="lista-checkbox">
