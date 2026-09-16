@@ -16,7 +16,7 @@ $id_venda = buscarVendaReservadaDoOperador($pdo, (int) $caixa['id_caixa'], (int)
     <div class="page-title">
         <span class="icone-titulo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16M6 20V10a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v10M9 8V6a3 3 0 0 1 6 0v2M10 14h4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
         <div>
-            <h1>PDV</h1>
+            <h1>PDV<?= quantidadeCaixas($pdo) > 1 ? ' — Caixa ' . (int) $caixa['numero_caixa'] : '' ?></h1>
             <span class="subtitulo">Caixa aberto desde <?= htmlspecialchars(date('d/m/Y H:i', strtotime($caixa['data_abertura']))) ?></span>
         </div>
     </div>
@@ -24,6 +24,7 @@ $id_venda = buscarVendaReservadaDoOperador($pdo, (int) $caixa['id_caixa'], (int)
     <p class="acoes-topo">
         <a href="/caixa/fechamento.php" class="btn-outline btn-sm">Fechar caixa</a>
         <a href="/caixa/vendas.php" class="btn-outline btn-sm">Vendas do caixa</a>
+        <?php if (quantidadeCaixas($pdo) > 1): ?><a href="/caixa/selecionar.php" class="btn-outline btn-sm">Trocar de caixa</a><?php endif; ?>
         <?php if (($_SESSION['perfil'] ?? '') === 'Admin'): ?><a href="/caixa/historico.php" class="btn-outline btn-sm">Histórico de caixas</a><?php endif; ?>
         <?php if ($id_venda): ?><span class="status-pill">Venda #<?= $id_venda ?></span><?php endif; ?>
     </p>

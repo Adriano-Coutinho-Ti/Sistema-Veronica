@@ -52,6 +52,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'atualiz
         ':from_name' => trim($_POST['smtp_from_name'] ?? '') ?: null,
     ]);
     $sucesso = 'Configurações de e-mail atualizadas.';
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'atualizar_caixas') {
+    $quantidade = (int) ($_POST['quantidade_caixas'] ?? 0);
+    $compartilhados = isset($_POST['caixas_compartilhados']) ? 1 : 0;
+
+    if ($quantidade < 1) {
+        $erro = 'A quantidade de caixas precisa ser pelo menos 1.';
+    } else {
+        $abertosAgora = (int) $pdo->query("SELECT COUNT(*) FROM caixa_sessoes WHERE status = 'aberto'")->fetchColumn();
+        if ($quantidade < $abertosAgora) {
+            $erro = "Existem {$abertosAgora} caixas abertos agora — feche os caixas extras antes de reduzir a quantidade.";
+        } else {
+            $pdo->prepare('UPDATE config_dev SET quantidade_caixas = :q, caixas_compartilhados = :c WHERE id_config = 1')
+                ->execute([':q' => $quantidade, ':c' => $compartilhados]);
+            $sucesso = 'Configuração de caixas atualizada.';
+        }
+    }
 }
 
 $config = buscarConfigDev($pdo);
@@ -149,6 +165,21 @@ try {
             <label>E-mail de envio<input type="email" name="smtp_from_email" value="<?= htmlspecialchars($config['smtp_from_email'] ?? '') ?>"></label>
             <label>Nome de exibição<input type="text" name="smtp_from_name" value="<?= htmlspecialchars($config['smtp_from_name'] ?? '') ?>" placeholder="Ex: Brechó da Veve"></label>
             <button type="submit" class="btn-bloco">Salvar e-mail</button>
+        </form>
+    </div>
+
+    <div class="card" style="max-width:560px; margin-top:20px;">
+        <h2>PDV — Caixas</h2>
+        <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:-8px; margin-bottom:16px;">Quantos caixas físicos o sistema vai trabalhar. Com 1 (padrão), o sistema funciona exatamente como sempre funcionou — qualquer usuário atende no único caixa aberto, sem nenhuma tela extra. Com mais de 1, cada usuário escolhe em qual caixa vai atender.</p>
+        <form method="post">
+            <input type="hidden" name="acao" value="atualizar_caixas">
+            <label>Quantidade de caixas<input type="number" name="quantidade_caixas" min="1" value="<?= htmlspecialchars((string) ($config['quantidade_caixas'] ?? 1)) ?>" required></label>
+            <label style="flex-direction:row; align-items:center; gap:8px;">
+                <input type="checkbox" name="caixas_compartilhados" value="1" style="width:auto;" <?= !empty($config['caixas_compartilhados']) || !isset($config['caixas_compartilhados']) ? 'checked' : '' ?>>
+                Caixas compartilhados (qualquer usuário pode atender num caixa já aberto por outra pessoa)
+            </label>
+            <p style="color:var(--cor-texto-suave); font-size:0.8rem; margin-top:-8px;">Desmarcado: só quem abriu um caixa pode atender nele — outro usuário precisa esperar fechar (ou abrir um caixa diferente). Só faz diferença com mais de 1 caixa.</p>
+            <button type="submit" class="btn-bloco">Salvar caixas</button>
         </form>
     </div>
 </main>

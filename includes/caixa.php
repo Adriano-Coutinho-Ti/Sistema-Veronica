@@ -1,10 +1,62 @@
 <?php
 
+/**
+ * Quantos caixas físicos o sistema trabalha -- configurável no painel_dev.
+ * 1 (o default) é o comportamento original: um único caixa pro sistema
+ * inteiro, sem tela de seleção.
+ */
+function quantidadeCaixas(PDO $pdo): int
+{
+    $qtd = $pdo->query('SELECT quantidade_caixas FROM config_dev WHERE id_config = 1')->fetchColumn();
+    $qtd = $qtd !== false && $qtd !== null ? (int) $qtd : 1;
+    return max(1, $qtd);
+}
+
+/**
+ * Se um caixa aberto pode ser atendido por mais de um usuário ao mesmo
+ * tempo. Só tem efeito prático quando quantidadeCaixas() > 1.
+ */
+function caixasCompartilhados(PDO $pdo): bool
+{
+    $valor = $pdo->query('SELECT caixas_compartilhados FROM config_dev WHERE id_config = 1')->fetchColumn();
+    return $valor === false || $valor === null ? true : (bool) $valor;
+}
+
+/**
+ * Com um único caixa (config padrão), devolve o único caixa aberto do
+ * sistema -- exatamente como sempre funcionou. Com mais de um caixa,
+ * devolve o caixa que O USUÁRIO LOGADO selecionou em caixa/selecionar.php
+ * (guardado em $_SESSION['id_caixa_selecionado']), revalidando que ele
+ * continua aberto e que o usuário ainda pode operar nele (se caixas não são
+ * compartilhados, só quem abriu pode usar).
+ */
 function caixaAbertoAtual(PDO $pdo): ?array
 {
-    $stmt = $pdo->query("SELECT * FROM caixa_sessoes WHERE status = 'aberto' ORDER BY data_abertura DESC LIMIT 1");
-    $row = $stmt->fetch();
-    return $row ?: null;
+    if (quantidadeCaixas($pdo) <= 1) {
+        $stmt = $pdo->query("SELECT * FROM caixa_sessoes WHERE status = 'aberto' ORDER BY data_abertura DESC LIMIT 1");
+        return $stmt->fetch() ?: null;
+    }
+
+    $idCaixaSelecionado = $_SESSION['id_caixa_selecionado'] ?? null;
+    if (!$idCaixaSelecionado) {
+        return null;
+    }
+
+    $stmt = $pdo->prepare("SELECT * FROM caixa_sessoes WHERE id_caixa = :id AND status = 'aberto'");
+    $stmt->execute([':id' => $idCaixaSelecionado]);
+    $caixa = $stmt->fetch();
+
+    if (!$caixa) {
+        unset($_SESSION['id_caixa_selecionado']);
+        return null;
+    }
+
+    if (!caixasCompartilhados($pdo) && (int) $caixa['aberto_por'] !== (int) ($_SESSION['id_usuario'] ?? 0)) {
+        unset($_SESSION['id_caixa_selecionado']);
+        return null;
+    }
+
+    return $caixa;
 }
 
 function exigirCaixaAberto(PDO $pdo, bool $modo_json = false): array
@@ -15,7 +67,7 @@ function exigirCaixaAberto(PDO $pdo, bool $modo_json = false): array
             header('Content-Type: application/json');
             echo json_encode(['success' => false, 'message' => 'Nenhum caixa aberto.']);
         } else {
-            header('Location: /caixa/abertura.php');
+            header('Location: ' . (quantidadeCaixas($pdo) > 1 ? '/caixa/selecionar.php' : '/caixa/abertura.php'));
         }
         exit;
     }

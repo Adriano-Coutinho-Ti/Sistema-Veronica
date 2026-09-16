@@ -49,5 +49,6 @@ $pdo->prepare(
     ':ic' => $caixa['id_caixa'],
 ]);
 
-header('Location: /caixa/abertura.php?fechado=1');
+unset($_SESSION['id_caixa_selecionado']);
+header('Location: ' . (quantidadeCaixas($pdo) > 1 ? '/caixa/selecionar.php?fechado=1' : '/caixa/abertura.php?fechado=1'));
 exit;
