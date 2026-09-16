@@ -113,8 +113,13 @@ try {
         exit;
     }
 
-    $pdo->prepare('UPDATE vendas SET id_pagamento_mp = :id, pagamento_expira_em = :exp WHERE id_venda = :iv')
-        ->execute([':id' => $resposta['dados']['id'], ':exp' => $expiraEm->format('Y-m-d H:i:s'), ':iv' => $id_venda]);
+    $pdo->prepare('UPDATE vendas SET id_pagamento_mp = :id, pagamento_expira_em = :exp, link_pagamento_mp = :link WHERE id_venda = :iv')
+        ->execute([
+            ':id' => $resposta['dados']['id'],
+            ':exp' => $expiraEm->format('Y-m-d H:i:s'),
+            ':link' => $resposta['dados']['init_point'],
+            ':iv' => $id_venda,
+        ]);
 
     header('Location: ' . $resposta['dados']['init_point']);
     exit;

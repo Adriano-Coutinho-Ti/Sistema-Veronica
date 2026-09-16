@@ -88,6 +88,9 @@ if (!empty($listaRelacionados)) {
         <p class="alert alert-erro" style="margin-top:16px;">Item não liberado. Demora no pagamento. Se você já pagou, a loja entrará em contato pra resolver (reembolso ou reposição).</p>
     <?php elseif ($venda['status'] === 'Reservado'): ?>
         <p style="margin-top:16px;">Aguardando confirmação do pagamento...</p>
+        <?php if ($venda['link_pagamento_mp']): ?>
+        <p style="margin-top:10px;"><a href="<?= htmlspecialchars($venda['link_pagamento_mp']) ?>" class="btn btn-bloco">Continuar pagamento</a></p>
+        <?php endif; ?>
         <script>setTimeout(function () { window.location.reload(); }, 5000);</script>
     <?php endif; ?>
 

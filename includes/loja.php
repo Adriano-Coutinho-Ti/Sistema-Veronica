@@ -38,25 +38,40 @@ function liberarReservasExpiradas(PDO $pdo): void
     // novo, porque ela já não está mais 'Reservado'). Cada venda vai na sua própria transação;
     // o guard do inTransaction() mantém a função segura se algum chamador já tiver aberto uma.
     foreach ($vendasExpiradas as $id_venda) {
-        $jaEmTransacao = $pdo->inTransaction();
+        cancelarVendaReservadaLoja($pdo, (int) $id_venda);
+    }
+}
+
+/**
+ * Cancela uma venda 'Reservado' da loja online e devolve a reserva de
+ * estoque — usada tanto pela varredura automática de expiração acima quanto
+ * pelo cancelamento manual de um pagamento pendente (pedidos/ajax/
+ * cancelar_pagamento_mp.php). Retorna true só se realmente cancelou (a venda
+ * pode já ter mudado de status por outro caminho concorrente, ex.: o
+ * webhook confirmando o pagamento bem na hora).
+ */
+function cancelarVendaReservadaLoja(PDO $pdo, int $id_venda): bool
+{
+    $jaEmTransacao = $pdo->inTransaction();
+    if (!$jaEmTransacao) {
+        $pdo->beginTransaction();
+    }
+    try {
+        $cancelou = $pdo->prepare("UPDATE vendas SET status = 'Cancelado' WHERE id_venda = :id AND status = 'Reservado'");
+        $cancelou->execute([':id' => $id_venda]);
+        $cancelouDeVerdade = $cancelou->rowCount() > 0;
+        if ($cancelouDeVerdade) {
+            devolverReservaDaVenda($pdo, $id_venda);
+        }
         if (!$jaEmTransacao) {
-            $pdo->beginTransaction();
+            $pdo->commit();
         }
-        try {
-            $cancelou = $pdo->prepare("UPDATE vendas SET status = 'Cancelado' WHERE id_venda = :id AND status = 'Reservado'");
-            $cancelou->execute([':id' => $id_venda]);
-            if ($cancelou->rowCount() > 0) {
-                devolverReservaDaVenda($pdo, (int) $id_venda);
-            }
-            if (!$jaEmTransacao) {
-                $pdo->commit();
-            }
-        } catch (Throwable $e) {
-            if (!$jaEmTransacao && $pdo->inTransaction()) {
-                $pdo->rollBack();
-            }
-            throw $e;
+        return $cancelouDeVerdade;
+    } catch (Throwable $e) {
+        if (!$jaEmTransacao && $pdo->inTransaction()) {
+            $pdo->rollBack();
         }
+        throw $e;
     }
 }
 

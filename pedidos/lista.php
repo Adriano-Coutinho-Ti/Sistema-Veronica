@@ -6,15 +6,19 @@ exigirLogin();
 
 $busca = trim($_GET['busca'] ?? '');
 $filtro = $_GET['status_entrega'] ?? '';
-$filtroValido = $filtro === 'cancelados' || in_array($filtro, STATUS_ENTREGA_VALIDOS, true) ? $filtro : '';
+$filtroValido = $filtro === 'cancelados' || $filtro === 'aguardando_pagamento' || in_array($filtro, STATUS_ENTREGA_VALIDOS, true) ? $filtro : '';
 
-// Cancelado só aparece quando o filtro "Cancelados" é escolhido de propósito
-// — a lista principal (sem filtro) mostra só os pedidos pagos, pra não
-// misturar pedido ativo com pedido cancelado na mesma tela.
+// Aguardando pagamento (venda 'Reservado' com um pagamento do Mercado Pago em
+// andamento) e Cancelado só aparecem quando o filtro correspondente é
+// escolhido de propósito — a lista principal (sem filtro) mostra só os
+// pedidos pagos, pra não misturar com tentativa ainda não confirmada nem com
+// pedido cancelado na mesma tela.
 $where = "v.origem = 'loja'";
 $params = [];
 if ($filtroValido === 'cancelados') {
     $where .= " AND v.status = 'Cancelado'";
+} elseif ($filtroValido === 'aguardando_pagamento') {
+    $where .= " AND v.status = 'Reservado' AND v.pagamento_expira_em IS NOT NULL AND v.pagamento_expira_em > NOW()";
 } elseif ($filtroValido !== '') {
     $where .= " AND v.status = 'Pago' AND v.status_entrega = :se";
     $params[':se'] = $filtroValido;
@@ -40,7 +44,7 @@ $pagina = min($pagina, $totalPaginas);
 $offset = ($pagina - 1) * PEDIDOS_POR_PAGINA;
 
 $stmt = $pdo->prepare(
-    "SELECT v.id_venda, v.data_venda, v.valor_total, v.status, v.status_entrega, c.nome AS cliente_nome
+    "SELECT v.id_venda, v.data_venda, v.valor_total, v.status, v.status_entrega, v.pagamento_expira_em, c.nome AS cliente_nome
      FROM vendas v
      LEFT JOIN clientes c ON c.id_cliente = v.id_cliente
      WHERE $where
@@ -85,6 +89,7 @@ function montarLinkFiltroPedidos(int $pagina, string $status, string $busca): st
             <h2>Etapa</h2>
             <nav>
                 <a href="<?= montarLinkFiltroPedidos(1, '', $busca) ?>" class="<?= $filtroValido === '' ? 'ativa' : '' ?>">Todas</a>
+                <a href="<?= montarLinkFiltroPedidos(1, 'aguardando_pagamento', $busca) ?>" class="<?= $filtroValido === 'aguardando_pagamento' ? 'ativa' : '' ?>">Aguardando pagamento</a>
                 <?php foreach (STATUS_ENTREGA_VALIDOS as $s): ?>
                 <a href="<?= montarLinkFiltroPedidos(1, $s, $busca) ?>" class="<?= $filtroValido === $s ? 'ativa' : '' ?>"><?= htmlspecialchars($s) ?></a>
                 <?php endforeach; ?>
@@ -95,6 +100,7 @@ function montarLinkFiltroPedidos(int $pagina, string $status, string $busca): st
         <div>
             <div class="filtros-mobile">
                 <a href="<?= montarLinkFiltroPedidos(1, '', $busca) ?>" class="filtro-pill<?= $filtroValido === '' ? ' ativa' : '' ?>">Todas</a>
+                <a href="<?= montarLinkFiltroPedidos(1, 'aguardando_pagamento', $busca) ?>" class="filtro-pill<?= $filtroValido === 'aguardando_pagamento' ? ' ativa' : '' ?>">Aguardando pagamento</a>
                 <?php foreach (STATUS_ENTREGA_VALIDOS as $s): ?>
                 <a href="<?= montarLinkFiltroPedidos(1, $s, $busca) ?>" class="filtro-pill<?= $filtroValido === $s ? ' ativa' : '' ?>"><?= htmlspecialchars($s) ?></a>
                 <?php endforeach; ?>

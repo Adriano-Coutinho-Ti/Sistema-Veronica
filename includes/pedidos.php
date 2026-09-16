@@ -113,6 +113,9 @@ function classePillStatusPedido(string $status, ?string $status_entrega): string
     if ($status === 'Cancelado') {
         return 'cancelado';
     }
+    if ($status === 'Reservado') {
+        return 'alerta';
+    }
 
     return match ($status_entrega) {
         'Preparando' => 'preparando',

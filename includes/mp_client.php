@@ -26,7 +26,7 @@ function mpAppCredenciais(PDO $pdo): array
 }
 
 /**
- * Chamada genérica à API do Mercado Pago. $metodo é 'GET' ou 'POST'.
+ * Chamada genérica à API do Mercado Pago. $metodo é 'GET', 'POST' ou 'PUT'.
  */
 function mpChamarApi(string $metodo, string $url, ?array $payload, string $access_token, array $headersExtra = []): array
 {
@@ -42,6 +42,9 @@ function mpChamarApi(string $metodo, string $url, ?array $payload, string $acces
     ];
     if ($metodo === 'POST') {
         $opts[CURLOPT_POST] = true;
+        $opts[CURLOPT_POSTFIELDS] = json_encode($payload);
+    } elseif ($metodo === 'PUT') {
+        $opts[CURLOPT_CUSTOMREQUEST] = 'PUT';
         $opts[CURLOPT_POSTFIELDS] = json_encode($payload);
     }
 

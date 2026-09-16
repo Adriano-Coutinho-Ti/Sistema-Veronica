@@ -18,8 +18,9 @@ if (!$id_venda) {
 // se o cliente entra aqui mas o prazo continua correndo por trás; precisa
 // continuar visível e valendo até ele realmente clicar em pagar.
 $stmtV = $pdo->prepare(
-    "SELECT v.valor_total, v.data_venda, v.pagamento_expira_em, cl.prazo_reserva_minutos,
-            GREATEST(0, TIMESTAMPDIFF(SECOND, NOW(), DATE_ADD(v.data_venda, INTERVAL cl.prazo_reserva_minutos MINUTE))) AS segundos_restantes
+    "SELECT v.valor_total, v.data_venda, v.pagamento_expira_em, v.link_pagamento_mp, cl.prazo_reserva_minutos,
+            GREATEST(0, TIMESTAMPDIFF(SECOND, NOW(), DATE_ADD(v.data_venda, INTERVAL cl.prazo_reserva_minutos MINUTE))) AS segundos_restantes_carrinho,
+            GREATEST(0, TIMESTAMPDIFF(SECOND, NOW(), v.pagamento_expira_em)) AS segundos_restantes_pagamento
      FROM vendas v
      JOIN config_loja cl ON cl.id_config = 1
      WHERE v.id_venda = :id"
@@ -28,18 +29,20 @@ $stmtV->execute([':id' => $id_venda]);
 $venda = $stmtV->fetch();
 
 // pagamento_expira_em preenchido = já existe um pagamento em andamento (o cliente
-// voltou da tela do Mercado Pago sem terminar) — nesse caso o cronômetro do
-// carrinho não vale mais (ver includes/loja.php), então não faz sentido mostrar
-// nem arriscar redirecionar sozinho.
+// gerou um Pix/preferência e voltou pro checkout sem terminar, ex.: apertou
+// "voltar" no navegador ou fechou a aba do Mercado Pago) — nesse caso mostra
+// um retomar em vez do formulário de novo, com o prazo real dos 10 minutos do
+// próprio pagamento (não o do carrinho).
 $pagamentoEmAndamento = $venda['pagamento_expira_em'] !== null;
 
 // prazo_reserva_minutos = 0 é o "carrinho livre" (ver loja/carrinho.php) — sem
-// isso a conta acima dava 0 segundos restantes (data_venda + 0 minutos já
-// passou) e o cronômetro achava, assim que a página abria, que o tempo tinha
+// isso a conta do cronômetro do carrinho dava 0 segundos restantes (data_venda
+// + 0 minutos já passou) e a página achava, assim que abria, que o tempo tinha
 // acabado, redirecionando o cliente de volta pro catálogo antes até de ele
-// conseguir pagar. Não vale quando já tem pagamento em andamento — aí é o
-// prazo do próprio Mercado Pago (10 min) que conta, não o do carrinho.
+// conseguir pagar.
 $carrinhoLivre = !$pagamentoEmAndamento && (int) $venda['prazo_reserva_minutos'] === 0;
+$mostrarCronometro = $pagamentoEmAndamento || !$carrinhoLivre;
+$segundosRestantes = $pagamentoEmAndamento ? (int) $venda['segundos_restantes_pagamento'] : (int) $venda['segundos_restantes_carrinho'];
 
 $idsProdutosCheckout = [];
 if (!$pagamentoEmAndamento) {
@@ -80,13 +83,21 @@ $erro = $_GET['erro'] ?? '';
     </div>
     <?php if ($erro): ?><p class="alert alert-erro"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
 
-    <?php if (!$carrinhoLivre): ?>
+    <?php if ($mostrarCronometro): ?>
     <div class="timer-card" id="timer-card">
         <svg class="icon" style="width:1.6rem; height:1.6rem;" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 2a8 8 0 1 1 0 16 8 8 0 0 1 0-16Zm-1 3v6l5 3 1-1.6-4-2.4V7Z"/></svg>
         <span class="relogio" id="contagem">--:--</span>
-        <span class="texto">Tempo pra pagar antes dos itens voltarem pro estoque</span>
+        <span class="texto"><?= $pagamentoEmAndamento ? 'Tempo pra concluir o pagamento antes dos itens voltarem pro estoque' : 'Tempo pra pagar antes dos itens voltarem pro estoque' ?></span>
     </div>
     <?php endif; ?>
+
+    <?php if ($pagamentoEmAndamento): ?>
+    <div class="resumo-card" style="max-width:460px; margin:0 auto; text-align:center;">
+        <h2>Pagamento em andamento</h2>
+        <p style="color:var(--cor-texto-suave); margin-bottom:18px;">Você já iniciou o pagamento desse pedido no Mercado Pago. Se fechou a tela ou perdeu o QR Code, é só continuar de onde parou.</p>
+        <a href="<?= htmlspecialchars($venda['link_pagamento_mp']) ?>" class="btn btn-lg btn-bloco">Continuar pagamento</a>
+    </div>
+    <?php else: ?>
 
     <form method="post" id="form-checkout" action="/loja/ajax/gerar_checkout.php">
     <div class="layout-colunas">
@@ -132,8 +143,10 @@ $erro = $_GET['erro'] ?? '';
         </div>
     </div>
     </form>
+    <?php endif; ?>
 
 <script>
+<?php if (!$pagamentoEmAndamento): ?>
 function atualizarCampoEndereco() {
     const select = document.getElementById('id_entrega');
     const opcao = select.options[select.selectedIndex];
@@ -173,9 +186,10 @@ function atualizarTotalCheckout() {
 }
 document.getElementById('id_entrega').addEventListener('change', atualizarTotalCheckout);
 atualizarTotalCheckout();
+<?php endif; ?>
 
-<?php if (!$carrinhoLivre): ?>
-let restante = <?= (int) $venda['segundos_restantes'] ?>;
+<?php if ($mostrarCronometro): ?>
+let restante = <?= $segundosRestantes ?>;
 const idsProdutosCheckout = <?= json_encode($idsProdutosCheckout) ?>;
 
 function formatarTempo(segundos) {

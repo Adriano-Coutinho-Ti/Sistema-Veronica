@@ -33,6 +33,8 @@ $itens = $pdo->prepare(
 );
 $itens->execute([':id' => $id_venda]);
 $listaItens = $itens->fetchAll();
+
+$nomeLoja = $pdo->query('SELECT nome_loja FROM config_loja WHERE id_config = 1')->fetchColumn() ?: 'a loja';
 ?>
 <!DOCTYPE html>
 <html lang="pt-br">
@@ -82,6 +84,35 @@ $listaItens = $itens->fetchAll();
     </table>
     </div>
     </div>
+
+    <?php if ($pedido['status'] === 'Reservado' && $pedido['pagamento_expira_em'] !== null): ?>
+    <div class="card" style="margin-top:20px; max-width:480px;">
+    <h3>Pagamento pendente no Mercado Pago</h3>
+    <p style="color:var(--cor-texto-suave); font-size:0.9rem; margin-bottom:14px;">O cliente ainda não concluiu o pagamento. Expira em <?= htmlspecialchars(date('H:i', strtotime($pedido['pagamento_expira_em']))) ?> — se ele perdeu o QR Code, envie o link de pagamento de novo pelo WhatsApp.</p>
+    <button type="button" class="btn-outline" id="btn-compartilhar-pagamento">
+        <svg viewBox="0 0 24 24" aria-hidden="true" width="16" height="16"><path d="M12.04 2c-5.46 0-9.9 4.44-9.9 9.9 0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.9-4.44 9.9-9.9 0-2.64-1.03-5.12-2.9-6.98A9.82 9.82 0 0 0 12.04 2Zm0 1.67c2.19 0 4.25.85 5.8 2.4a8.2 8.2 0 0 1 2.4 5.83c0 4.54-3.7 8.23-8.24 8.23a8.2 8.2 0 0 1-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.18 8.18 0 0 1-1.26-4.37c0-4.54 3.7-8.23 8.24-8.23h.04Zm-4.6 4.2c-.16 0-.42.06-.64.31-.22.25-.85.83-.85 2.02s.87 2.35.99 2.51c.12.16 1.7 2.7 4.2 3.68 2.07.82 2.49.66 2.94.62.45-.04 1.45-.59 1.65-1.16.2-.57.2-1.06.14-1.16-.06-.1-.22-.16-.46-.28-.24-.12-1.45-.72-1.68-.8-.22-.08-.39-.12-.55.12-.16.24-.63.8-.77.96-.14.16-.28.18-.52.06-.24-.12-1.02-.38-1.94-1.2-.72-.64-1.2-1.44-1.34-1.68-.14-.24-.02-.37.1-.49.11-.11.24-.28.36-.42.12-.14.16-.24.24-.4.08-.16.04-.3-.02-.42-.06-.12-.55-1.35-.76-1.85-.2-.48-.4-.42-.55-.42Z"/></svg>
+        Compartilhar link no WhatsApp
+    </button>
+    <?php if (($_SESSION['perfil'] ?? '') === 'Admin'): ?>
+    <button type="button" class="btn-outline btn-perigo" id="btn-cancelar-pagamento" style="margin-top:10px;" data-confirm="Cancelar esse pagamento no Mercado Pago e liberar o estoque reservado?">Cancelar pagamento no Mercado Pago</button>
+    <p id="cancelar-pagamento-msg"></p>
+    <?php endif; ?>
+    </div>
+
+    <div class="modal-overlay" id="modal-compartilhar-pagamento" hidden>
+        <div class="modal-card">
+            <h3>Compartilhar link pelo WhatsApp</h3>
+            <p style="color:var(--cor-texto-suave); font-size:0.9rem; margin-bottom:14px;">Confira o número antes de enviar — o WhatsApp abre com a mensagem já pronta pra só conferir e mandar.</p>
+            <label>Número<input type="text" id="numero-compartilhar-pagamento" placeholder="Número com DDD" value="<?= htmlspecialchars($pedido['cliente_whatsapp'] ?? '') ?>"></label>
+            <label>Mensagem<textarea id="texto-compartilhar-pagamento" rows="6"></textarea></label>
+            <p id="erro-compartilhar-pagamento" class="alert alert-erro" style="display:none; margin-top:10px;"></p>
+            <div class="modal-acoes">
+                <button type="button" class="btn-outline" id="btn-cancelar-compartilhar-pagamento">Cancelar</button>
+                <button type="button" class="btn" id="btn-enviar-compartilhar-pagamento">Abrir WhatsApp</button>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
 
     <?php if ($pedido['status'] === 'Pago'): ?>
     <div class="card" style="margin-top:20px;">
@@ -177,6 +208,74 @@ if (btnCancelar && modalCancelar) {
                 erroMotivo.textContent = data.message;
                 erroMotivo.style.display = '';
             }
+        });
+    });
+}
+
+const btnCompartilharPagamento = document.getElementById('btn-compartilhar-pagamento');
+if (btnCompartilharPagamento) {
+    const nomeLoja = <?= json_encode($nomeLoja) ?>;
+    const linkPagamento = <?= json_encode($pedido['link_pagamento_mp'] ?? '') ?>;
+    const nomeCliente = <?= json_encode($pedido['cliente_nome'] ?? 'Cliente') ?>;
+    const valorPedido = <?= json_encode(number_format((float) $pedido['valor_total'], 2, ',', '.')) ?>;
+
+    const modalCompartilhar = document.getElementById('modal-compartilhar-pagamento');
+    const campoNumero = document.getElementById('numero-compartilhar-pagamento');
+    const campoTexto = document.getElementById('texto-compartilhar-pagamento');
+    const erroCompartilhar = document.getElementById('erro-compartilhar-pagamento');
+
+    function fecharModalCompartilhar() { modalCompartilhar.hidden = true; }
+
+    btnCompartilharPagamento.addEventListener('click', function () {
+        erroCompartilhar.style.display = 'none';
+        const primeiroNome = nomeCliente.split(' ')[0];
+        campoTexto.value = 'Olá, ' + primeiroNome + '! Segue o link pra você concluir o pagamento do seu pedido #' + idVenda + ' (R$ ' + valorPedido + ') na ' + nomeLoja + ':\n\n' + linkPagamento;
+        modalCompartilhar.hidden = false;
+    });
+
+    document.getElementById('btn-cancelar-compartilhar-pagamento').addEventListener('click', fecharModalCompartilhar);
+    modalCompartilhar.addEventListener('click', function (e) { if (e.target === modalCompartilhar) { fecharModalCompartilhar(); } });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !modalCompartilhar.hidden) { fecharModalCompartilhar(); } });
+
+    document.getElementById('btn-enviar-compartilhar-pagamento').addEventListener('click', function () {
+        let numero = campoNumero.value.replace(/\D/g, '');
+        if (numero.length === 10 || numero.length === 11) {
+            numero = '55' + numero;
+        }
+        if (numero.length !== 12 && numero.length !== 13) {
+            erroCompartilhar.textContent = 'Número inválido — confira o DDD.';
+            erroCompartilhar.style.display = '';
+            return;
+        }
+        window.open('https://wa.me/' + numero + '?text=' + encodeURIComponent(campoTexto.value), '_blank');
+        fecharModalCompartilhar();
+    });
+}
+
+const btnCancelarPagamento = document.getElementById('btn-cancelar-pagamento');
+if (btnCancelarPagamento) {
+    btnCancelarPagamento.addEventListener('click', function () {
+        confirmarAcao(btnCancelarPagamento.dataset.confirm).then(function (ok) {
+            if (!ok) { return; }
+            btnCancelarPagamento.disabled = true;
+            const msg = document.getElementById('cancelar-pagamento-msg');
+            fetch('/pedidos/ajax/cancelar_pagamento_mp.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'id_venda=' + idVenda
+            }).then(r => r.json()).then(function (data) {
+                msg.textContent = data.message;
+                msg.className = data.success ? 'alert alert-sucesso' : 'alert alert-erro';
+                if (data.success) {
+                    window.location.reload();
+                } else {
+                    btnCancelarPagamento.disabled = false;
+                }
+            }).catch(function () {
+                msg.textContent = 'Erro de conexão. Tente novamente.';
+                msg.className = 'alert alert-erro';
+                btnCancelarPagamento.disabled = false;
+            });
         });
     });
 }
