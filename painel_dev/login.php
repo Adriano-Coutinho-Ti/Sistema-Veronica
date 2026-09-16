@@ -15,6 +15,14 @@ const SENHA_INSTALACAO_MD5 = 'be1e875d04b3c459e88990acfa7eb5ad'; // md5('DevMast
 // desmarcar nada manualmente em nenhum passo do fluxo.
 $modoEdicaoBanco = isset($_GET['editar_banco']) || ($_POST['editar_banco'] ?? '') === '1';
 
+// Um clique novo em "Editar" (sempre chega como GET, nunca como parte de um
+// POST em andamento) exige a senha de instalação de novo, mesmo que ela já
+// tenha sido confirmada antes nesta mesma sessão — é justamente a proteção
+// extra pra essa tela, não pode virar "só pede uma vez por sessão".
+if (isset($_GET['editar_banco'])) {
+    unset($_SESSION['assistente_banco_autorizado']);
+}
+
 $mensagemConexao = '';
 $tipoMensagemConexao = '';
 $erroSenhaInstalacao = '';
