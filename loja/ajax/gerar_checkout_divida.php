@@ -62,12 +62,11 @@ $preference = [
         'failure' => urlBaseAtual() . '/loja/minha_divida.php',
     ],
     'auto_return' => 'approved',
-    // Preferences (/checkout/preferences) documenta marketplace_fee como o campo
-    // certo -- manda application_fee junto só como reforço, caso o comportamento
-    // real da conta divirja da doc; um campo que o endpoint não reconhece é
-    // simplesmente ignorado, não quebra a chamada.
+    // /v1/payments provou (em produção) que o Mercado Pago valida o nome dos
+    // parâmetros e rejeita o que não reconhece -- não dá pra supor que
+    // /checkout/preferences seja mais tolerante. marketplace_fee é o único
+    // campo documentado como correto aqui.
     'marketplace_fee' => $application_fee,
-    'application_fee' => $application_fee,
     'sponsor_id' => 194420711,
     'excluded_payment_types' => [
         ['id' => 'ticket'],

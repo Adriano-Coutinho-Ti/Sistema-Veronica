@@ -45,10 +45,10 @@ $payload = [
     'payer' => ['email' => 'pagamentos@brechodaveve.com.br'],
     'external_reference' => 'divida_' . $id_movimento,
     'notification_url' => urlBaseAtual() . '/integracoes/mercado_pago/webhook.php',
-    // Payments (/v1/payments) documenta application_fee como o campo certo --
-    // manda marketplace_fee junto só como reforço.
+    // /v1/payments valida o nome dos parâmetros e rejeita marketplace_fee
+    // (erro real confirmado em produção) -- application_fee é o único campo
+    // correto aqui.
     'application_fee' => $application_fee,
-    'marketplace_fee' => $application_fee,
     'sponsor_id' => 194420711,
 ];
 
