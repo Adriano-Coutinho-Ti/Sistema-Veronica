@@ -109,12 +109,12 @@ try {
 
     <div class="card" style="max-width:560px; margin-top:20px;">
         <h2>Mercado Pago (aplicativo)</h2>
-        <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:-8px; margin-bottom:16px;">Credenciais do aplicativo OAuth da CoderNex usado pra conectar a conta Mercado Pago de cada loja — não é o token da loja em si (isso fica em Configurações → Mercado Pago, dentro do admin normal). Deixe em branco pra continuar usando o que já está no arquivo de credenciais.</p>
+        <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:-8px; margin-bottom:16px;">Credenciais do aplicativo cadastrado em <a href="https://www.mercadopago.com.br/developers" target="_blank" rel="noopener">Mercado Pago Developers</a> — são elas que permitem o botão "Conectar Mercado Pago" funcionar (cada loja conecta a própria conta através desse aplicativo). Pegue o Client ID e o Client Secret na página do seu aplicativo, aba de credenciais de produção. Não é o token de pagamento de uma loja específica — isso cada lojista configura na própria conta, em Configurações → Mercado Pago.</p>
         <form method="post">
             <input type="hidden" name="acao" value="atualizar_mercado_pago">
-            <label>Client ID<input type="text" name="mp_app_client_id" value="<?= htmlspecialchars($config['mp_app_client_id'] ?? '') ?>" placeholder="Deixado em branco = usa o arquivo"></label>
-            <label>Client Secret<input type="text" name="mp_app_client_secret" value="<?= htmlspecialchars($config['mp_app_client_secret'] ?? '') ?>" placeholder="Deixado em branco = usa o arquivo"></label>
-            <label>Webhook Secret<input type="text" name="mp_webhook_secret" value="<?= htmlspecialchars($config['mp_webhook_secret'] ?? '') ?>" placeholder="Deixado em branco = usa o arquivo"></label>
+            <label>Client ID<input type="text" name="mp_app_client_id" value="<?= htmlspecialchars($config['mp_app_client_id'] ?? '') ?>" placeholder="Copie da página do aplicativo"></label>
+            <label>Client Secret<input type="text" name="mp_app_client_secret" value="<?= htmlspecialchars($config['mp_app_client_secret'] ?? '') ?>" placeholder="Copie da página do aplicativo"></label>
+            <label>Webhook Secret<input type="text" name="mp_webhook_secret" value="<?= htmlspecialchars($config['mp_webhook_secret'] ?? '') ?>" placeholder="Aparece depois de cadastrar a URL de webhook abaixo"></label>
             <button type="submit" class="btn-bloco">Salvar Mercado Pago</button>
         </form>
         <div style="margin-top:18px; padding-top:16px; border-top:1px solid var(--cor-borda);">
@@ -124,7 +124,7 @@ try {
         </div>
         <div style="margin-top:18px; padding-top:16px; border-top:1px solid var(--cor-borda);">
             <p style="font-size:0.85rem; font-weight:600; margin-bottom:8px;">URL de webhook (cadastrar no aplicativo, aba Webhooks)</p>
-            <p style="color:var(--cor-texto-suave); font-size:0.8rem; margin-top:-4px; margin-bottom:12px;">O Mercado Pago só aceita uma URL de webhook por aplicativo — esta única URL recebe a notificação de todos os fluxos de pagamento (loja, PDV e pagamento de dívida) e decide sozinha qual é qual.</p>
+            <p style="color:var(--cor-texto-suave); font-size:0.8rem; margin-top:-4px; margin-bottom:12px;">O Mercado Pago só aceita uma URL de webhook por aplicativo — esta única URL recebe a notificação de todos os fluxos de pagamento (loja, PDV e pagamento de dívida) e decide sozinha qual é qual. Ao cadastrar essa URL lá, o Mercado Pago mostra uma "assinatura secreta" — cole ela no campo Webhook Secret acima.</p>
             <label style="font-size:0.8rem;">URL de webhook<input type="text" readonly value="<?= htmlspecialchars($dominio) ?>/integracoes/mercado_pago/webhook.php" onclick="this.select()"></label>
         </div>
     </div>
