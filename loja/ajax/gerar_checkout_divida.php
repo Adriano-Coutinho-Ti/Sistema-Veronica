@@ -55,7 +55,7 @@ $preference = [
         'unit_price' => $valor,
     ]],
     'external_reference' => 'divida_' . $id_movimento,
-    'notification_url' => urlBaseAtual() . '/loja/api/notificacao_divida_mp.php',
+    'notification_url' => urlBaseAtual() . '/integracoes/mercado_pago/webhook.php',
     'back_urls' => [
         'success' => urlBaseAtual() . '/loja/minha_divida.php',
         'pending' => urlBaseAtual() . '/loja/minha_divida.php',

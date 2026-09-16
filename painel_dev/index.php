@@ -118,11 +118,14 @@ try {
             <button type="submit" class="btn-bloco">Salvar Mercado Pago</button>
         </form>
         <div style="margin-top:18px; padding-top:16px; border-top:1px solid var(--cor-borda);">
-            <p style="font-size:0.85rem; font-weight:600; margin-bottom:8px;">URLs de webhook pra cadastrar no painel do Mercado Pago</p>
-            <p style="color:var(--cor-texto-suave); font-size:0.8rem; margin-top:-4px; margin-bottom:12px;">Já montadas com o domínio deste site. Cada uma recebe a notificação de um fluxo de pagamento diferente — cole a que a tela do Mercado Pago pedir.</p>
-            <label style="font-size:0.8rem;">Loja / Checkout<input type="text" readonly value="<?= htmlspecialchars($dominio) ?>/loja/api/notificacao_mp.php" onclick="this.select()"></label>
-            <label style="font-size:0.8rem;">PDV / Caixa (Pix no balcão)<input type="text" readonly value="<?= htmlspecialchars($dominio) ?>/caixa/api/notificacao_mp.php" onclick="this.select()"></label>
-            <label style="font-size:0.8rem;">Pagamento de dívida (Linha de Crédito)<input type="text" readonly value="<?= htmlspecialchars($dominio) ?>/loja/api/notificacao_divida_mp.php" onclick="this.select()"></label>
+            <p style="font-size:0.85rem; font-weight:600; margin-bottom:8px;">Redirect URI (cadastrar no aplicativo, aba OAuth)</p>
+            <p style="color:var(--cor-texto-suave); font-size:0.8rem; margin-top:-4px; margin-bottom:12px;">O Mercado Pago só aceita "Conectar" se essa URL bater <strong>exatamente</strong> com a cadastrada no aplicativo — confira lá se está assim, sem barra a mais no final nem "www.".</p>
+            <label style="font-size:0.8rem;">Redirect URI<input type="text" readonly value="<?= htmlspecialchars($dominio) ?>/integracoes/mercado_pago/callback.php" onclick="this.select()"></label>
+        </div>
+        <div style="margin-top:18px; padding-top:16px; border-top:1px solid var(--cor-borda);">
+            <p style="font-size:0.85rem; font-weight:600; margin-bottom:8px;">URL de webhook (cadastrar no aplicativo, aba Webhooks)</p>
+            <p style="color:var(--cor-texto-suave); font-size:0.8rem; margin-top:-4px; margin-bottom:12px;">O Mercado Pago só aceita uma URL de webhook por aplicativo — esta única URL recebe a notificação de todos os fluxos de pagamento (loja, PDV e pagamento de dívida) e decide sozinha qual é qual.</p>
+            <label style="font-size:0.8rem;">URL de webhook<input type="text" readonly value="<?= htmlspecialchars($dominio) ?>/integracoes/mercado_pago/webhook.php" onclick="this.select()"></label>
         </div>
     </div>
 

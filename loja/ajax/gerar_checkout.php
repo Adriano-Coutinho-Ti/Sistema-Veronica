@@ -86,7 +86,7 @@ $expiraEm = (clone $agora)->modify('+10 minutes');
 $preference = [
     'items' => $itensMp,
     'external_reference' => 'loja_' . $id_venda,
-    'notification_url' => urlBaseAtual() . '/loja/api/notificacao_mp.php',
+    'notification_url' => urlBaseAtual() . '/integracoes/mercado_pago/webhook.php',
     'back_urls' => [
         'success' => urlBaseAtual() . '/loja/pedido_status.php?id_venda=' . $id_venda,
         'pending' => urlBaseAtual() . '/loja/pedido_status.php?id_venda=' . $id_venda,

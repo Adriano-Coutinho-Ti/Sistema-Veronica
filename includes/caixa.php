@@ -202,3 +202,30 @@ function finalizarVenda(PDO $pdo, int $id_venda, array $pagamentos, ?string $id_
         return ['success' => false, 'message' => $e->getMessage(), 'redirect' => null];
     }
 }
+
+/**
+ * Processa o webhook do Mercado Pago pro fluxo do PDV (Pix no balcão) —
+ * chamado pelo endpoint único em integracoes/mercado_pago/webhook.php quando
+ * o external_reference do pagamento começa com "venda_".
+ */
+function processarWebhookVendaCaixa(PDO $pdo, int $id_venda, array $pagamento, string $dataId): void
+{
+    if (($pagamento['status'] ?? null) !== 'approved') {
+        return;
+    }
+
+    $stmt = $pdo->prepare('SELECT valor_total, status FROM vendas WHERE id_venda = :id');
+    $stmt->execute([':id' => $id_venda]);
+    $venda = $stmt->fetch();
+
+    if ($venda && $venda['status'] === 'Reservado') {
+        // Usa o valor que o Mercado Pago confirma ter recebido (transaction_amount),
+        // não uma releitura do total atual da venda — ver mesma nota em
+        // verificar_pagamento.php.
+        $valorPago = (float) ($pagamento['transaction_amount'] ?? 0);
+        $resultado = finalizarVenda($pdo, $id_venda, [['forma' => 'Pix', 'valor' => $valorPago]], $dataId);
+        if (!$resultado['success']) {
+            error_log('Webhook MP: falha ao finalizar venda ' . $id_venda . ': ' . $resultado['message']);
+        }
+    }
+}

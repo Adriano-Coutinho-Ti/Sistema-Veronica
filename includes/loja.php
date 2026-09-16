@@ -230,3 +230,61 @@ function dispararVerificacaoEmail(PDO $pdo, int $id_cliente, string $email, stri
     }
     return $resultado;
 }
+
+/**
+ * Processa o webhook do Mercado Pago pro fluxo da loja online (checkout) —
+ * chamado pelo endpoint único em integracoes/mercado_pago/webhook.php quando
+ * o external_reference do pagamento começa com "loja_".
+ */
+function processarWebhookVendaLoja(PDO $pdo, int $id_venda, array $pagamento, string $dataId): void
+{
+    $statusPagamento = $pagamento['status'] ?? null;
+
+    if ($statusPagamento === 'approved') {
+        $stmt = $pdo->prepare("SELECT status FROM vendas WHERE id_venda = :id AND origem = 'loja'");
+        $stmt->execute([':id' => $id_venda]);
+        $venda = $stmt->fetch();
+
+        if ($venda && $venda['status'] === 'Reservado') {
+            $valorPago = (float) ($pagamento['transaction_amount'] ?? 0);
+            $resultado = finalizarVenda($pdo, $id_venda, [['forma' => 'Mercado Pago', 'valor' => $valorPago]], $dataId);
+
+            if (!$resultado['success']) {
+                error_log('Webhook loja MP: falha ao finalizar venda ' . $id_venda . ': ' . $resultado['message']);
+
+                // Só falta de estoque real cancela a venda automaticamente — nesse caso não
+                // tem como entregar o pedido, então liberar a reserva é o certo.
+                //
+                // O Mercado Pago pode entregar a mesma notificação mais de uma vez.
+                // Se duas chamadas concorrentes chegarem aqui, o FOR UPDATE dentro de
+                // finalizarVenda() garante que só uma finalize a venda — a outra recebe
+                // success:false só porque perdeu a corrida. Por isso o UPDATE guardado
+                // roda primeiro: só quem realmente transiciona Reservado -> Cancelado
+                // (rowCount() > 0) é que devolve a reserva. Isso evita devolver estoque
+                // que já foi legitimamente consumido pela chamada vencedora.
+                if (str_contains($resultado['message'], 'Estoque insuficiente')) {
+                    $cancelou = $pdo->prepare("UPDATE vendas SET status = 'Cancelado' WHERE id_venda = :id AND status = 'Reservado'");
+                    $cancelou->execute([':id' => $id_venda]);
+                    if ($cancelou->rowCount() > 0) {
+                        devolverReservaDaVenda($pdo, $id_venda);
+                    }
+                }
+                // Outros motivos de falha (pagamento parcial/insuficiente, venda já finalizada por uma
+                // notificação concorrente, erro transitório de lock) NÃO cancelam a venda automaticamente —
+                // ficam só registrados no log acima. A venda continua 'Reservado', podendo ainda ser
+                // finalizada por uma notificação subsequente (ex.: segunda parte de um pagamento dividido)
+                // ou expirar normalmente pelo prazo de reserva se for realmente abandonada.
+            }
+        }
+    } elseif (in_array($statusPagamento, ['rejected', 'cancelled'], true)) {
+        // Cartão recusado, Pix cancelado/expirado no lado do Mercado Pago etc. — não é
+        // culpa do cliente ter chegado primeiro no produto, então ele ganha um novo
+        // prazo de reserva inteiro pra tentar de novo (novo Pix, outro cartão) em vez
+        // de perder o item na hora. Só reinicia venda que ainda está 'Reservado' — se
+        // já foi finalizada ou cancelada por outro caminho, não mexe em nada.
+        $pdo->prepare(
+            "UPDATE vendas SET data_venda = NOW(), pagamento_expira_em = NULL
+             WHERE id_venda = :id AND origem = 'loja' AND status = 'Reservado'"
+        )->execute([':id' => $id_venda]);
+    }
+}

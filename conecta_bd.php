@@ -90,7 +90,16 @@ function dominioAtual(): string
 
 function urlBaseAtual(): string
 {
-    $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (($_SERVER['SERVER_PORT'] ?? '') == 443);
+    // Em hospedagem atrás de proxy/balanceador que termina o HTTPS antes do
+    // PHP, $_SERVER['HTTPS'] pode nunca chegar setado mesmo com o site sendo
+    // servido em https — nesse caso quem carrega essa informação é o
+    // cabeçalho X-Forwarded-Proto. Sem checar isso, uma redirect_uri/webhook
+    // montada como "http://" quando o site real é "https://" faz o Mercado
+    // Pago recusar a conexão por não bater com o que está cadastrado lá.
+    $protocoloForwardeado = strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? ''));
+    $https = $protocoloForwardeado === 'https'
+        || (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+        || (($_SERVER['SERVER_PORT'] ?? '') == 443);
     return ($https ? 'https' : 'http') . '://' . dominioAtual();
 }
 
