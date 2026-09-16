@@ -36,7 +36,7 @@ $pdo->prepare("INSERT INTO movimentos_credito (id_cliente, tipo, status, valor, 
     ->execute([':ic' => $id_cliente, ':valor' => $valor, ':criado_por' => (int) $_SESSION['id_usuario']]);
 $id_movimento = (int) $pdo->lastInsertId();
 
-$application_fee = ceil($valor * 0.01 * 100) / 100;
+$application_fee = ceil($valor * (mpTaxaMarketplace($pdo) / 100) * 100) / 100;
 
 $payload = [
     'transaction_amount' => round($valor, 2),

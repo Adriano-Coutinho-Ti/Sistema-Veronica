@@ -26,6 +26,17 @@ function mpAppCredenciais(PDO $pdo): array
 }
 
 /**
+ * Percentual da taxa de marketplace cobrada em toda venda via Mercado Pago
+ * (loja, PDV e pagamento de dívida) — configurável pelo painel_dev. Retorna
+ * como percentual (1.5 = 1,5%), não como fração.
+ */
+function mpTaxaMarketplace(PDO $pdo): float
+{
+    $taxa = $pdo->query('SELECT marketplace_fee_percentual FROM config_dev WHERE id_config = 1')->fetchColumn();
+    return $taxa !== false && $taxa !== null ? (float) $taxa : 1.0;
+}
+
+/**
  * Chamada genérica à API do Mercado Pago. $metodo é 'GET', 'POST' ou 'PUT'.
  */
 function mpChamarApi(string $metodo, string $url, ?array $payload, string $access_token, array $headersExtra = []): array

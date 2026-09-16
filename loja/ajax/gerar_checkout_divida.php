@@ -45,7 +45,7 @@ $pdo->prepare(
 )->execute([':ic' => $id_cliente, ':valor' => $valor]);
 $id_movimento = (int) $pdo->lastInsertId();
 
-$application_fee = ceil($valor * 0.01 * 100) / 100;
+$application_fee = ceil($valor * (mpTaxaMarketplace($pdo) / 100) * 100) / 100;
 
 $preference = [
     'items' => [[

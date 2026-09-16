@@ -73,7 +73,7 @@ if ((float) $entrega['custo'] > 0) {
     $itensMp[] = ['title' => 'Entrega: ' . $entrega['nome'], 'quantity' => 1, 'currency_id' => 'BRL', 'unit_price' => (float) $entrega['custo']];
 }
 
-$application_fee = ceil($valorTotalComEntrega * 0.01 * 100) / 100;
+$application_fee = ceil($valorTotalComEntrega * (mpTaxaMarketplace($pdo) / 100) * 100) / 100;
 
 // A partir do clique em "Pagar com Mercado Pago", o cliente tem X minutos pra
 // concluir o pagamento (configurável em Configurações → PDV → "Carrinho da

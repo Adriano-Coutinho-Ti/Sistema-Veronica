@@ -24,7 +24,7 @@ if (!$config || empty($config['mp_access_token'])) {
 $notification_url = urlBaseAtual() . '/integracoes/mercado_pago/webhook.php';
 
 $valor_total = (float) $venda['valor_total'];
-$application_fee = ceil($valor_total * 0.01 * 100) / 100;
+$application_fee = ceil($valor_total * (mpTaxaMarketplace($pdo) / 100) * 100) / 100;
 $external_reference = 'venda_' . $id_venda;
 
 $payload = [

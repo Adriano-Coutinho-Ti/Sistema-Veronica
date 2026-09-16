@@ -16,14 +16,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'atualiz
         $sucesso = 'Nome do sistema atualizado.';
     }
 } elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'atualizar_mercado_pago') {
-    $pdo->prepare(
-        'UPDATE config_dev SET mp_app_client_id = :id, mp_app_client_secret = :secret, mp_webhook_secret = :webhook WHERE id_config = 1'
-    )->execute([
-        ':id' => trim($_POST['mp_app_client_id'] ?? '') ?: null,
-        ':secret' => trim($_POST['mp_app_client_secret'] ?? '') ?: null,
-        ':webhook' => trim($_POST['mp_webhook_secret'] ?? '') ?: null,
-    ]);
-    $sucesso = 'Credenciais do Mercado Pago atualizadas.';
+    $taxaMarketplace = (float) str_replace(',', '.', $_POST['marketplace_fee_percentual'] ?? '');
+    if ($taxaMarketplace <= 0 || $taxaMarketplace > 100) {
+        $erro = 'A taxa de marketplace deve ser maior que 0% e no máximo 100%.';
+    } else {
+        $pdo->prepare(
+            'UPDATE config_dev SET mp_app_client_id = :id, mp_app_client_secret = :secret, mp_webhook_secret = :webhook, marketplace_fee_percentual = :taxa WHERE id_config = 1'
+        )->execute([
+            ':id' => trim($_POST['mp_app_client_id'] ?? '') ?: null,
+            ':secret' => trim($_POST['mp_app_client_secret'] ?? '') ?: null,
+            ':webhook' => trim($_POST['mp_webhook_secret'] ?? '') ?: null,
+            ':taxa' => $taxaMarketplace,
+        ]);
+        $sucesso = 'Credenciais do Mercado Pago atualizadas.';
+    }
 } elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'atualizar_rodape') {
     $pdo->prepare('UPDATE config_dev SET footer_nome = :nome, footer_link = :link WHERE id_config = 1')->execute([
         ':nome' => trim($_POST['footer_nome'] ?? '') ?: null,
@@ -115,6 +121,8 @@ try {
             <label>Client ID<input type="text" name="mp_app_client_id" value="<?= htmlspecialchars($config['mp_app_client_id'] ?? '') ?>" placeholder="Copie da página do aplicativo"></label>
             <label>Client Secret<input type="text" name="mp_app_client_secret" value="<?= htmlspecialchars($config['mp_app_client_secret'] ?? '') ?>" placeholder="Copie da página do aplicativo"></label>
             <label>Webhook Secret<input type="text" name="mp_webhook_secret" value="<?= htmlspecialchars($config['mp_webhook_secret'] ?? '') ?>" placeholder="Aparece depois de cadastrar a URL de webhook abaixo"></label>
+            <label>Taxa de marketplace (%)<input type="text" name="marketplace_fee_percentual" value="<?= htmlspecialchars((string) ($config['marketplace_fee_percentual'] ?? '1.00')) ?>" required></label>
+            <p style="color:var(--cor-texto-suave); font-size:0.8rem; margin-top:-8px;">Percentual cobrado em toda venda paga pelo Mercado Pago (loja, PDV e pagamento de dívida). Precisa ser maior que 0%.</p>
             <button type="submit" class="btn-bloco">Salvar Mercado Pago</button>
         </form>
         <div style="margin-top:18px; padding-top:16px; border-top:1px solid var(--cor-borda);">
