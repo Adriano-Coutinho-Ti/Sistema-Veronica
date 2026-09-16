@@ -81,8 +81,9 @@ try {
             <p style="margin:0;"><strong>Senha:</strong> <?= htmlspecialchars($password ?? '') ?></p>
         </div>
         <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:10px;">
-            Host, usuário, senha e nome do banco <strong>não dá pra editar por aqui</strong> — o sistema precisa desses dados só pra conseguir abrir esta tela, então eles não podem depender de já estar conectado. Pra trocar, edite o arquivo <code>config_credenciais.php</code> (raiz do projeto) direto por FTP, ou apague-o e faça login de novo — a tela de login abre o assistente de configuração automaticamente quando não encontra um banco conectado.
+            Pra trocar qualquer um desses dados, use o botão abaixo — vai pedir a senha de instalação de novo, a mesma usada na primeira configuração.
         </p>
+        <a href="/painel_dev/login.php?editar_banco=1" class="btn-outline btn-sm" style="margin-top:6px;">Editar dados do banco</a>
     </div>
 
     <div class="card" style="max-width:560px; margin-top:20px;">

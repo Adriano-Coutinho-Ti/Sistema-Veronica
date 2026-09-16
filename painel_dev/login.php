@@ -8,6 +8,13 @@ require_once __DIR__ . '/../includes/auth_dev.php';
 // durante uma falha real de conexão em produção já veja o formulário.
 const SENHA_INSTALACAO_MD5 = 'be1e875d04b3c459e88990acfa7eb5ad'; // md5('DevMaster')
 
+// Botão "Editar" em painel_dev/index.php manda pra cá com ?editar_banco=1
+// pra reabrir o mesmo assistente mesmo com o banco já conectado. Fica preso
+// num campo escondido nos formulários (não numa flag de sessão) pra sumir
+// sozinho assim que o navegador parar de mandar o parâmetro — sem precisar
+// desmarcar nada manualmente em nenhum passo do fluxo.
+$modoEdicaoBanco = isset($_GET['editar_banco']) || ($_POST['editar_banco'] ?? '') === '1';
+
 $mensagemConexao = '';
 $tipoMensagemConexao = '';
 $erroSenhaInstalacao = '';
@@ -68,10 +75,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'configu
 }
 
 $bancoDisponivel = BANCO_CONFIGURADO && isset($pdo) && $pdo instanceof PDO;
+$mostrarAssistente = !$bancoDisponivel || $modoEdicaoBanco;
 
 $erro = '';
 
-if ($bancoDisponivel) {
+if ($bancoDisponivel && !$modoEdicaoBanco) {
     if (!empty($_SESSION['dev_usuario_id'])) {
         header('Location: /painel_dev/index.php');
         exit;
@@ -121,23 +129,29 @@ $versaoCssAdmin = @filemtime(__DIR__ . '/../assets/css/admin.css') ?: time();
 </head>
 <body style="background:#0F172A;">
 <main class="container">
-    <?php if (!$bancoDisponivel && empty($_SESSION['assistente_banco_autorizado'])): ?>
+    <?php if ($mostrarAssistente && empty($_SESSION['assistente_banco_autorizado'])): ?>
 
         <div class="auth-card">
-            <p style="text-align:center; text-transform:uppercase; letter-spacing:0.08em; font-size:0.75rem; font-weight:700; color:var(--cor-primaria); margin-bottom:6px;">Configuração inicial</p>
+            <p style="text-align:center; text-transform:uppercase; letter-spacing:0.08em; font-size:0.75rem; font-weight:700; color:var(--cor-primaria); margin-bottom:6px;">Configuração <?= $modoEdicaoBanco ? 'do banco' : 'inicial' ?></p>
             <h1>Senha de instalação</h1>
-            <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:-8px; margin-bottom:16px;">O sistema ainda não está conectado a um banco de dados. Confirme a senha de instalação pra abrir o assistente de configuração.</p>
+            <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:-8px; margin-bottom:16px;">
+                <?= $modoEdicaoBanco
+                    ? 'Confirme a senha de instalação pra editar os dados de conexão com o banco.'
+                    : 'O sistema ainda não está conectado a um banco de dados. Confirme a senha de instalação pra abrir o assistente de configuração.' ?>
+            </p>
             <?php if ($erroSenhaInstalacao): ?>
                 <p class="alert alert-erro"><?= htmlspecialchars($erroSenhaInstalacao) ?></p>
             <?php endif; ?>
             <form method="post">
                 <input type="hidden" name="acao" value="verificar_senha_instalacao">
+                <?php if ($modoEdicaoBanco): ?><input type="hidden" name="editar_banco" value="1"><?php endif; ?>
                 <label>Senha de instalação<input type="password" name="senha_instalacao" required autofocus></label>
                 <button type="submit" class="btn-bloco">Continuar</button>
             </form>
+            <?php if ($modoEdicaoBanco): ?><p style="text-align:center; margin-top:14px;"><a href="/painel_dev/index.php">Cancelar</a></p><?php endif; ?>
         </div>
 
-    <?php elseif (!$bancoDisponivel): ?>
+    <?php elseif ($mostrarAssistente): ?>
 
         <?php if ($tipoMensagemConexao): ?>
         <div class="auth-card" id="alerta-conexao">
@@ -146,17 +160,23 @@ $versaoCssAdmin = @filemtime(__DIR__ . '/../assets/css/admin.css') ?: time();
         <?php endif; ?>
 
         <div class="auth-card" id="form-configurar-banco" <?= $tipoMensagemConexao ? 'hidden' : '' ?>>
-            <p style="text-align:center; text-transform:uppercase; letter-spacing:0.08em; font-size:0.75rem; font-weight:700; color:var(--cor-primaria); margin-bottom:6px;">Configuração inicial</p>
+            <p style="text-align:center; text-transform:uppercase; letter-spacing:0.08em; font-size:0.75rem; font-weight:700; color:var(--cor-primaria); margin-bottom:6px;">Configuração <?= $modoEdicaoBanco ? 'do banco' : 'inicial' ?></p>
             <h1>Conectar ao banco de dados</h1>
-            <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:-8px; margin-bottom:16px;">Preencha os dados de acesso abaixo — depois de conectar, o resto da configuração (Mercado Pago, e-mail, nome do sistema) fica disponível aqui mesmo no painel.</p>
+            <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:-8px; margin-bottom:16px;">
+                <?= $modoEdicaoBanco
+                    ? 'Os campos abaixo já vêm preenchidos com a conexão atual — troque só o que for preciso.'
+                    : 'Preencha os dados de acesso abaixo — depois de conectar, o resto da configuração (Mercado Pago, e-mail, nome do sistema) fica disponível aqui mesmo no painel.' ?>
+            </p>
             <form method="post">
                 <input type="hidden" name="acao" value="configurar_banco">
+                <?php if ($modoEdicaoBanco): ?><input type="hidden" name="editar_banco" value="1"><?php endif; ?>
                 <label>Host<input type="text" name="db_host" value="<?= htmlspecialchars($valorHost) ?>" required autofocus></label>
                 <label>Nome do banco<input type="text" name="db_dbname" value="<?= htmlspecialchars($valorDbname) ?>" required></label>
                 <label>Usuário<input type="text" name="db_username" value="<?= htmlspecialchars($valorUsername) ?>" required></label>
                 <label>Senha<input type="password" name="db_password" required></label>
                 <button type="submit" class="btn-bloco">Conectar e salvar</button>
             </form>
+            <?php if ($modoEdicaoBanco): ?><p style="text-align:center; margin-top:14px;"><a href="/painel_dev/index.php">Cancelar</a></p><?php endif; ?>
         </div>
 
         <?php if ($tipoMensagemConexao): ?>
