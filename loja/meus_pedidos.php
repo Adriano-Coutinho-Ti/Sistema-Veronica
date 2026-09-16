@@ -16,15 +16,23 @@ if (!in_array($filtro, $filtrosValidos, true)) {
 // da loja online — o cliente identificado na venda de balcão também deve
 // ver essa compra aqui, só marcada visualmente como "comprada na loja"
 // (mais abaixo, no card de cada pedido).
+//
+// "Aguardando pagamento" (venda 'Reservado' que já foi pro Mercado Pago —
+// pagamento_expira_em preenchido e ainda não vencido) conta como pedido
+// ativo desde que o cliente clicou em pagar, mesmo antes do webhook
+// confirmar — é a partir desse clique que a venda deixa de ser "carrinho"
+// (ver buscarCarrinhoDoCliente()) e vira um pedido de verdade.
+$aguardandoPagamento = "(v.status = 'Reservado' AND v.pagamento_expira_em IS NOT NULL AND v.pagamento_expira_em > NOW())";
 $where = 'v.id_cliente = :ic AND v.origem IN (\'loja\', \'pdv\')';
 $params = [':ic' => $id_cliente];
 if ($filtro === '') {
-    // Padrão: só pedidos ativos, sem os cancelados atrapalhando a visão geral.
-    $where .= ' AND v.status = \'Pago\'';
+    // Padrão: pedidos ativos (pagos ou aguardando pagamento), sem os
+    // cancelados atrapalhando a visão geral.
+    $where .= " AND (v.status = 'Pago' OR $aguardandoPagamento)";
 } elseif ($filtro === 'todos') {
-    $where .= ' AND v.status IN (\'Pago\', \'Cancelado\')';
+    $where .= " AND (v.status IN ('Pago', 'Cancelado') OR $aguardandoPagamento)";
 } elseif ($filtro === 'Cancelado') {
-    $where .= ' AND v.status = \'Cancelado\'';
+    $where .= " AND v.status = 'Cancelado'";
 } else {
     $where .= ' AND v.status = \'Pago\' AND v.status_entrega = :se';
     $params[':se'] = $filtro;

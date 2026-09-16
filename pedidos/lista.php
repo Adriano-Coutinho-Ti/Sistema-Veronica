@@ -8,22 +8,22 @@ $busca = trim($_GET['busca'] ?? '');
 $filtro = $_GET['status_entrega'] ?? '';
 $filtroValido = $filtro === 'cancelados' || $filtro === 'aguardando_pagamento' || in_array($filtro, STATUS_ENTREGA_VALIDOS, true) ? $filtro : '';
 
-// Aguardando pagamento (venda 'Reservado' com um pagamento do Mercado Pago em
-// andamento) e Cancelado só aparecem quando o filtro correspondente é
-// escolhido de propósito — a lista principal (sem filtro) mostra só os
-// pedidos pagos, pra não misturar com tentativa ainda não confirmada nem com
-// pedido cancelado na mesma tela.
+// Cancelado só aparece quando o filtro é escolhido de propósito — não faz
+// parte da visão geral. Aguardando pagamento (venda 'Reservado' que já foi
+// pro Mercado Pago) já entra em "Todas" junto com os pagos, porque a partir
+// do clique em pagar aquilo já é um pedido de verdade, não só uma tentativa.
+$aguardandoPagamento = "(v.status = 'Reservado' AND v.pagamento_expira_em IS NOT NULL AND v.pagamento_expira_em > NOW())";
 $where = "v.origem = 'loja'";
 $params = [];
 if ($filtroValido === 'cancelados') {
     $where .= " AND v.status = 'Cancelado'";
 } elseif ($filtroValido === 'aguardando_pagamento') {
-    $where .= " AND v.status = 'Reservado' AND v.pagamento_expira_em IS NOT NULL AND v.pagamento_expira_em > NOW()";
+    $where .= " AND $aguardandoPagamento";
 } elseif ($filtroValido !== '') {
     $where .= " AND v.status = 'Pago' AND v.status_entrega = :se";
     $params[':se'] = $filtroValido;
 } else {
-    $where .= " AND v.status = 'Pago'";
+    $where .= " AND (v.status = 'Pago' OR $aguardandoPagamento)";
 }
 if ($busca !== '') {
     $where .= ' AND (c.nome LIKE :busca OR v.id_venda = :buscaId)';

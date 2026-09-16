@@ -97,13 +97,19 @@ function devolverReservaDaVenda(PDO $pdo, int $id_venda): void
 }
 
 /**
- * Busca a venda "Reservado" em andamento deste cliente na loja online, se
- * houver.
+ * Busca o carrinho "Reservado" ainda em montagem deste cliente na loja
+ * online, se houver — NÃO inclui uma venda que já foi pro Mercado Pago
+ * (pagamento_expira_em preenchido): a partir do momento que o cliente clica
+ * em pagar, aquela venda vira um pedido de verdade (visível em
+ * meus_pedidos.php como "Aguardando pagamento") e deixa de ser "o carrinho";
+ * adicionar um novo item nesse momento cria um carrinho novo do zero (ver
+ * loja/ajax/adicionar_item.php), em vez de voltar a mexer num pedido que já
+ * está em pagamento.
  */
 function buscarCarrinhoDoCliente(PDO $pdo, int $id_cliente): ?int
 {
     $stmt = $pdo->prepare(
-        "SELECT id_venda FROM vendas WHERE id_cliente = :ic AND origem = 'loja' AND status = 'Reservado' ORDER BY data_venda DESC LIMIT 1"
+        "SELECT id_venda FROM vendas WHERE id_cliente = :ic AND origem = 'loja' AND status = 'Reservado' AND pagamento_expira_em IS NULL ORDER BY data_venda DESC LIMIT 1"
     );
     $stmt->execute([':ic' => $id_cliente]);
     $id = $stmt->fetchColumn();
