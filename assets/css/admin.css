@@ -338,6 +338,31 @@ textarea { min-height: 88px; }
 .card-cabecalho { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
 .card-cabecalho h2 { margin-bottom: 0; }
 
+/* Cartão-sanfona (<details class="card card-sanfona" name="...">) -- usado
+   no painel do dev pra cada assunto virar uma seção que expande/recolhe,
+   só uma aberta por vez (o atributo name do <details> já garante isso
+   sozinho, sem JS). */
+.card-sanfona { padding: 0; overflow: hidden; }
+.card-sanfona > summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 18px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    font-family: var(--fonte-titulo);
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+.card-sanfona > summary::-webkit-details-marker { display: none; }
+.card-sanfona > summary:hover { background: var(--cor-primaria-suave); }
+.card-sanfona > summary .icone-sanfona { flex-shrink: 0; transition: transform 0.15s ease; color: var(--cor-texto-suave); }
+.card-sanfona[open] > summary .icone-sanfona { transform: rotate(180deg); }
+.card-sanfona[open] > summary { border-bottom: 1px solid var(--cor-borda); }
+.card-sanfona > .sanfona-corpo { padding: 20px; }
+.card-sanfona > .sanfona-corpo > *:first-child { margin-top: 0; }
+
 /* Toggle "Produto ativo" — switch de verdade (estilo iOS), não um checkbox
    solto fácil de passar batido. Vive ao lado do título do cartão. */
 .toggle-switch { display: inline-flex; align-items: center; gap: 9px; cursor: pointer; user-select: none; }
