@@ -84,6 +84,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'atualiz
         }
     }
     $sucesso = 'Maquininhas atualizadas.';
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'atualizar_travamento') {
+    $travamentoEscolhido = $_POST['travamento_ativo'] ?? '';
+    $travamentoEscolhido = in_array($travamentoEscolhido, ['pagamento', 'manutencao'], true) ? $travamentoEscolhido : null;
+
+    $pdo->prepare(
+        'UPDATE config_dev SET travamento_ativo = :t, travamento_pagamento_mensagem = :mp, travamento_manutencao_mensagem = :mm WHERE id_config = 1'
+    )->execute([
+        ':t' => $travamentoEscolhido,
+        ':mp' => trim($_POST['travamento_pagamento_mensagem'] ?? '') ?: null,
+        ':mm' => trim($_POST['travamento_manutencao_mensagem'] ?? '') ?: null,
+    ]);
+    $sucesso = 'Travamento atualizado.';
 }
 
 // Qual seção da sanfona abre sozinha depois de salvar um formulário -- tanto
@@ -267,7 +279,90 @@ $vinculosAtuais = $pdo->query('SELECT numero_caixa, terminal_id FROM caixa_termi
             <?php endif; ?>
         </div>
     </details>
+
+    <details class="card card-sanfona" name="sanfona-dev" <?= $acaoAbrir === 'atualizar_travamento' ? 'open' : '' ?>>
+        <summary>Travamentos <svg class="icone-sanfona" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
+        <div class="sanfona-corpo">
+            <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:0; margin-bottom:16px;">Só um travamento pode estar ativo por vez — escolher um desliga o outro sozinho.</p>
+            <form method="post" id="form-travamento">
+                <input type="hidden" name="acao" value="atualizar_travamento">
+                <label style="flex-direction:row; align-items:center; gap:8px;">
+                    <input type="radio" name="travamento_ativo" value="" style="width:auto;" data-radio-travamento <?= empty($config['travamento_ativo']) ? 'checked' : '' ?>>
+                    Nenhum travamento ativo — sistema funcionando normalmente
+                </label>
+
+                <label style="flex-direction:row; align-items:center; gap:8px; margin-top:10px;">
+                    <input type="radio" name="travamento_ativo" value="pagamento" style="width:auto;" data-radio-travamento <?= ($config['travamento_ativo'] ?? '') === 'pagamento' ? 'checked' : '' ?>>
+                    Bloqueio por pagamento em aberto — trava só o sistema de gestão (Fundação/PDV/Linha de Crédito), a loja online continua funcionando
+                </label>
+                <div id="bloco-mensagem-pagamento" style="margin-left:26px; margin-top:6px;">
+                    <label>Mensagem exibida pro lojista/funcionário<textarea name="travamento_pagamento_mensagem" rows="3" placeholder="Existe um pagamento em aberto para o seu sistema. Entre em contato com o suporte para regularizar a situação."><?= htmlspecialchars($config['travamento_pagamento_mensagem'] ?? '') ?></textarea></label>
+                </div>
+
+                <label style="flex-direction:row; align-items:center; gap:8px; margin-top:10px;">
+                    <input type="radio" name="travamento_ativo" value="manutencao" style="width:auto;" data-radio-travamento <?= ($config['travamento_ativo'] ?? '') === 'manutencao' ? 'checked' : '' ?>>
+                    Modo manutenção — trava TUDO, inclusive a loja online e a tela de login
+                </label>
+                <div id="bloco-mensagem-manutencao" style="margin-left:26px; margin-top:6px;">
+                    <label>Mensagem exibida pra todo mundo<textarea name="travamento_manutencao_mensagem" rows="3" placeholder="O sistema está em manutenção no momento. Voltamos em breve."><?= htmlspecialchars($config['travamento_manutencao_mensagem'] ?? '') ?></textarea></label>
+                </div>
+
+                <button type="submit" class="btn-bloco" style="margin-top:14px;">Salvar travamento</button>
+            </form>
+        </div>
+    </details>
     </div>
+
+    <div class="modal-overlay" id="modal-confirmar-travamento" hidden>
+        <div class="modal-card">
+            <h3>Confirmar travamento</h3>
+            <p id="texto-confirmar-travamento" style="color:var(--cor-texto-suave); font-size:0.9rem; margin-bottom:14px;"></p>
+            <div class="modal-acoes">
+                <button type="button" class="btn-outline" id="btn-cancelar-travamento">Cancelar</button>
+                <button type="button" class="btn-perigo" id="btn-confirmar-travamento">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const radios = document.querySelectorAll('[data-radio-travamento]');
+    const blocoPagamento = document.getElementById('bloco-mensagem-pagamento');
+    const blocoManutencao = document.getElementById('bloco-mensagem-manutencao');
+    const form = document.getElementById('form-travamento');
+    const modal = document.getElementById('modal-confirmar-travamento');
+    const textoModal = document.getElementById('texto-confirmar-travamento');
+
+    function atualizarBlocos() {
+        const valor = form.querySelector('[data-radio-travamento]:checked').value;
+        blocoPagamento.style.display = valor === 'pagamento' ? '' : 'none';
+        blocoManutencao.style.display = valor === 'manutencao' ? '' : 'none';
+    }
+    radios.forEach(function (r) { r.addEventListener('change', atualizarBlocos); });
+    atualizarBlocos();
+
+    form.addEventListener('submit', function (e) {
+        const valor = form.querySelector('[data-radio-travamento]:checked').value;
+        if (valor === '' || form.dataset.confirmado === '1') {
+            return;
+        }
+        e.preventDefault();
+        textoModal.textContent = valor === 'manutencao'
+            ? 'Isso vai tirar o sistema INTEIRO do ar agora — loja online, PDV, tudo. Só o painel do dev continua acessível. Confirma?'
+            : 'Isso vai travar o sistema de gestão (Fundação/PDV/Linha de Crédito) pro lojista e funcionários agora. A loja online continua no ar. Confirma?';
+        modal.hidden = false;
+    });
+
+    document.getElementById('btn-confirmar-travamento').addEventListener('click', function () {
+        modal.hidden = true;
+        form.dataset.confirmado = '1';
+        form.requestSubmit();
+    });
+    document.getElementById('btn-cancelar-travamento').addEventListener('click', function () { modal.hidden = true; });
+    modal.addEventListener('click', function (e) { if (e.target === modal) { modal.hidden = true; } });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !modal.hidden) { modal.hidden = true; } });
+});
+</script>
 </main>
 </body>
 </html>

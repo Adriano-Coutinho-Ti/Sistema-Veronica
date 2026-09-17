@@ -49,6 +49,9 @@ if (BANCO_CONFIGURADO) {
     }
 }
 
+require_once __DIR__ . '/includes/travamento.php';
+verificarTravamentoManutencao($pdo);
+
 // Raiz do projeto — todo caminho relativo salvo no banco (fotos de produto,
 // logo da loja) é resolvido a partir daqui, não de __DIR__ do arquivo que
 // está chamando (que muda de página pra página).
