@@ -296,7 +296,7 @@ $vinculosAtuais = $pdo->query('SELECT numero_caixa, terminal_id FROM caixa_termi
                     Bloqueio por pagamento em aberto — trava só o sistema de gestão (Fundação/PDV/Linha de Crédito), a loja online continua funcionando
                 </label>
                 <div id="bloco-mensagem-pagamento" style="margin-left:26px; margin-top:6px;">
-                    <label>Mensagem exibida pro lojista/funcionário<textarea name="travamento_pagamento_mensagem" rows="3" placeholder="Existe um pagamento em aberto para o seu sistema. Entre em contato com o suporte para regularizar a situação."><?= htmlspecialchars($config['travamento_pagamento_mensagem'] ?? '') ?></textarea></label>
+                    <label>Mensagem exibida pro lojista/funcionário<textarea name="travamento_pagamento_mensagem" rows="3"><?= htmlspecialchars($config['travamento_pagamento_mensagem'] ?? 'Existe um pagamento em aberto para o seu sistema. Entre em contato com o suporte para regularizar a situação.') ?></textarea></label>
                 </div>
 
                 <label style="flex-direction:row; align-items:center; gap:8px; margin-top:10px;">
@@ -304,7 +304,7 @@ $vinculosAtuais = $pdo->query('SELECT numero_caixa, terminal_id FROM caixa_termi
                     Modo manutenção — trava TUDO, inclusive a loja online e a tela de login
                 </label>
                 <div id="bloco-mensagem-manutencao" style="margin-left:26px; margin-top:6px;">
-                    <label>Mensagem exibida pra todo mundo<textarea name="travamento_manutencao_mensagem" rows="3" placeholder="O sistema está em manutenção no momento. Voltamos em breve."><?= htmlspecialchars($config['travamento_manutencao_mensagem'] ?? '') ?></textarea></label>
+                    <label>Mensagem exibida pra todo mundo<textarea name="travamento_manutencao_mensagem" rows="3"><?= htmlspecialchars($config['travamento_manutencao_mensagem'] ?? 'O sistema está em manutenção no momento. Voltamos em breve.') ?></textarea></label>
                 </div>
 
                 <button type="submit" class="btn-bloco" style="margin-top:14px;">Salvar travamento</button>
