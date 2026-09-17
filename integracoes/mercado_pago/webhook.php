@@ -11,7 +11,9 @@ require_once __DIR__ . '/../../includes/mp_client.php';
  * não uma por fluxo). Atende os 3 fluxos de pagamento do sistema (loja/
  * checkout, PDV/caixa, dívida) decidindo qual pelo prefixo do
  * external_reference de cada venda/movimento (loja_/venda_/divida_), que já
- * existia pra esse fim.
+ * existia pra esse fim. Também atende o tópico "order" (pagamento via
+ * maquininha Point) -- recurso diferente (Order, não Payment), então tem
+ * chamada e função de confirmação próprias.
  */
 
 // Sempre responde 200 pro Mercado Pago não ficar re-tentando indefinidamente —
@@ -39,6 +41,8 @@ if (!mpValidarAssinaturaWebhook($xSignature, $xRequestId, strtolower((string) $d
     exit;
 }
 
+$topico = $_GET['type'] ?? $_GET['topic'] ?? 'payment';
+
 try {
     $config = mpConfig($pdo);
     if (!$config || empty($config['mp_access_token'])) {
@@ -46,16 +50,28 @@ try {
         exit;
     }
 
-    $resposta = mpChamarApi('GET', 'https://api.mercadopago.com/v1/payments/' . $dataId, null, $config['mp_access_token']);
-    $pagamento = $resposta['dados'] ?? [];
-    $externalRef = $pagamento['external_reference'] ?? '';
+    if ($topico === 'order') {
+        // Order (Point) -- recurso diferente de Payment, só existe pro fluxo
+        // de maquininha do PDV (external_reference sempre "venda_...").
+        $resposta = mpChamarApi('GET', 'https://api.mercadopago.com/v1/orders/' . $dataId, null, $config['mp_access_token']);
+        $order = $resposta['dados'] ?? [];
+        $externalRef = $order['external_reference'] ?? '';
 
-    if (str_starts_with($externalRef, 'loja_')) {
-        processarWebhookVendaLoja($pdo, (int) substr($externalRef, strlen('loja_')), $pagamento, (string) $dataId);
-    } elseif (str_starts_with($externalRef, 'venda_')) {
-        processarWebhookVendaCaixa($pdo, (int) substr($externalRef, strlen('venda_')), $pagamento, (string) $dataId);
-    } elseif (str_starts_with($externalRef, 'divida_')) {
-        processarWebhookDivida($pdo, (int) substr($externalRef, strlen('divida_')), $pagamento, (string) $dataId);
+        if (str_starts_with($externalRef, 'venda_')) {
+            processarWebhookVendaCaixaPoint($pdo, (int) substr($externalRef, strlen('venda_')), $order, (string) $dataId);
+        }
+    } else {
+        $resposta = mpChamarApi('GET', 'https://api.mercadopago.com/v1/payments/' . $dataId, null, $config['mp_access_token']);
+        $pagamento = $resposta['dados'] ?? [];
+        $externalRef = $pagamento['external_reference'] ?? '';
+
+        if (str_starts_with($externalRef, 'loja_')) {
+            processarWebhookVendaLoja($pdo, (int) substr($externalRef, strlen('loja_')), $pagamento, (string) $dataId);
+        } elseif (str_starts_with($externalRef, 'venda_')) {
+            processarWebhookVendaCaixa($pdo, (int) substr($externalRef, strlen('venda_')), $pagamento, (string) $dataId);
+        } elseif (str_starts_with($externalRef, 'divida_')) {
+            processarWebhookDivida($pdo, (int) substr($externalRef, strlen('divida_')), $pagamento, (string) $dataId);
+        }
     }
 } catch (Throwable $e) {
     error_log('Webhook MP erro: ' . $e->getMessage());

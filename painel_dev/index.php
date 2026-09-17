@@ -2,6 +2,8 @@
 require_once __DIR__ . '/../conecta_bd.php';
 require_once __DIR__ . '/../includes/auth_dev.php';
 require_once __DIR__ . '/../includes/config_dev.php';
+require_once __DIR__ . '/../includes/caixa.php';
+require_once __DIR__ . '/../includes/mp_client.php';
 exigirDev();
 
 $erro = '';
@@ -68,6 +70,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'atualiz
             $sucesso = 'Configuração de caixas atualizada.';
         }
     }
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'atualizar_terminais') {
+    $qtdAtual = quantidadeCaixas($pdo);
+    for ($numero = 1; $numero <= $qtdAtual; $numero++) {
+        $terminalEscolhido = trim($_POST['terminal_caixa_' . $numero] ?? '');
+        if ($terminalEscolhido === '') {
+            $pdo->prepare('DELETE FROM caixa_terminais_point WHERE numero_caixa = :n')->execute([':n' => $numero]);
+        } else {
+            $pdo->prepare(
+                'INSERT INTO caixa_terminais_point (numero_caixa, terminal_id) VALUES (:n, :t)
+                 ON DUPLICATE KEY UPDATE terminal_id = :t2'
+            )->execute([':n' => $numero, ':t' => $terminalEscolhido, ':t2' => $terminalEscolhido]);
+        }
+    }
+    $sucesso = 'Maquininhas atualizadas.';
 }
 
 $config = buscarConfigDev($pdo);
@@ -80,6 +96,30 @@ try {
 } catch (Throwable $e) {
     $conexaoOk = false;
 }
+
+// Lista de maquininhas Point ao vivo, direto da API, usando o token da loja
+// já conectada -- não tem como cadastrar isso manualmente, o terminal_id só
+// existe depois que o lojista associa a maquininha a uma loja/caixa dentro
+// do próprio app do Mercado Pago.
+$terminaisDisponiveis = [];
+$erroTerminais = '';
+$mpConfigAtual = mpConfig($pdo);
+if ($mpConfigAtual && !empty($mpConfigAtual['mp_access_token'])) {
+    try {
+        $respostaTerminais = mpChamarApi('GET', 'https://api.mercadopago.com/terminals/v1/list', null, $mpConfigAtual['mp_access_token']);
+        if ($respostaTerminais['http_code'] < 300) {
+            $terminaisDisponiveis = $respostaTerminais['dados']['data']['terminals'] ?? [];
+        } else {
+            $erroTerminais = 'Não foi possível buscar as maquininhas agora.';
+        }
+    } catch (Throwable $e) {
+        $erroTerminais = 'Não foi possível buscar as maquininhas agora.';
+    }
+} else {
+    $erroTerminais = 'Conecte a loja ao Mercado Pago primeiro (em Configurações) pra listar as maquininhas.';
+}
+
+$vinculosAtuais = $pdo->query('SELECT numero_caixa, terminal_id FROM caixa_terminais_point')->fetchAll(PDO::FETCH_KEY_PAIR);
 ?>
 <!DOCTYPE html>
 <html lang="pt-br">
@@ -181,6 +221,31 @@ try {
             <p style="color:var(--cor-texto-suave); font-size:0.8rem; margin-top:-8px;">Desmarcado: só quem abriu um caixa pode atender nele — outro usuário precisa esperar fechar (ou abrir um caixa diferente). Só faz diferença com mais de 1 caixa.</p>
             <button type="submit" class="btn-bloco">Salvar caixas</button>
         </form>
+    </div>
+
+    <div class="card" style="max-width:560px; margin-top:20px;">
+        <h2>PDV — Maquininhas (Point)</h2>
+        <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:-8px; margin-bottom:16px;">Vincule cada caixa a uma maquininha física. Uma mesma maquininha pode atender mais de um caixa (loja com só 1 maquininha pra vários caixas funciona normalmente — o sistema trava pra não mandar duas cobranças ao mesmo tempo pra ela). Caixa sem maquininha vinculada continua com lançamento manual de Débito/Crédito, como sempre foi. A maquininha só aparece na lista abaixo depois de associada a uma loja/caixa dentro do próprio app do Mercado Pago.</p>
+        <?php if ($erroTerminais): ?><p class="alert alert-erro"><?= htmlspecialchars($erroTerminais) ?></p><?php endif; ?>
+        <?php if (!$erroTerminais && empty($terminaisDisponiveis)): ?><p class="alert alert-erro">Nenhuma maquininha encontrada na conta conectada.</p><?php endif; ?>
+        <?php if (!empty($terminaisDisponiveis)): ?>
+        <form method="post">
+            <input type="hidden" name="acao" value="atualizar_terminais">
+            <?php for ($numero = 1; $numero <= quantidadeCaixas($pdo); $numero++): ?>
+                <label>Caixa <?= $numero ?>
+                    <select name="terminal_caixa_<?= $numero ?>">
+                        <option value="">— sem maquininha (lançamento manual) —</option>
+                        <?php foreach ($terminaisDisponiveis as $terminal): ?>
+                            <option value="<?= htmlspecialchars($terminal['id']) ?>" <?= ($vinculosAtuais[$numero] ?? '') === $terminal['id'] ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($terminal['id']) ?><?= !empty($terminal['external_pos_id']) ? ' (' . htmlspecialchars($terminal['external_pos_id']) . ')' : '' ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </label>
+            <?php endfor; ?>
+            <button type="submit" class="btn-bloco">Salvar maquininhas</button>
+        </form>
+        <?php endif; ?>
     </div>
 </main>
 </body>

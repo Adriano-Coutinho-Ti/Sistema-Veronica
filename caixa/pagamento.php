@@ -23,6 +23,17 @@ if ($venda['id_cliente']) {
         $creditoDisponivel = (float) $clienteVinculado['limite_credito'] - (float) $clienteVinculado['saldo_devedor'];
     }
 }
+
+// Maquininha vinculada ao caixa desta venda (se houver) -- decide se
+// Débito/Crédito mostram a opção de cobrar na maquininha, além do
+// lançamento manual de sempre.
+$stmtTerminal = $pdo->prepare(
+    'SELECT ct.terminal_id FROM caixa_sessoes cs
+     JOIN caixa_terminais_point ct ON ct.numero_caixa = cs.numero_caixa
+     WHERE cs.id_caixa = :ic'
+);
+$stmtTerminal->execute([':ic' => $venda['id_caixa']]);
+$temMaquininha = (bool) $stmtTerminal->fetchColumn();
 ?>
 <!DOCTYPE html>
 <html lang="pt-br">
@@ -71,6 +82,13 @@ if ($venda['id_cliente']) {
             <button type="button" id="btn-gerar-pix" class="btn-outline">Gerar QR Code Pix</button>
         </div>
 
+        <?php if ($temMaquininha): ?>
+        <div id="campos-point" style="display:none; margin-top:14px;">
+            <button type="button" id="btn-gerar-point" class="btn-outline">Cobrar na maquininha</button>
+            <p style="color:var(--cor-texto-suave); font-size:0.8rem; margin-top:8px;">Cobra o valor total da venda na maquininha vinculada a este caixa. Se preferir, ainda dá pra lançar manualmente ao lado.</p>
+        </div>
+        <?php endif; ?>
+
         <div class="stats-credito" style="margin-top:20px;">
             <div class="stat-credito">
                 <span class="stat-label">Pago</span>
@@ -95,6 +113,18 @@ if ($venda['id_cliente']) {
         </div>
     </div>
 
+    <?php if ($temMaquininha): ?>
+    <div class="modal-overlay" id="modal-point" hidden>
+        <div class="modal-card" style="text-align:center;">
+            <h3>Cobrando na maquininha</h3>
+            <p id="point-status" class="lista-vazia" style="margin-top:14px;">Aguardando o cliente inserir/aproximar o cartão na maquininha...</p>
+            <div class="modal-acoes">
+                <button type="button" class="btn-outline" id="btn-fechar-point">Fechar</button>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
+
 <script>
 const idVenda = <?= $id_venda ?>;
 const totalVenda = <?= (float) $venda['valor_total'] ?>;
@@ -109,8 +139,11 @@ function mostrarErroPagamento(mensagem) {
 
 document.getElementById('forma-pagamento').addEventListener('change', function () {
     const ehPix = this.value === 'Pix';
+    const ehCartao = this.value === 'Débito' || this.value === 'Crédito';
+    const campoPoint = document.getElementById('campos-point');
     document.getElementById('campos-manual').style.display = ehPix ? 'none' : '';
     document.getElementById('campos-pix').style.display = ehPix ? '' : 'none';
+    if (campoPoint) { campoPoint.style.display = ehCartao ? '' : 'none'; }
 });
 
 document.getElementById('btn-adicionar-pagamento').addEventListener('click', function () {
@@ -248,6 +281,55 @@ function iniciarPolling() {
         });
     }, 4000);
 }
+
+<?php if ($temMaquininha): ?>
+let pollingIntervalPoint = null;
+const modalPoint = document.getElementById('modal-point');
+document.getElementById('btn-fechar-point').addEventListener('click', function () { modalPoint.hidden = true; });
+modalPoint.addEventListener('click', function (e) { if (e.target === modalPoint) { modalPoint.hidden = true; } });
+document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !modalPoint.hidden) { modalPoint.hidden = true; } });
+
+document.getElementById('btn-gerar-point').addEventListener('click', function () {
+    this.disabled = true;
+    fetch('/caixa/ajax/gerar_point.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'id_venda=' + idVenda
+    }).then(r => r.json()).then(data => {
+        document.getElementById('btn-gerar-point').disabled = false;
+        if (!data.success) { mostrarErroPagamento(data.message); return; }
+        document.getElementById('point-status').textContent = 'Aguardando o cliente inserir/aproximar o cartão na maquininha...';
+        modalPoint.hidden = false;
+        iniciarPollingPoint();
+    });
+});
+
+function iniciarPollingPoint() {
+    if (pollingIntervalPoint) return;
+    pollingIntervalPoint = setInterval(function () {
+        fetch('/caixa/ajax/verificar_pagamento_point.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: 'id_venda=' + idVenda
+        }).then(r => r.json()).then(data => {
+            if (data.aprovado) {
+                clearInterval(pollingIntervalPoint);
+                window.location.href = data.redirect;
+            } else if (data.cancelado) {
+                clearInterval(pollingIntervalPoint);
+                pollingIntervalPoint = null;
+                modalPoint.hidden = true;
+                mostrarErroPagamento('A cobrança na maquininha foi cancelada ou expirou. Tente de novo ou lance manualmente.');
+            } else if (!data.success) {
+                clearInterval(pollingIntervalPoint);
+                pollingIntervalPoint = null;
+                modalPoint.hidden = true;
+                mostrarErroPagamento(data.message);
+            }
+        });
+    }, 4000);
+}
+<?php endif; ?>
 </script>
 </main>
 </body>

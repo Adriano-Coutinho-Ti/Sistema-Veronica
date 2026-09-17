@@ -281,3 +281,37 @@ function processarWebhookVendaCaixa(PDO $pdo, int $id_venda, array $pagamento, s
         }
     }
 }
+
+/**
+ * Processa o webhook do Mercado Pago pro fluxo de pagamento por maquininha
+ * (Point, tópico "order") — diferente do Pix porque o recurso é uma Order,
+ * não um Payment: status/status_detail ficam na raiz ("processed" +
+ * "accredited" = pago), não "approved", e o valor pago vem de
+ * transactions.payments[0].amount.
+ */
+function processarWebhookVendaCaixaPoint(PDO $pdo, int $id_venda, array $order, string $orderId): void
+{
+    $status = $order['status'] ?? null;
+    $statusDetail = $order['status_detail'] ?? null;
+
+    $stmt = $pdo->prepare('SELECT status FROM vendas WHERE id_venda = :id');
+    $stmt->execute([':id' => $id_venda]);
+    $venda = $stmt->fetch();
+
+    if (!$venda || $venda['status'] !== 'Reservado') {
+        return;
+    }
+
+    if ($status === 'processed' && $statusDetail === 'accredited') {
+        $valorPago = (float) ($order['transactions']['payments'][0]['amount'] ?? 0);
+        $resultado = finalizarVenda($pdo, $id_venda, [['forma' => 'Cartão (maquininha)', 'valor' => $valorPago]], $orderId);
+        if (!$resultado['success']) {
+            error_log('Webhook MP (Point): falha ao finalizar venda ' . $id_venda . ': ' . $resultado['message']);
+        }
+    } elseif (in_array($status, ['canceled', 'expired'], true)) {
+        // Libera a maquininha pra outra venda — a venda continua "Reservado",
+        // o operador pode tentar de novo ou escolher outra forma de pagamento.
+        $pdo->prepare("UPDATE vendas SET id_order_mp = NULL WHERE id_venda = :id AND status = 'Reservado'")
+            ->execute([':id' => $id_venda]);
+    }
+}
