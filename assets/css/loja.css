@@ -688,6 +688,19 @@ input.senha-valida:focus {
     border-top: 1px solid var(--cor-borda);
 }
 
+/* Produto removido/vendido e o link antigo continua circulando (WhatsApp,
+   favoritos, histórico do Google) -- em vez de um 404 seco, uma tela
+   acolhedora que já empurra pro catálogo. */
+.estado-vazio-produto {
+    max-width: 480px;
+    margin: 48px auto 0;
+    text-align: center;
+    padding: 0 20px;
+}
+.estado-vazio-produto svg { margin-bottom: 18px; }
+.estado-vazio-produto h1 { margin-bottom: 10px; }
+.estado-vazio-produto p { color: var(--cor-texto-suave); margin-bottom: 24px; }
+
 /* ============ Carrinho ============ */
 
 .carrinho-item {

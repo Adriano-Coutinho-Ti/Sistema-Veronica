@@ -13,7 +13,71 @@ $produto = $stmt->fetch();
 
 if (!$produto) {
     http_response_code(404);
-    echo 'Produto não encontrado.';
+
+    $sugestoes = $pdo->query(
+        "SELECT DISTINCT p2.id_produto, p2.nome, p2.preco_base
+         FROM produtos p2
+         JOIN produto_variacoes pv2 ON pv2.id_produto = p2.id_produto
+         WHERE p2.ativo = 1
+           AND (p2.estoque_gerenciado = 0 OR (pv2.estoque - pv2.estoque_reservado) > 0)
+         ORDER BY RAND() LIMIT 8"
+    )->fetchAll();
+
+    $fotosSugestoes = [];
+    if (!empty($sugestoes)) {
+        $idsSug = array_column($sugestoes, 'id_produto');
+        $placeholders = implode(',', array_fill(0, count($idsSug), '?'));
+        $stmtFotosSug = $pdo->prepare("SELECT id_produto, caminho_arquivo FROM produto_fotos WHERE id_produto IN ($placeholders) ORDER BY id_produto, ordem");
+        $stmtFotosSug->execute($idsSug);
+        foreach ($stmtFotosSug->fetchAll() as $f) {
+            $fotosSugestoes[(int) $f['id_produto']][] = $f['caminho_arquivo'];
+        }
+    }
+    ?>
+    <!DOCTYPE html>
+    <html lang="pt-br">
+    <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Produto não encontrado</title>
+    </head>
+    <body>
+    <?php require __DIR__ . '/../includes/loja_header.php'; ?>
+        <div class="estado-vazio-produto">
+            <svg viewBox="0 0 120 120" width="120" height="120" aria-hidden="true">
+                <circle cx="60" cy="60" r="58" fill="var(--cor-dourado-suave)"/>
+                <path d="M40 44v-6a20 20 0 0 1 40 0v6" fill="none" stroke="var(--cor-dourado)" stroke-width="3.2" stroke-linecap="round"/>
+                <path d="M33 44h54l4 46a6 6 0 0 1-6 6.5H35a6 6 0 0 1-6-6.5Z" fill="#fff" stroke="var(--cor-dourado)" stroke-width="3.2" stroke-linejoin="round"/>
+                <text x="60" y="79" font-family="Manrope, sans-serif" font-size="30" font-weight="700" fill="var(--cor-dourado)" text-anchor="middle">?</text>
+            </svg>
+            <h1>Esse produto não está mais disponível</h1>
+            <p>Ele pode ter sido vendido ou saído do catálogo — mas com certeza tem outra coisa especial esperando por você aqui na loja.</p>
+            <a href="/loja/index.php" class="btn btn-lg">Ver catálogo completo</a>
+        </div>
+
+        <?php if (!empty($sugestoes)): ?>
+        <section class="secao-relacionados">
+            <h2>Você também pode gostar</h2>
+            <div class="product-grid">
+                <?php foreach ($sugestoes as $sp): ?>
+                <?php $fotosSp = $fotosSugestoes[(int) $sp['id_produto']] ?? []; ?>
+                <a href="/loja/produto.php?id=<?= $sp['id_produto'] ?>" class="product-card">
+                    <div class="card-media">
+                        <?php if (!empty($fotosSp)): ?>
+                            <img src="/<?= htmlspecialchars(fotoComVersao($fotosSp[0])) ?>" alt="<?= htmlspecialchars($sp['nome']) ?>">
+                        <?php endif; ?>
+                    </div>
+                    <div class="nome"><?= htmlspecialchars($sp['nome']) ?></div>
+                    <div class="price">R$ <?= number_format($sp['preco_base'], 2, ',', '.') ?></div>
+                </a>
+                <?php endforeach; ?>
+            </div>
+        </section>
+        <?php endif; ?>
+    </main>
+    </body>
+    </html>
+    <?php
     exit;
 }
 
