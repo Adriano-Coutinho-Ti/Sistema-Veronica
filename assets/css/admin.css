@@ -363,6 +363,15 @@ textarea { min-height: 88px; }
 .card-sanfona > .sanfona-corpo { padding: 20px; }
 .card-sanfona > .sanfona-corpo > *:first-child { margin-top: 0; }
 
+/* 2 colunas no desktop pras seções da sanfona -- align-items:start é o que
+   evita que abrir uma seção (ficando alta) estique a vizinha fechada da
+   mesma linha pra acompanhar a altura; sem isso, o grid estica todo mundo
+   da linha por padrão e sobra espaço em branco feio na fechada. */
+.grade-sanfona { display: grid; grid-template-columns: 1fr; gap: 16px; align-items: start; }
+@media (min-width: 1024px) {
+    .grade-sanfona { grid-template-columns: 1fr 1fr; }
+}
+
 /* Toggle "Produto ativo" — switch de verdade (estilo iOS), não um checkbox
    solto fácil de passar batido. Vive ao lado do título do cartão. */
 .toggle-switch { display: inline-flex; align-items: center; gap: 9px; cursor: pointer; user-select: none; }

@@ -138,7 +138,8 @@ $vinculosAtuais = $pdo->query('SELECT numero_caixa, terminal_id FROM caixa_termi
     <?php if ($erro): ?><p class="alert alert-erro"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
     <?php if ($sucesso): ?><p class="alert alert-sucesso"><?= htmlspecialchars($sucesso) ?></p><?php endif; ?>
 
-    <details class="card card-sanfona" style="max-width:560px;" name="sanfona-dev">
+    <div class="grade-sanfona">
+    <details class="card card-sanfona" name="sanfona-dev">
         <summary>Conexão com o banco de dados <svg class="icone-sanfona" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
         <div class="sanfona-corpo">
             <p><span class="status-pill<?= $conexaoOk ? ' sucesso' : ' erro' ?>"><?= $conexaoOk ? 'Conectado' : 'Falha na conexão' ?></span></p>
@@ -155,7 +156,7 @@ $vinculosAtuais = $pdo->query('SELECT numero_caixa, terminal_id FROM caixa_termi
         </div>
     </details>
 
-    <details class="card card-sanfona" style="max-width:560px; margin-top:16px;" name="sanfona-dev" <?= $acaoAbrir === 'atualizar_nome' ? 'open' : '' ?>>
+    <details class="card card-sanfona" name="sanfona-dev" <?= $acaoAbrir === 'atualizar_nome' ? 'open' : '' ?>>
         <summary>Nome do sistema <svg class="icone-sanfona" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
         <div class="sanfona-corpo">
             <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:0; margin-bottom:16px;">Aparece no cabeçalho do admin e na tela de login.</p>
@@ -167,7 +168,7 @@ $vinculosAtuais = $pdo->query('SELECT numero_caixa, terminal_id FROM caixa_termi
         </div>
     </details>
 
-    <details class="card card-sanfona" style="max-width:560px; margin-top:16px;" name="sanfona-dev" <?= $acaoAbrir === 'atualizar_rodape' ? 'open' : '' ?>>
+    <details class="card card-sanfona" name="sanfona-dev" <?= $acaoAbrir === 'atualizar_rodape' ? 'open' : '' ?>>
         <summary>Crédito no rodapé da loja <svg class="icone-sanfona" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
         <div class="sanfona-corpo">
             <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:0; margin-bottom:16px;">O "Desenvolvido por ..." no rodapé da loja online. Deixe em branco pra continuar mostrando CoderNex.</p>
@@ -180,7 +181,7 @@ $vinculosAtuais = $pdo->query('SELECT numero_caixa, terminal_id FROM caixa_termi
         </div>
     </details>
 
-    <details class="card card-sanfona" style="max-width:560px; margin-top:16px;" name="sanfona-dev" <?= $acaoAbrir === 'atualizar_mercado_pago' ? 'open' : '' ?>>
+    <details class="card card-sanfona" name="sanfona-dev" <?= $acaoAbrir === 'atualizar_mercado_pago' ? 'open' : '' ?>>
         <summary>Mercado Pago (aplicativo) <svg class="icone-sanfona" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
         <div class="sanfona-corpo">
             <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:0; margin-bottom:16px;">Credenciais do aplicativo cadastrado em <a href="https://www.mercadopago.com.br/developers" target="_blank" rel="noopener">Mercado Pago Developers</a> — são elas que permitem o botão "Conectar Mercado Pago" funcionar (cada loja conecta a própria conta através desse aplicativo). Pegue o Client ID e o Client Secret na página do seu aplicativo, aba de credenciais de produção. Não é o token de pagamento de uma loja específica — isso cada lojista configura na própria conta, em Configurações → Mercado Pago.</p>
@@ -206,7 +207,7 @@ $vinculosAtuais = $pdo->query('SELECT numero_caixa, terminal_id FROM caixa_termi
         </div>
     </details>
 
-    <details class="card card-sanfona" style="max-width:560px; margin-top:16px;" name="sanfona-dev" <?= $acaoAbrir === 'atualizar_smtp' ? 'open' : '' ?>>
+    <details class="card card-sanfona" name="sanfona-dev" <?= $acaoAbrir === 'atualizar_smtp' ? 'open' : '' ?>>
         <summary>E-mail (SMTP) <svg class="icone-sanfona" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
         <div class="sanfona-corpo">
             <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:0; margin-bottom:16px;">Usado pra mandar e-mail de verificação de cadastro da loja online. Deixe em branco pra continuar usando o que já está no arquivo de credenciais.</p>
@@ -223,7 +224,7 @@ $vinculosAtuais = $pdo->query('SELECT numero_caixa, terminal_id FROM caixa_termi
         </div>
     </details>
 
-    <details class="card card-sanfona" style="max-width:560px; margin-top:16px;" name="sanfona-dev" <?= $acaoAbrir === 'atualizar_caixas' ? 'open' : '' ?>>
+    <details class="card card-sanfona" name="sanfona-dev" <?= $acaoAbrir === 'atualizar_caixas' ? 'open' : '' ?>>
         <summary>PDV — Caixas <svg class="icone-sanfona" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
         <div class="sanfona-corpo">
             <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:0; margin-bottom:16px;">Quantos caixas físicos o sistema vai trabalhar. Com 1 (padrão), o sistema funciona exatamente como sempre funcionou — qualquer usuário atende no único caixa aberto, sem nenhuma tela extra. Com mais de 1, cada usuário escolhe em qual caixa vai atender.</p>
@@ -240,7 +241,7 @@ $vinculosAtuais = $pdo->query('SELECT numero_caixa, terminal_id FROM caixa_termi
         </div>
     </details>
 
-    <details class="card card-sanfona" style="max-width:560px; margin-top:16px;" name="sanfona-dev" <?= $acaoAbrir === 'atualizar_terminais' ? 'open' : '' ?>>
+    <details class="card card-sanfona" name="sanfona-dev" <?= $acaoAbrir === 'atualizar_terminais' ? 'open' : '' ?>>
         <summary>PDV — Maquininhas (Point) <svg class="icone-sanfona" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
         <div class="sanfona-corpo">
             <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:0; margin-bottom:16px;">Vincule cada caixa a uma maquininha física. Uma mesma maquininha pode atender mais de um caixa (loja com só 1 maquininha pra vários caixas funciona normalmente — o sistema trava pra não mandar duas cobranças ao mesmo tempo pra ela). Caixa sem maquininha vinculada continua com lançamento manual de Débito/Crédito, como sempre foi. A maquininha só aparece na lista abaixo depois de associada a uma loja/caixa dentro do próprio app do Mercado Pago.</p>
@@ -266,6 +267,7 @@ $vinculosAtuais = $pdo->query('SELECT numero_caixa, terminal_id FROM caixa_termi
             <?php endif; ?>
         </div>
     </details>
+    </div>
 </main>
 </body>
 </html>
