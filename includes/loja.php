@@ -213,24 +213,55 @@ function clienteEmailVerificado(PDO $pdo, int $id_cliente): bool
 }
 
 /**
- * Gera um token de verificação (válido por 24h), salva no cliente e manda o
- * e-mail com o link de confirmação. Chamada tanto no cadastro novo quanto na
- * ativação de conta existente (e de novo sempre que o cliente troca de
- * e-mail em "Minha conta") — em todos os casos o e-mail está, até esse
- * ponto, um dado não confirmado.
+ * Gera um código de 6 dígitos (válido por 30min), salva no cliente e manda
+ * por e-mail. Chamada tanto no cadastro novo quanto na ativação de conta
+ * existente (e de novo sempre que o cliente troca de e-mail em "Minha
+ * conta") — em todos os casos o e-mail está, até esse ponto, um dado não
+ * confirmado. Pra reenviar o MESMO código (botão "não recebi" dentro do
+ * popup), usa reenviarCodigoVerificacaoEmail() em vez desta.
  */
 function dispararVerificacaoEmail(PDO $pdo, int $id_cliente, string $email, string $nome): array
 {
-    $token = bin2hex(random_bytes(32));
-    $expiraEm = date('Y-m-d H:i:s', time() + 86400); // 24h
+    $codigo = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+    $expiraEm = date('Y-m-d H:i:s', time() + 1800); // 30 min
 
     $pdo->prepare('UPDATE clientes SET token_verificacao_email = :t, token_verificacao_expira_em = :e WHERE id_cliente = :id')
-        ->execute([':t' => $token, ':e' => $expiraEm, ':id' => $id_cliente]);
+        ->execute([':t' => $codigo, ':e' => $expiraEm, ':id' => $id_cliente]);
 
+    return enviarEmailCodigoVerificacao($pdo, $email, $nome, $codigo);
+}
+
+/**
+ * Reenvia o código de verificação já existente do cliente, sem gerar um
+ * novo -- é o que o botão "não recebi o e-mail" dentro do popup usa. Só
+ * gera um código novo (via dispararVerificacaoEmail) se não existir nenhum
+ * pendente ou se o que existe já expirou.
+ */
+function reenviarCodigoVerificacaoEmail(PDO $pdo, int $id_cliente, string $email, string $nome): array
+{
+    // Expiração comparada dentro do SQL (NOW() do MySQL) -- ver mesma nota em
+    // loja/ajax/validar_codigo_email.php sobre não misturar strtotime()/time()
+    // do PHP com horário vindo do MySQL.
+    $stmt = $pdo->prepare(
+        "SELECT token_verificacao_email, (token_verificacao_expira_em > NOW()) AS codigo_valido
+         FROM clientes WHERE id_cliente = :id"
+    );
+    $stmt->execute([':id' => $id_cliente]);
+    $atual = $stmt->fetch();
+
+    $codigoAindaValido = $atual && !empty($atual['token_verificacao_email']) && $atual['codigo_valido'];
+
+    if ($codigoAindaValido) {
+        return enviarEmailCodigoVerificacao($pdo, $email, $nome, $atual['token_verificacao_email']);
+    }
+
+    return dispararVerificacaoEmail($pdo, $id_cliente, $email, $nome);
+}
+
+function enviarEmailCodigoVerificacao(PDO $pdo, string $email, string $nome, string $codigo): array
+{
     $configLoja = $pdo->query('SELECT nome_loja FROM config_loja WHERE id_config = 1')->fetch();
     $nomeLoja = $configLoja['nome_loja'] ?? 'a loja';
-
-    $link = urlBaseAtual() . '/loja/verificar_email.php?token=' . $token;
     $primeiroNome = explode(' ', trim($nome))[0];
 
     $corpo = montarEmailHtmlLoja(
@@ -238,16 +269,15 @@ function dispararVerificacaoEmail(PDO $pdo, int $id_cliente, string $email, stri
         'Confirme seu e-mail',
         [
             'Olá, ' . htmlspecialchars($primeiroNome) . '!',
-            'Recebemos esse e-mail como o seu de contato na <strong>' . htmlspecialchars($nomeLoja) . '</strong>. Confirme clicando no botão abaixo — assim garantimos que é você mesmo, e você já pode usar o carrinho de compras.',
-            'Este link é válido por <strong>24 horas</strong>.',
+            'Use o código abaixo pra confirmar que esse e-mail é seu e liberar o carrinho de compras na <strong>' . htmlspecialchars($nomeLoja) . '</strong>.',
+            'Ele é válido por <strong>30 minutos</strong>.',
         ],
-        'Confirmar meu e-mail',
-        $link
+        $codigo
     );
 
-    $resultado = enviarEmailSMTP($pdo, $email, 'Confirme seu e-mail — ' . $nomeLoja, $corpo);
+    $resultado = enviarEmailSMTP($pdo, $email, 'Seu código de verificação — ' . $nomeLoja, $corpo);
     if (!$resultado['success']) {
-        error_log('Falha ao enviar e-mail de verificação (cliente ' . $id_cliente . '): ' . $resultado['message']);
+        error_log('Falha ao enviar e-mail de verificação: ' . $resultado['message']);
     }
     return $resultado;
 }

@@ -9,8 +9,10 @@
 /**
  * Monta um e-mail HTML com a cara da própria loja (logo + nome da loja vindos de
  * config_loja, não do CoderNex) — quem recebe é cliente da loja, não da CoderNex.
+ * Mostra um código bem destacado (não um botão/link) -- o cliente digita esse
+ * código no popup de validação do próprio site.
  */
-function montarEmailHtmlLoja(PDO $pdo, string $titulo, array $paragrafos, string $textoBotao, string $linkBotao): string
+function montarEmailHtmlLoja(PDO $pdo, string $titulo, array $paragrafos, string $codigo): string
 {
     $configLoja = $pdo->query('SELECT nome_loja, logo_arquivo FROM config_loja WHERE id_config = 1')->fetch();
     $nomeLoja = $configLoja['nome_loja'] ?? 'Loja';
@@ -20,7 +22,6 @@ function montarEmailHtmlLoja(PDO $pdo, string $titulo, array $paragrafos, string
         $paragrafosHtml .= '<p style="margin:0 0 14px; color:#444444; font-size:14px; line-height:1.55;">' . $paragrafo . '</p>';
     }
 
-    $linkEscapado = htmlspecialchars($linkBotao);
     $cabecalhoLogo = !empty($configLoja['logo_arquivo'])
         ? '<img src="' . htmlspecialchars(urlBaseAtual()) . '/' . htmlspecialchars($configLoja['logo_arquivo']) . '" alt="' . htmlspecialchars($nomeLoja) . '" style="max-height:48px; width:auto;">'
         : '<span style="font-family:Georgia,serif; font-size:22px; font-weight:600; color:#222222;">' . htmlspecialchars($nomeLoja) . '</span>';
@@ -33,10 +34,9 @@ function montarEmailHtmlLoja(PDO $pdo, string $titulo, array $paragrafos, string
           <h2 style="margin:0 0 18px; font-size:19px; color:#222222;">' . htmlspecialchars($titulo) . '</h2>
           ' . $paragrafosHtml . '
           <div style="text-align:center; margin:28px 0 8px;">
-            <a href="' . $linkEscapado . '" style="background:#8B5CF6; color:#ffffff; text-decoration:none; padding:13px 32px; border-radius:6px; font-weight:bold; font-size:14px; display:inline-block;">' . htmlspecialchars($textoBotao) . '</a>
+            <div style="display:inline-block; background:#f4f0fb; border:1.5px dashed #8B5CF6; border-radius:10px; padding:16px 26px; font-size:30px; font-weight:800; letter-spacing:8px; color:#8B5CF6;">' . htmlspecialchars($codigo) . '</div>
           </div>
-          <p style="font-size:12px; color:#999999; margin-top:24px; line-height:1.5;">Se o botão não funcionar, copie e cole este link no seu navegador:<br>
-          <a href="' . $linkEscapado . '" style="color:#8B5CF6; word-break:break-all;">' . $linkEscapado . '</a></p>
+          <p style="font-size:12px; color:#999999; margin-top:24px; line-height:1.5; text-align:center;">Se você não pediu esse código, pode ignorar este e-mail.</p>
         </div>
         <p style="text-align:center; color:#aaaaaa; font-size:12px; margin-top:24px;">' . htmlspecialchars($nomeLoja) . '</p>
       </div>

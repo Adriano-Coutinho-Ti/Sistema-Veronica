@@ -21,10 +21,10 @@ if ($cliente['email_verificado_em'] !== null) {
     exit;
 }
 
-$resultado = dispararVerificacaoEmail($pdo, $id_cliente, $cliente['email'], $cliente['nome']);
+$resultado = reenviarCodigoVerificacaoEmail($pdo, $id_cliente, $cliente['email'], $cliente['nome']);
 echo json_encode([
     'success' => $resultado['success'],
     'message' => $resultado['success']
-        ? 'E-mail reenviado! Confira sua caixa de entrada (e o spam).'
+        ? 'Código reenviado! Confira sua caixa de entrada (e o spam).'
         : 'Não foi possível enviar o e-mail agora. Tente novamente em instantes.',
 ]);

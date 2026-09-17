@@ -156,8 +156,81 @@ function ativarFeedbackSenha(input) {
     });
 }
 
+// Popup de validar e-mail por código -- reaproveitado em qualquer página que
+// tenha um botão ".btn-abrir-validar-email" (carrinho, minha conta...).
+// Ao validar com sucesso, recarrega a página: mais simples e mais confiável
+// do que tentar remendar no JS todo lugar que depende de e-mail verificado.
+function iniciarModalValidarEmail() {
+    const modal = document.getElementById('modal-validar-email');
+    if (!modal) { return; }
+
+    const form = document.getElementById('form-validar-email');
+    const campoCodigo = document.getElementById('campo-codigo-email');
+    const msgErro = document.getElementById('msg-erro-validar-email');
+    const btnNaoRecebi = document.getElementById('btn-nao-recebi-email');
+
+    function abrirModal() {
+        msgErro.hidden = true;
+        campoCodigo.value = '';
+        modal.hidden = false;
+        campoCodigo.focus();
+    }
+    function fecharModal() { modal.hidden = true; }
+
+    document.querySelectorAll('.btn-abrir-validar-email').forEach(function (btn) {
+        btn.addEventListener('click', abrirModal);
+    });
+
+    document.getElementById('btn-fechar-validar-email').addEventListener('click', fecharModal);
+    modal.addEventListener('click', function (e) { if (e.target === modal) { fecharModal(); } });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !modal.hidden) { fecharModal(); } });
+
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        msgErro.hidden = true;
+        fetch('/loja/ajax/validar_codigo_email.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'codigo=' + encodeURIComponent(campoCodigo.value)
+        }).then(function (r) { return r.json(); }).then(function (data) {
+            if (data.success) {
+                window.location.reload();
+            } else {
+                msgErro.textContent = data.message;
+                msgErro.hidden = false;
+            }
+        }).catch(function () {
+            msgErro.textContent = 'Erro de conexão. Tente novamente.';
+            msgErro.hidden = false;
+        });
+    });
+
+    btnNaoRecebi.addEventListener('click', function () {
+        btnNaoRecebi.disabled = true;
+        const textoOriginal = btnNaoRecebi.textContent;
+        btnNaoRecebi.textContent = 'Enviando...';
+        fetch('/loja/ajax/reenviar_verificacao.php', { method: 'POST' })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                msgErro.className = 'alert ' + (data.success ? 'alert-sucesso' : 'alert-erro');
+                msgErro.textContent = data.message;
+                msgErro.hidden = false;
+            })
+            .catch(function () {
+                msgErro.className = 'alert alert-erro';
+                msgErro.textContent = 'Erro de conexão. Tente novamente.';
+                msgErro.hidden = false;
+            })
+            .finally(function () {
+                btnNaoRecebi.disabled = false;
+                btnNaoRecebi.textContent = textoOriginal;
+            });
+    });
+}
+
 document.addEventListener('DOMContentLoaded', function () {
     iniciarMenuMobile();
     iniciarCarrosseis();
     iniciarModalSair();
+    iniciarModalValidarEmail();
 });

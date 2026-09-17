@@ -101,7 +101,7 @@ $emailVerificado = $cliente['email_verificado_em'] !== null;
         <div>
             <div class="resumo-card">
                 <h2>Meus dados</h2>
-                <?php if ($sucessoPerfil && $avisoEmailMudou): ?><p class="alert alert-sucesso">Dados atualizados. Enviamos um link de confirmação pro seu novo e-mail — o carrinho fica bloqueado até você confirmar.</p><?php endif; ?>
+                <?php if ($sucessoPerfil && $avisoEmailMudou): ?><p class="alert alert-sucesso">Dados atualizados. Enviamos um código de confirmação pro seu novo e-mail — o carrinho fica bloqueado até você validar.</p><?php endif; ?>
                 <?php if ($sucessoPerfil && !$avisoEmailMudou): ?><p class="alert alert-sucesso">Dados atualizados.</p><?php endif; ?>
                 <?php if ($erroPerfil): ?><p class="alert alert-erro"><?= htmlspecialchars($erroPerfil) ?></p><?php endif; ?>
                 <form method="post">
@@ -111,9 +111,8 @@ $emailVerificado = $cliente['email_verificado_em'] !== null;
                     <label><?= $emailVerificado ? 'E-mail (Validado)' : 'E-mail (Aguardando validação)' ?><input type="email" name="email" id="campo-email" value="<?= htmlspecialchars($cliente['email'] ?? '') ?>" required></label>
                     <?php if (!$emailVerificado): ?>
                     <p style="margin-top:-8px; margin-bottom:14px;">
-                        <button type="button" class="btn-texto" id="btn-reenviar-verificacao" style="padding:0;">Reenviar e-mail de verificação</button>
+                        <button type="button" class="btn-texto btn-abrir-validar-email" style="padding:0;">Validar e-mail</button>
                     </p>
-                    <p class="alert alert-sucesso" id="msg-reenvio" hidden></p>
                     <?php endif; ?>
                     <label>Endereço<textarea name="endereco"><?= htmlspecialchars($cliente['endereco'] ?? '') ?></textarea></label>
                     <p style="margin-top:-8px; color:var(--cor-texto-suave); font-size:0.85rem;">O endereço é opcional, mas importante se precisarmos entregar alguma compra sua.</p>
@@ -144,28 +143,6 @@ $emailVerificado = $cliente['email_verificado_em'] !== null;
     document.addEventListener('DOMContentLoaded', function () {
         ativarMascaraTelefone(document.getElementById('campo-whatsapp'));
         ativarFeedbackSenha(document.getElementById('campo-nova-senha'));
-
-        const btnReenviar = document.getElementById('btn-reenviar-verificacao');
-        if (btnReenviar) {
-            btnReenviar.addEventListener('click', function () {
-                const msg = document.getElementById('msg-reenvio');
-                btnReenviar.disabled = true;
-                fetch('/loja/ajax/reenviar_verificacao.php', { method: 'POST' })
-                    .then(function (r) { return r.json(); })
-                    .then(function (data) {
-                        msg.textContent = data.message;
-                        msg.className = 'alert ' + (data.success ? 'alert-sucesso' : 'alert-erro');
-                        msg.hidden = false;
-                        btnReenviar.disabled = false;
-                    })
-                    .catch(function () {
-                        msg.textContent = 'Erro de conexão. Tente novamente.';
-                        msg.className = 'alert alert-erro';
-                        msg.hidden = false;
-                        btnReenviar.disabled = false;
-                    });
-            });
-        }
     });
     </script>
 </main>
