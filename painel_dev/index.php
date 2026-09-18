@@ -354,7 +354,7 @@ $vinculosAtuais = $pdo->query('SELECT numero_caixa, terminal_id FROM caixa_termi
     </div>
 
     <div class="modal-overlay" id="modal-ajuda-whatsapp" hidden>
-        <div class="modal-card" style="max-width:560px; text-align:left;">
+        <div class="modal-card" style="max-width:560px; max-height:85vh; overflow-y:auto; text-align:left;">
             <h3>Onde eu acho essas informações?</h3>
             <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:-6px; margin-bottom:16px;">Essas 4 informações vêm de dois serviços que precisam estar rodando por fora do Sistema — a Evolution API e o n8n. Nenhum dos dois é automático: alguém (você ou quem cuida da hospedagem) precisa ter os dois no ar antes de preencher esse formulário.</p>
 
