@@ -302,6 +302,7 @@ $vinculosAtuais = $pdo->query('SELECT numero_caixa, terminal_id FROM caixa_termi
         <summary>WhatsApp (Evolution API + n8n) <svg class="icone-sanfona" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
         <div class="sanfona-corpo">
             <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:0; margin-bottom:16px;">Deixa o cliente validar (e entrar) pelo número de WhatsApp, além do e-mail. Desativado, o cliente só usa e-mail — nada muda pra ele. Nosso sistema manda o código de verificação num único POST pro webhook do n8n, levando junto as credenciais da Evolution API preenchidas abaixo — o workflow do n8n (baixe o modelo pronto e importe no seu n8n) é genérico e usa o que chega em cada chamada, nunca tem credencial fixa dentro dele.</p>
+            <p style="margin-top:-6px; margin-bottom:16px;"><button type="button" class="btn-outline btn-sm" id="btn-ajuda-whatsapp">Onde eu acho essas informações?</button></p>
             <?php if ($erro && ($_POST['acao'] ?? '') === 'atualizar_whatsapp'): ?><p class="alert alert-erro"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
             <form method="post">
                 <input type="hidden" name="acao" value="atualizar_whatsapp">
@@ -352,6 +353,29 @@ $vinculosAtuais = $pdo->query('SELECT numero_caixa, terminal_id FROM caixa_termi
     </details>
     </div>
 
+    <div class="modal-overlay" id="modal-ajuda-whatsapp" hidden>
+        <div class="modal-card" style="max-width:560px; text-align:left;">
+            <h3>Onde eu acho essas informações?</h3>
+            <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:-6px; margin-bottom:16px;">Essas 4 informações vêm de dois serviços que precisam estar rodando por fora do Sistema — a Evolution API e o n8n. Nenhum dos dois é automático: alguém (você ou quem cuida da hospedagem) precisa ter os dois no ar antes de preencher esse formulário.</p>
+
+            <p style="font-weight:600; margin-bottom:4px;">1. URL base da Evolution API</p>
+            <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:0; margin-bottom:14px;">É o endereço do servidor onde a Evolution API está rodando. Ela não vem pronta — ou você contrata um provedor que já hospeda ela pra você, ou sobe ela mesmo (geralmente via Docker; a documentação oficial fica em <strong>doc.evolution-api.com</strong>). A URL base é o endereço que você acessa pra usar ela, ex: <code>https://evolution.seudominio.com</code>.</p>
+
+            <p style="font-weight:600; margin-bottom:4px;">2. API Key</p>
+            <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:0; margin-bottom:14px;">Definida na hora que a Evolution API foi instalada/configurada (variável <code>AUTHENTICATION_API_KEY</code>). Se contratou um provedor, ele te entrega essa chave; se instalou você mesmo, é a senha que você escolheu na configuração.</p>
+
+            <p style="font-weight:600; margin-bottom:4px;">3. Nome da instância</p>
+            <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:0; margin-bottom:14px;">Depois que a Evolution API está no ar, você cria uma "instância" (a conexão com um número de WhatsApp específico) pelo painel dela — geralmente em <code>/manager</code>, no mesmo endereço da URL base — escaneando o QR Code com o WhatsApp Business do número que vai mandar os códigos. O nome que você der a essa conexão é o que entra aqui.</p>
+
+            <p style="font-weight:600; margin-bottom:4px;">4. URL do webhook do n8n</p>
+            <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:0; margin-bottom:0;">Importe o arquivo baixado acima no seu n8n → ative o workflow (o botão "Active" no topo) → clique no node "Webhook" → copie a <strong>Production URL</strong> (não a de teste) → cole aqui.</p>
+
+            <div class="modal-acoes">
+                <button type="button" class="btn" id="btn-fechar-ajuda-whatsapp">Entendi</button>
+            </div>
+        </div>
+    </div>
+
     <div class="modal-overlay" id="modal-confirmar-travamento" hidden>
         <div class="modal-card">
             <h3>Confirmar travamento</h3>
@@ -365,6 +389,15 @@ $vinculosAtuais = $pdo->query('SELECT numero_caixa, terminal_id FROM caixa_termi
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    const modalAjudaWhatsapp = document.getElementById('modal-ajuda-whatsapp');
+    const btnAjudaWhatsapp = document.getElementById('btn-ajuda-whatsapp');
+    if (btnAjudaWhatsapp) {
+        btnAjudaWhatsapp.addEventListener('click', function () { modalAjudaWhatsapp.hidden = false; });
+        document.getElementById('btn-fechar-ajuda-whatsapp').addEventListener('click', function () { modalAjudaWhatsapp.hidden = true; });
+        modalAjudaWhatsapp.addEventListener('click', function (e) { if (e.target === modalAjudaWhatsapp) { modalAjudaWhatsapp.hidden = true; } });
+        document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !modalAjudaWhatsapp.hidden) { modalAjudaWhatsapp.hidden = true; } });
+    }
+
     const radios = document.querySelectorAll('[data-radio-travamento]');
     const blocoPagamento = document.getElementById('bloco-mensagem-pagamento');
     const blocoManutencao = document.getElementById('bloco-mensagem-manutencao');
