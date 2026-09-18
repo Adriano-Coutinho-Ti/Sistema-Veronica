@@ -80,6 +80,24 @@ $versaoJs = @filemtime(__DIR__ . '/../assets/js/loja.js') ?: time();
         </p>
     </div>
 </div>
+
+<div class="modal-overlay" id="modal-validar-whatsapp" hidden>
+    <div class="modal-card">
+        <h3>Validar WhatsApp</h3>
+        <p style="color:var(--cor-texto-suave); font-size:0.9rem; margin-bottom:14px;">Enviamos um código de 6 dígitos pro seu WhatsApp. Digite ele abaixo pra confirmar.</p>
+        <p class="alert alert-erro" id="msg-erro-validar-whatsapp" hidden></p>
+        <form id="form-validar-whatsapp">
+            <label>Código<input type="text" id="campo-codigo-whatsapp" inputmode="numeric" maxlength="6" placeholder="000000" autocomplete="one-time-code" required></label>
+            <div class="modal-acoes">
+                <button type="button" class="btn-outline" id="btn-fechar-validar-whatsapp">Fechar</button>
+                <button type="submit" class="btn">Validar</button>
+            </div>
+        </form>
+        <p style="text-align:center; margin-top:14px;">
+            <button type="button" class="btn-texto" id="btn-nao-recebi-whatsapp" style="padding:0;">Não recebi no WhatsApp, reenviar código</button>
+        </p>
+    </div>
+</div>
 <?php endif; ?>
 
 <script src="/assets/js/loja.js?v=<?= $versaoJs ?>" defer></script>

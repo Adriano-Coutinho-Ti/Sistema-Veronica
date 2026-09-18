@@ -7,8 +7,11 @@ exigirClienteLogado();
 liberarReservasExpiradas($pdo);
 
 $id_cliente = (int) $_SESSION['id_cliente'];
+$whatsappLoginHabilitado = (bool) $pdo->query('SELECT whatsapp_verificacao_ativo FROM config_dev WHERE id_config = 1')->fetchColumn();
 $emailVerificado = clienteEmailVerificado($pdo, $id_cliente);
-$id_venda = $emailVerificado ? buscarCarrinhoDoCliente($pdo, $id_cliente) : null;
+$whatsappVerificado = $whatsappLoginHabilitado && clienteWhatsappVerificado($pdo, $id_cliente);
+$verificado = $emailVerificado || $whatsappVerificado;
+$id_venda = $verificado ? buscarCarrinhoDoCliente($pdo, $id_cliente) : null;
 
 $itens = [];
 $total = 0;
@@ -71,11 +74,14 @@ if ($id_venda) {
         <p>Confira os itens antes de finalizar sua compra.</p>
     </div>
 
-    <?php if (!$emailVerificado): ?>
+    <?php if (!$verificado): ?>
     <div class="resumo-card" id="bloqueio-verificacao" style="max-width:460px; margin:0 auto; text-align:center;">
-        <h2>Confirme seu e-mail pra continuar</h2>
-        <p style="color:var(--cor-texto-suave); margin-bottom:18px;">Por segurança, o carrinho só libera depois que você confirma seu e-mail — enviamos um código de 6 dígitos assim que você se cadastrou.</p>
+        <h2>Confirme seu e-mail<?= $whatsappLoginHabilitado ? ' ou WhatsApp' : '' ?> pra continuar</h2>
+        <p style="color:var(--cor-texto-suave); margin-bottom:18px;">Por segurança, o carrinho só libera depois que você confirma <?= $whatsappLoginHabilitado ? 'um dos dois' : 'seu e-mail' ?> — enviamos um código de 6 dígitos assim que você se cadastrou.</p>
         <button type="button" class="btn btn-bloco btn-abrir-validar-email">Validar e-mail</button>
+        <?php if ($whatsappLoginHabilitado): ?>
+        <button type="button" class="btn-outline btn-bloco btn-abrir-validar-whatsapp" style="margin-top:10px;">Validar WhatsApp</button>
+        <?php endif; ?>
     </div>
     <?php elseif (empty($itens)): ?>
     <p>Seu carrinho está vazio. <a href="/loja/index.php">Ver catálogo</a></p>

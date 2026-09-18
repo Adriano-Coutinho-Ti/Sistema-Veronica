@@ -164,6 +164,26 @@ function montarLinkCompartilharWhatsapp(string $nome, float $preco, string $urlP
 }
 
 /**
+ * Normaliza um WhatsApp digitado (cadastro, "Minha conta") pro formato
+ * salvo no banco: "55" + DDD + 9 dígitos, sempre com o 9 na frente (só
+ * celular -- o formato antigo de 8 dígitos sem o 9 não é mais aceito).
+ * Devolve string vazia se não bater com esse formato exato, pra quem chama
+ * decidir a mensagem de erro. Compartilhada entre cadastro.php e
+ * minha_conta.php pra nunca validar diferente em cada lugar.
+ */
+function normalizarWhatsapp(string $whatsapp): string
+{
+    $digitos = preg_replace('/\D/', '', $whatsapp);
+    if (strlen($digitos) === 11) {
+        $digitos = '55' . $digitos;
+    }
+    if (!preg_match('/^55\d{2}9\d{8}$/', $digitos)) {
+        return '';
+    }
+    return $digitos;
+}
+
+/**
  * Formata o WhatsApp da loja (guardado como só dígitos, ex: "5534996536637")
  * pra exibição — usado no rodapé. Se não bater com o formato esperado (BR,
  * DDI+DDD+9 dígitos), devolve como veio pra nunca esconder um número salvo.
@@ -201,15 +221,46 @@ function formatarWhatsappParaEdicao(string $whatsapp): string
 }
 
 /**
- * True só quando o cliente já clicou no link do e-mail de verificação. Usado
- * pra bloquear carrinho/adicionar-ao-carrinho de contas com e-mail ainda não
- * confirmado — evita cadastro com e-mail falso ("conta fantasma").
+ * True só quando o cliente já confirmou o código do e-mail. Usado pra
+ * bloquear carrinho/adicionar-ao-carrinho de contas com e-mail ainda não
+ * confirmado — evita cadastro com e-mail falso ("conta fantasma"). Pra
+ * decidir se o carrinho libera de verdade (considerando também WhatsApp
+ * verificado, quando esse recurso está ativado), use clienteVerificado().
  */
 function clienteEmailVerificado(PDO $pdo, int $id_cliente): bool
 {
     $stmt = $pdo->prepare('SELECT email_verificado_em FROM clientes WHERE id_cliente = :id');
     $stmt->execute([':id' => $id_cliente]);
     return $stmt->fetchColumn() !== null;
+}
+
+/**
+ * True quando a verificação por WhatsApp confirmou o número. Independente
+ * de o recurso estar ativado ou não no painel_dev -- pra saber se isso
+ * conta pra liberar o carrinho, use clienteVerificado().
+ */
+function clienteWhatsappVerificado(PDO $pdo, int $id_cliente): bool
+{
+    $stmt = $pdo->prepare('SELECT whatsapp_verificado_em FROM clientes WHERE id_cliente = :id');
+    $stmt->execute([':id' => $id_cliente]);
+    return $stmt->fetchColumn() !== null;
+}
+
+/**
+ * True quando pelo menos UM dos dois identificadores (e-mail ou WhatsApp)
+ * já foi confirmado -- qualquer um dos dois já libera o carrinho. Se a
+ * verificação por WhatsApp estiver desativada no painel_dev, o WhatsApp
+ * verificado não conta (só existe e-mail nesse caso) -- mesmo comportamento
+ * de sempre pra quem nunca ligou o recurso.
+ */
+function clienteVerificado(PDO $pdo, int $id_cliente): bool
+{
+    if (clienteEmailVerificado($pdo, $id_cliente)) {
+        return true;
+    }
+
+    $whatsappHabilitado = (bool) $pdo->query('SELECT whatsapp_verificacao_ativo FROM config_dev WHERE id_config = 1')->fetchColumn();
+    return $whatsappHabilitado && clienteWhatsappVerificado($pdo, $id_cliente);
 }
 
 /**
@@ -280,6 +331,111 @@ function enviarEmailCodigoVerificacao(PDO $pdo, string $email, string $nome, str
         error_log('Falha ao enviar e-mail de verificação: ' . $resultado['message']);
     }
     return $resultado;
+}
+
+/**
+ * Gera um código de 6 dígitos (válido por 30min) pro WhatsApp, salva no
+ * cliente e manda via enviarCodigoWhatsapp(). Só faz sentido chamar isso
+ * com a verificação por WhatsApp ativada (config_dev.whatsapp_verificacao_ativo)
+ * -- quem chama já checa isso antes.
+ */
+function dispararVerificacaoWhatsapp(PDO $pdo, int $id_cliente, string $whatsapp, string $nome): array
+{
+    $codigo = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+    $expiraEm = date('Y-m-d H:i:s', time() + 1800); // 30 min
+
+    $pdo->prepare('UPDATE clientes SET token_verificacao_whatsapp = :t, token_verificacao_whatsapp_expira_em = :e WHERE id_cliente = :id')
+        ->execute([':t' => $codigo, ':e' => $expiraEm, ':id' => $id_cliente]);
+
+    return enviarCodigoWhatsapp($pdo, $whatsapp, $nome, $codigo);
+}
+
+/**
+ * Reenvia o código de verificação de WhatsApp já existente, sem gerar um
+ * novo -- mesmo espelho de reenviarCodigoVerificacaoEmail(), usado pelo
+ * botão "não recebi" dentro do popup. Só gera um código novo se não existir
+ * nenhum pendente ou se o que existe já expirou.
+ */
+function reenviarCodigoVerificacaoWhatsapp(PDO $pdo, int $id_cliente, string $whatsapp, string $nome): array
+{
+    // Expiração comparada dentro do SQL (NOW() do MySQL) -- ver nota em
+    // loja/ajax/validar_codigo_email.php sobre não misturar strtotime()/
+    // time() do PHP com horário vindo do MySQL.
+    $stmt = $pdo->prepare(
+        "SELECT token_verificacao_whatsapp, (token_verificacao_whatsapp_expira_em > NOW()) AS codigo_valido
+         FROM clientes WHERE id_cliente = :id"
+    );
+    $stmt->execute([':id' => $id_cliente]);
+    $atual = $stmt->fetch();
+
+    $codigoAindaValido = $atual && !empty($atual['token_verificacao_whatsapp']) && $atual['codigo_valido'];
+
+    if ($codigoAindaValido) {
+        return enviarCodigoWhatsapp($pdo, $whatsapp, $nome, $atual['token_verificacao_whatsapp']);
+    }
+
+    return dispararVerificacaoWhatsapp($pdo, $id_cliente, $whatsapp, $nome);
+}
+
+/**
+ * Manda o código de verificação por WhatsApp -- não fala com a Evolution
+ * API diretamente. Manda um único POST pro webhook do n8n (config_dev.
+ * n8n_webhook_url) levando o código E as credenciais da Evolution API desta
+ * instalação (base_url/api_key/instancia, também de config_dev). O
+ * workflow do n8n é genérico (o mesmo arquivo serve qualquer instalação
+ * deste sistema, feita por qualquer dev) -- ele usa o que chega em cada
+ * chamada pra decidir em qual Evolution API/instância mandar a mensagem,
+ * nunca tem credencial fixa dentro dele.
+ */
+function enviarCodigoWhatsapp(PDO $pdo, string $whatsapp, string $nome, string $codigo): array
+{
+    $config = $pdo->query(
+        'SELECT n8n_webhook_url, evolution_base_url, evolution_api_key, evolution_instancia FROM config_dev WHERE id_config = 1'
+    )->fetch();
+
+    if (!$config || empty($config['n8n_webhook_url'])) {
+        return ['success' => false, 'message' => 'Verificação por WhatsApp não configurada.'];
+    }
+
+    $configLoja = $pdo->query('SELECT nome_loja FROM config_loja WHERE id_config = 1')->fetch();
+    $nomeLoja = $configLoja['nome_loja'] ?? 'a loja';
+    $primeiroNome = explode(' ', trim($nome))[0];
+
+    $payload = [
+        'evolution' => [
+            'base_url' => $config['evolution_base_url'],
+            'api_key' => $config['evolution_api_key'],
+            'instancia' => $config['evolution_instancia'],
+        ],
+        'telefone' => $whatsapp,
+        'codigo' => $codigo,
+        'nome' => $primeiroNome,
+        'loja' => $nomeLoja,
+        'mensagem' => "Olá, {$primeiroNome}! Seu código de verificação na {$nomeLoja} é: *{$codigo}*. Ele é válido por 30 minutos. Não compartilhe esse código com ninguém.",
+    ];
+
+    $ch = curl_init($config['n8n_webhook_url']);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST => true,
+        CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+        CURLOPT_POSTFIELDS => json_encode($payload),
+        CURLOPT_TIMEOUT => 15,
+    ]);
+    $resposta = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $erroCurl = curl_error($ch);
+
+    if ($resposta === false) {
+        error_log('Falha ao chamar o webhook do n8n (WhatsApp): ' . $erroCurl);
+        return ['success' => false, 'message' => 'Não foi possível enviar o código agora. Tente novamente em instantes.'];
+    }
+    if ($httpCode >= 300) {
+        error_log('Webhook do n8n (WhatsApp) devolveu erro: HTTP ' . $httpCode . ' — ' . $resposta);
+        return ['success' => false, 'message' => 'Não foi possível enviar o código agora. Tente novamente em instantes.'];
+    }
+
+    return ['success' => true, 'message' => 'Código enviado pro seu WhatsApp.'];
 }
 
 /**

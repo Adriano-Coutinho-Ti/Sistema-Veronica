@@ -8,15 +8,6 @@ if (!empty($_SESSION['id_cliente'])) {
     exit;
 }
 
-function normalizarWhatsapp(string $whatsapp): string
-{
-    $whatsapp = preg_replace('/\D/', '', $whatsapp);
-    if (strlen($whatsapp) === 10 || strlen($whatsapp) === 11) {
-        $whatsapp = '55' . $whatsapp;
-    }
-    return $whatsapp;
-}
-
 function normalizarEmail(string $email): string
 {
     return mb_strtolower(trim($email));
@@ -29,30 +20,66 @@ function nomeCompleto(string $nome): bool
     return count(array_filter(preg_split('/\s+/', trim($nome)))) >= 2;
 }
 
+$whatsappLoginHabilitado = (bool) $pdo->query('SELECT whatsapp_verificacao_ativo FROM config_dev WHERE id_config = 1')->fetchColumn();
+
 $erro = '';
 $etapa = 'email';
 $emailNormalizado = '';
+$identificador = '';
+$tipoIdentificador = 'email';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $acao = $_POST['acao'] ?? '';
 
     if ($acao === 'verificar_email') {
-        $emailNormalizado = normalizarEmail($_POST['email'] ?? '');
+        $entrada = trim($_POST['identificador'] ?? '');
+        $pareceEmail = str_contains($entrada, '@');
 
-        if (!filter_var($emailNormalizado, FILTER_VALIDATE_EMAIL)) {
-            $erro = 'Informe um e-mail válido.';
-            $etapa = 'email';
-        } else {
-            $stmt = $pdo->prepare('SELECT id_cliente, senha_hash FROM clientes WHERE email = :e');
-            $stmt->execute([':e' => $emailNormalizado]);
-            $clienteExistente = $stmt->fetch();
+        if ($pareceEmail || !$whatsappLoginHabilitado) {
+            $emailNormalizado = normalizarEmail($entrada);
+            $identificador = $emailNormalizado;
+            $tipoIdentificador = 'email';
 
-            if (!$clienteExistente) {
-                $etapa = 'cadastro';
-            } elseif (empty($clienteExistente['senha_hash'])) {
-                $etapa = 'ativar';
+            if (!filter_var($emailNormalizado, FILTER_VALIDATE_EMAIL)) {
+                $erro = 'Informe um e-mail válido.';
+                $etapa = 'email';
             } else {
-                $etapa = 'login';
+                $stmt = $pdo->prepare('SELECT id_cliente, senha_hash FROM clientes WHERE email = :e');
+                $stmt->execute([':e' => $emailNormalizado]);
+                $clienteExistente = $stmt->fetch();
+
+                if (!$clienteExistente) {
+                    $etapa = 'cadastro';
+                } elseif (empty($clienteExistente['senha_hash'])) {
+                    $etapa = 'ativar';
+                } else {
+                    $etapa = 'login';
+                }
+            }
+        } else {
+            $whatsappNormalizado = normalizarWhatsapp($entrada);
+            $identificador = $whatsappNormalizado;
+            $tipoIdentificador = 'whatsapp';
+
+            if ($whatsappNormalizado === '') {
+                $erro = 'Informe um WhatsApp válido, com DDD e o 9 na frente (ex: (11) 90000-0000).';
+                $etapa = 'email';
+            } else {
+                $stmt = $pdo->prepare('SELECT id_cliente, senha_hash FROM clientes WHERE whatsapp = :w');
+                $stmt->execute([':w' => $whatsappNormalizado]);
+                $clienteExistente = $stmt->fetch();
+
+                if (!$clienteExistente) {
+                    // Cadastro novo sempre começa pelo e-mail -- não existe fluxo de
+                    // cadastro só com WhatsApp, então não faz sentido mandar pra
+                    // etapa "cadastro" aqui.
+                    $erro = 'Esse WhatsApp não tem cadastro. Cadastre-se com seu e-mail.';
+                    $etapa = 'email';
+                } elseif (empty($clienteExistente['senha_hash'])) {
+                    $etapa = 'ativar';
+                } else {
+                    $etapa = 'login';
+                }
             }
         }
     } elseif ($acao === 'cadastro') {
@@ -71,8 +98,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif (!nomeCompleto($nome)) {
             $erro = 'Informe seu nome completo (nome e sobrenome).';
             $etapa = 'cadastro';
-        } elseif (strlen($whatsappNormalizado) < 12) {
-            $erro = 'Informe um WhatsApp válido, com DDD.';
+        } elseif ($whatsappNormalizado === '') {
+            $erro = 'Informe um WhatsApp válido, com DDD e o 9 na frente (ex: (11) 90000-0000).';
             $etapa = 'cadastro';
         } elseif (strlen($senha) < 6) {
             $erro = 'A senha precisa ter pelo menos 6 caracteres.';
@@ -116,7 +143,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     } elseif ($acao === 'ativar') {
-        $emailNormalizado = normalizarEmail($_POST['email'] ?? '');
+        $tipoIdentificador = ($_POST['tipo_identificador'] ?? '') === 'whatsapp' ? 'whatsapp' : 'email';
+        $identificador = trim($_POST['identificador'] ?? '');
+        $coluna = $tipoIdentificador === 'whatsapp' ? 'whatsapp' : 'email';
         $senha = $_POST['senha'] ?? '';
 
         if (strlen($senha) < 6) {
@@ -124,35 +153,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $etapa = 'ativar';
         } else {
             $hash = password_hash($senha, PASSWORD_DEFAULT);
-            $stmt = $pdo->prepare('UPDATE clientes SET senha_hash = :senha WHERE email = :email AND senha_hash IS NULL');
-            $stmt->execute([':senha' => $hash, ':email' => $emailNormalizado]);
+            $stmt = $pdo->prepare("UPDATE clientes SET senha_hash = :senha WHERE $coluna = :id AND senha_hash IS NULL");
+            $stmt->execute([':senha' => $hash, ':id' => $identificador]);
 
             // Only proceed if the update actually affected a row (passwordless account)
             if ($stmt->rowCount() > 0) {
-                $stmtC = $pdo->prepare('SELECT id_cliente, nome FROM clientes WHERE email = :email');
-                $stmtC->execute([':email' => $emailNormalizado]);
+                $stmtC = $pdo->prepare("SELECT id_cliente, nome, email FROM clientes WHERE $coluna = :id");
+                $stmtC->execute([':id' => $identificador]);
                 $cliente = $stmtC->fetch();
 
                 $_SESSION['id_cliente'] = (int) $cliente['id_cliente'];
                 $_SESSION['nome_cliente'] = $cliente['nome'];
                 session_regenerate_id(true);
-                // Esse e-mail foi digitado pelo lojista no PDV, nunca confirmado pelo
-                // próprio dono da caixa de entrada — mesma regra do cadastro novo.
-                dispararVerificacaoEmail($pdo, (int) $cliente['id_cliente'], $emailNormalizado, $cliente['nome']);
+                // Esse e-mail/WhatsApp foi digitado pelo lojista no PDV, nunca confirmado
+                // pelo próprio dono da conta -- mesma regra do cadastro novo. Só dispara
+                // se o cadastro tiver e-mail (cliente do PDV pode não ter informado).
+                if (!empty($cliente['email'])) {
+                    dispararVerificacaoEmail($pdo, (int) $cliente['id_cliente'], $cliente['email'], $cliente['nome']);
+                }
                 header('Location: /loja/index.php');
                 exit;
             } else {
                 // Account either doesn't exist or already has a password
-                $erro = 'Não foi possível ativar a conta. Verifique se o e-mail está correto.';
+                $erro = 'Não foi possível ativar a conta. Verifique os dados.';
                 $etapa = 'email';
             }
         }
     } elseif ($acao === 'login') {
-        $emailNormalizado = normalizarEmail($_POST['email'] ?? '');
+        $tipoIdentificador = ($_POST['tipo_identificador'] ?? '') === 'whatsapp' ? 'whatsapp' : 'email';
+        $identificador = trim($_POST['identificador'] ?? '');
+        $coluna = $tipoIdentificador === 'whatsapp' ? 'whatsapp' : 'email';
         $senha = $_POST['senha'] ?? '';
 
-        $stmt = $pdo->prepare('SELECT id_cliente, nome, senha_hash FROM clientes WHERE email = :email');
-        $stmt->execute([':email' => $emailNormalizado]);
+        $stmt = $pdo->prepare("SELECT id_cliente, nome, senha_hash FROM clientes WHERE $coluna = :id");
+        $stmt->execute([':id' => $identificador]);
         $cliente = $stmt->fetch();
 
         // senha_hash pode ser NULL (cliente criado pelo PDV em clientes/novo.php e nunca
@@ -165,7 +199,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
 
-        $erro = 'E-mail ou senha inválidos.';
+        $erro = $tipoIdentificador === 'whatsapp' ? 'WhatsApp ou senha inválidos.' : 'E-mail ou senha inválidos.';
         $etapa = 'login';
     }
 }
@@ -182,7 +216,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <h1>Entrar na loja</h1>
     <form method="post">
         <input type="hidden" name="acao" value="verificar_email">
-        <label>E-mail<input type="email" name="email" required placeholder="voce@email.com" value="<?= htmlspecialchars($emailNormalizado) ?>"></label>
+        <?php if ($whatsappLoginHabilitado): ?>
+        <label>E-mail ou WhatsApp<input type="text" name="identificador" required placeholder="voce@email.com ou (11) 90000-0000" value="<?= htmlspecialchars($identificador) ?>"></label>
+        <?php else: ?>
+        <label>E-mail<input type="email" name="identificador" required placeholder="voce@email.com" value="<?= htmlspecialchars($identificador) ?>"></label>
+        <?php endif; ?>
         <button type="submit" class="btn-bloco">Continuar</button>
     </form>
     <?php elseif ($etapa === 'cadastro'): ?>
@@ -221,8 +259,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if (contarNomes(nome) < 2) {
                 mensagem = 'Informe seu nome completo (nome e sobrenome).';
-            } else if (digitosWhatsapp.length < 10) {
-                mensagem = 'Informe um WhatsApp válido, com DDD.';
+            } else if (digitosWhatsapp.length !== 11 || digitosWhatsapp[2] !== '9') {
+                mensagem = 'Informe um WhatsApp válido, com DDD e o 9 na frente (ex: (11) 90000-0000).';
             } else if (senha.length < 6) {
                 mensagem = 'A senha precisa ter pelo menos 6 caracteres.';
             }
@@ -242,7 +280,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <p>Encontramos seu cadastro. Crie uma senha pra acessar a loja online.</p>
     <form method="post">
         <input type="hidden" name="acao" value="ativar">
-        <input type="hidden" name="email" value="<?= htmlspecialchars($emailNormalizado) ?>">
+        <input type="hidden" name="identificador" value="<?= htmlspecialchars($identificador) ?>">
+        <input type="hidden" name="tipo_identificador" value="<?= htmlspecialchars($tipoIdentificador) ?>">
         <label>Crie uma senha<input type="password" name="senha" required minlength="6"></label>
         <button type="submit" class="btn-bloco">Ativar</button>
     </form>
@@ -250,7 +289,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <h2>Entrar</h2>
     <form method="post">
         <input type="hidden" name="acao" value="login">
-        <input type="hidden" name="email" value="<?= htmlspecialchars($emailNormalizado) ?>">
+        <input type="hidden" name="identificador" value="<?= htmlspecialchars($identificador) ?>">
+        <input type="hidden" name="tipo_identificador" value="<?= htmlspecialchars($tipoIdentificador) ?>">
         <label>Senha<input type="password" name="senha" required></label>
         <button type="submit" class="btn-bloco">Entrar</button>
     </form>

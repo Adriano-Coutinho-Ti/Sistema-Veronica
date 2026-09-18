@@ -228,9 +228,80 @@ function iniciarModalValidarEmail() {
     });
 }
 
+// Popup de validar WhatsApp por código -- espelha iniciarModalValidarEmail(),
+// mesmo padrão (qualquer botão ".btn-abrir-validar-whatsapp" abre).
+function iniciarModalValidarWhatsapp() {
+    const modal = document.getElementById('modal-validar-whatsapp');
+    if (!modal) { return; }
+
+    const form = document.getElementById('form-validar-whatsapp');
+    const campoCodigo = document.getElementById('campo-codigo-whatsapp');
+    const msgErro = document.getElementById('msg-erro-validar-whatsapp');
+    const btnNaoRecebi = document.getElementById('btn-nao-recebi-whatsapp');
+
+    function abrirModal() {
+        msgErro.hidden = true;
+        campoCodigo.value = '';
+        modal.hidden = false;
+        campoCodigo.focus();
+    }
+    function fecharModal() { modal.hidden = true; }
+
+    document.querySelectorAll('.btn-abrir-validar-whatsapp').forEach(function (btn) {
+        btn.addEventListener('click', abrirModal);
+    });
+
+    document.getElementById('btn-fechar-validar-whatsapp').addEventListener('click', fecharModal);
+    modal.addEventListener('click', function (e) { if (e.target === modal) { fecharModal(); } });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !modal.hidden) { fecharModal(); } });
+
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        msgErro.hidden = true;
+        fetch('/loja/ajax/validar_codigo_whatsapp.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'codigo=' + encodeURIComponent(campoCodigo.value)
+        }).then(function (r) { return r.json(); }).then(function (data) {
+            if (data.success) {
+                window.location.reload();
+            } else {
+                msgErro.textContent = data.message;
+                msgErro.hidden = false;
+            }
+        }).catch(function () {
+            msgErro.textContent = 'Erro de conexão. Tente novamente.';
+            msgErro.hidden = false;
+        });
+    });
+
+    btnNaoRecebi.addEventListener('click', function () {
+        btnNaoRecebi.disabled = true;
+        const textoOriginal = btnNaoRecebi.textContent;
+        btnNaoRecebi.textContent = 'Enviando...';
+        fetch('/loja/ajax/reenviar_verificacao_whatsapp.php', { method: 'POST' })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                msgErro.className = 'alert ' + (data.success ? 'alert-sucesso' : 'alert-erro');
+                msgErro.textContent = data.message;
+                msgErro.hidden = false;
+            })
+            .catch(function () {
+                msgErro.className = 'alert alert-erro';
+                msgErro.textContent = 'Erro de conexão. Tente novamente.';
+                msgErro.hidden = false;
+            })
+            .finally(function () {
+                btnNaoRecebi.disabled = false;
+                btnNaoRecebi.textContent = textoOriginal;
+            });
+    });
+}
+
 document.addEventListener('DOMContentLoaded', function () {
     iniciarMenuMobile();
     iniciarCarrosseis();
     iniciarModalSair();
     iniciarModalValidarEmail();
+    iniciarModalValidarWhatsapp();
 });

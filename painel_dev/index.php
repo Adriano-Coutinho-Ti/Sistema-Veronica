@@ -96,6 +96,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'atualiz
         ':mm' => trim($_POST['travamento_manutencao_mensagem'] ?? '') ?: null,
     ]);
     $sucesso = 'Travamento atualizado.';
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'atualizar_whatsapp') {
+    $whatsappAtivo = isset($_POST['whatsapp_verificacao_ativo']) ? 1 : 0;
+    $webhookUrl = trim($_POST['n8n_webhook_url'] ?? '');
+
+    if ($whatsappAtivo && $webhookUrl === '') {
+        $erro = 'Preencha a URL do webhook do n8n antes de ativar.';
+    } else {
+        $pdo->prepare(
+            'UPDATE config_dev SET whatsapp_verificacao_ativo = :ativo, evolution_base_url = :url, evolution_api_key = :key, evolution_instancia = :inst, n8n_webhook_url = :webhook WHERE id_config = 1'
+        )->execute([
+            ':ativo' => $whatsappAtivo,
+            ':url' => trim($_POST['evolution_base_url'] ?? '') ?: null,
+            ':key' => trim($_POST['evolution_api_key'] ?? '') ?: null,
+            ':inst' => trim($_POST['evolution_instancia'] ?? '') ?: null,
+            ':webhook' => $webhookUrl ?: null,
+        ]);
+        $sucesso = 'Configuração de WhatsApp atualizada.';
+    }
 }
 
 // Qual seção da sanfona abre sozinha depois de salvar um formulário -- tanto
@@ -277,6 +295,27 @@ $vinculosAtuais = $pdo->query('SELECT numero_caixa, terminal_id FROM caixa_termi
                 <button type="submit" class="btn-bloco">Salvar maquininhas</button>
             </form>
             <?php endif; ?>
+        </div>
+    </details>
+
+    <details class="card card-sanfona" name="sanfona-dev" <?= $acaoAbrir === 'atualizar_whatsapp' ? 'open' : '' ?>>
+        <summary>WhatsApp (Evolution API + n8n) <svg class="icone-sanfona" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
+        <div class="sanfona-corpo">
+            <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:0; margin-bottom:16px;">Deixa o cliente validar (e entrar) pelo número de WhatsApp, além do e-mail. Desativado, o cliente só usa e-mail — nada muda pra ele. Nosso sistema manda o código de verificação num único POST pro webhook do n8n, levando junto as credenciais da Evolution API preenchidas abaixo — o workflow do n8n (baixe o modelo pronto e importe no seu n8n) é genérico e usa o que chega em cada chamada, nunca tem credencial fixa dentro dele.</p>
+            <?php if ($erro && ($_POST['acao'] ?? '') === 'atualizar_whatsapp'): ?><p class="alert alert-erro"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
+            <form method="post">
+                <input type="hidden" name="acao" value="atualizar_whatsapp">
+                <label style="flex-direction:row; align-items:center; gap:8px;">
+                    <input type="checkbox" name="whatsapp_verificacao_ativo" value="1" style="width:auto;" <?= !empty($config['whatsapp_verificacao_ativo']) ? 'checked' : '' ?>>
+                    Ativar login/validação por WhatsApp
+                </label>
+                <label style="margin-top:12px;">URL base da Evolution API<input type="text" name="evolution_base_url" value="<?= htmlspecialchars($config['evolution_base_url'] ?? '') ?>" placeholder="https://sua-evolution-api.com"></label>
+                <label>API Key<input type="text" name="evolution_api_key" value="<?= htmlspecialchars($config['evolution_api_key'] ?? '') ?>" placeholder="Chave da instância na Evolution API"></label>
+                <label>Nome da instância<input type="text" name="evolution_instancia" value="<?= htmlspecialchars($config['evolution_instancia'] ?? '') ?>" placeholder="Ex: brechodaveve"></label>
+                <label>URL do webhook do n8n<input type="text" name="n8n_webhook_url" value="<?= htmlspecialchars($config['n8n_webhook_url'] ?? '') ?>" placeholder="https://seu-n8n.com/webhook/xxxxx"></label>
+                <button type="submit" class="btn-bloco">Salvar WhatsApp</button>
+            </form>
+            <p style="margin-top:14px;"><a href="/painel_dev/n8n-whatsapp-verificacao.json" class="btn-texto" download>Baixar o modelo do workflow do n8n</a></p>
         </div>
     </details>
 

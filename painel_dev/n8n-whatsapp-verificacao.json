@@ -1,0 +1,99 @@
+{
+  "name": "Verificação WhatsApp — Sistema Veronica",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Verificação de WhatsApp — Sistema Veronica\n\nEsse workflow é **genérico**: não tem nenhuma credencial fixa dentro dele. A cada chamada, o Sistema Veronica manda no próprio corpo do POST tudo que precisa pra falar com a Evolution API daquela instalação (URL base, API key, instância) — então o mesmo arquivo serve pra qualquer loja/instalação, sem editar nada aqui.\n\n**Como configurar:**\n1. Importe este workflow no seu n8n.\n2. Ative o workflow.\n3. Copie a URL do nó \"Webhook\" (produção) e cole em Painel do Dev → WhatsApp (Evolution API + n8n) → \"URL do webhook do n8n\".\n4. Preencha, no mesmo painel, a URL base / API key / nome da instância da sua Evolution API.\n\n**Corpo que chega no webhook:**\n```json\n{\n  \"evolution\": { \"base_url\": \"...\", \"api_key\": \"...\", \"instancia\": \"...\" },\n  \"telefone\": \"5511987654321\",\n  \"codigo\": \"123456\",\n  \"nome\": \"Maria\",\n  \"loja\": \"Brechó da Veve\",\n  \"mensagem\": \"Olá, Maria! Seu código de verificação...\"\n}\n```",
+        "height": 420,
+        "width": 460
+      },
+      "id": "nota-explicativa",
+      "name": "Como funciona",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-40, -40]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "verificacao-whatsapp",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [460, 100],
+      "webhookId": "verificacao-whatsapp-sistema-veronica"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.body.evolution.base_url }}/message/sendText/{{ $json.body.evolution.instancia }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $json.body.evolution.api_key }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ number: $json.body.telefone, text: $json.body.mensagem }) }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "enviar-evolution",
+      "name": "Enviar WhatsApp (Evolution API)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 100],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true } }}",
+        "options": {}
+      },
+      "id": "responder-sucesso",
+      "name": "Responder sucesso",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [900, 0]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: false, message: 'Falha ao enviar via Evolution API: ' + ($json.error ? $json.error.toString() : 'erro desconhecido') } }}",
+        "options": {
+          "responseCode": 502
+        }
+      },
+      "id": "responder-erro",
+      "name": "Responder erro",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [900, 220]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [{ "node": "Enviar WhatsApp (Evolution API)", "type": "main", "index": 0 }]
+      ]
+    },
+    "Enviar WhatsApp (Evolution API)": {
+      "main": [
+        [{ "node": "Responder sucesso", "type": "main", "index": 0 }],
+        [{ "node": "Responder erro", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}
