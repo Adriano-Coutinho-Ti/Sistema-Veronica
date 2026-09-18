@@ -352,7 +352,38 @@ function dispararVerificacaoWhatsapp(PDO $pdo, int $id_cliente, string $whatsapp
     $pdo->prepare("UPDATE clientes SET token_verificacao_whatsapp = :t, token_verificacao_whatsapp_expira_em = DATE_ADD(NOW(), INTERVAL 30 MINUTE) WHERE id_cliente = :id")
         ->execute([':t' => $codigo, ':id' => $id_cliente]);
 
-    return enviarCodigoWhatsapp($pdo, $whatsapp, $nome, $codigo);
+    return enviarCodigoWhatsapp($pdo, $id_cliente, $whatsapp, $nome, $codigo);
+}
+
+const REENVIO_WHATSAPP_INTERVALO_MINUTOS = 10;
+
+/**
+ * Trava de 10 minutos (fixa, por segurança) entre pedidos de reenvio do
+ * código por WhatsApp -- cada pedido dispara um envio de verdade via
+ * Evolution API (custo real), então evita o cliente ficar clicando "não
+ * recebi" repetidamente.
+ *
+ * Baseada em clientes.whatsapp_ultimo_envio_em -- carimbada em TODO envio
+ * de verdade, dentro de enviarCodigoWhatsapp(), não em quando o código foi
+ * criado. Isso importa porque reenviar o MESMO código (quando ele ainda
+ * está válido) de propósito não mexe na expiração dele -- usar a expiração
+ * como "quando foi o último pedido" (como a primeira versão desta trava
+ * fazia) só travava os primeiros 10min após a criação ORIGINAL do código;
+ * depois disso, como a expiração nunca mudava nos reenvios seguintes, a
+ * trava ficava destravada pelo resto dos 30min de validade -- bug real,
+ * encontrado testando em produção. Comparado dentro do próprio SQL (NOW()),
+ * nunca com strtotime()/time() do PHP.
+ */
+function segundosDeEsperaReenvioWhatsapp(PDO $pdo, int $id_cliente): int
+{
+    $stmt = $pdo->prepare(
+        "SELECT GREATEST(0, (:intervalo * 60) - TIMESTAMPDIFF(SECOND, whatsapp_ultimo_envio_em, NOW())) AS segundos_de_espera
+         FROM clientes WHERE id_cliente = :id AND whatsapp_ultimo_envio_em IS NOT NULL"
+    );
+    $stmt->execute([':intervalo' => REENVIO_WHATSAPP_INTERVALO_MINUTOS, ':id' => $id_cliente]);
+    $segundos = $stmt->fetchColumn();
+
+    return $segundos !== false ? (int) $segundos : 0;
 }
 
 /**
@@ -361,34 +392,6 @@ function dispararVerificacaoWhatsapp(PDO $pdo, int $id_cliente, string $whatsapp
  * botão "não recebi" dentro do popup. Só gera um código novo se não existir
  * nenhum pendente ou se o que existe já expirou.
  */
-const REENVIO_WHATSAPP_INTERVALO_MINUTOS = 10;
-
-/**
- * Trava de 10 minutos (fixa, por segurança) entre pedidos de reenvio do
- * código por WhatsApp -- cada reenvio dispara um envio de verdade via
- * Evolution API (custo real), então evita o cliente ficar clicando "não
- * recebi" repetidamente. Não usa coluna nova: como dispararVerificacaoWhatsapp()
- * sempre cria o código com exatamente 30min de validade, dá pra calcular
- * "quando foi criado" a partir da própria expiração (expira_em - 30min) --
- * comparado dentro do próprio SQL (NOW()), nunca com strtotime()/time() do
- * PHP (ver nota em loja/ajax/validar_codigo_email.php sobre não misturar os
- * dois relógios).
- */
-function segundosDeEsperaReenvioWhatsapp(PDO $pdo, int $id_cliente): int
-{
-    // GREATEST(0, ...) calculado dentro do próprio SQL -- nunca negativo
-    // mesmo se algo externo alterar token_verificacao_whatsapp_expira_em pra
-    // um valor inesperado; PHP só converte pra int o que já vem pronto.
-    $stmt = $pdo->prepare(
-        "SELECT GREATEST(0, TIMESTAMPDIFF(SECOND, NOW(), token_verificacao_whatsapp_expira_em) - ((30 - :intervalo) * 60)) AS segundos_de_espera
-         FROM clientes WHERE id_cliente = :id AND token_verificacao_whatsapp IS NOT NULL"
-    );
-    $stmt->execute([':intervalo' => REENVIO_WHATSAPP_INTERVALO_MINUTOS, ':id' => $id_cliente]);
-    $segundos = $stmt->fetchColumn();
-
-    return $segundos !== false ? (int) $segundos : 0;
-}
-
 function reenviarCodigoVerificacaoWhatsapp(PDO $pdo, int $id_cliente, string $whatsapp, string $nome): array
 {
     $espera = segundosDeEsperaReenvioWhatsapp($pdo, $id_cliente);
@@ -410,7 +413,7 @@ function reenviarCodigoVerificacaoWhatsapp(PDO $pdo, int $id_cliente, string $wh
     $codigoAindaValido = $atual && !empty($atual['token_verificacao_whatsapp']) && $atual['codigo_valido'];
 
     if ($codigoAindaValido) {
-        return enviarCodigoWhatsapp($pdo, $whatsapp, $nome, $atual['token_verificacao_whatsapp']);
+        return enviarCodigoWhatsapp($pdo, $id_cliente, $whatsapp, $nome, $atual['token_verificacao_whatsapp']);
     }
 
     return dispararVerificacaoWhatsapp($pdo, $id_cliente, $whatsapp, $nome);
@@ -425,8 +428,15 @@ function reenviarCodigoVerificacaoWhatsapp(PDO $pdo, int $id_cliente, string $wh
  * deste sistema, feita por qualquer dev) -- ele usa o que chega em cada
  * chamada pra decidir em qual Evolution API/instância mandar a mensagem,
  * nunca tem credencial fixa dentro dele.
+ *
+ * Grava whatsapp_ultimo_envio_em (usada pela trava de 10min em
+ * segundosDeEsperaReenvioWhatsapp()) assim que confirma que vai tentar
+ * enviar de verdade -- antes da chamada ao webhook, não depois, pra contar
+ * mesmo se a chamada falhar (evita um loop rápido de tentativas se o
+ * n8n/Evolution estiverem fora do ar). Só NÃO conta se nem chegou a tentar
+ * (webhook não configurado).
  */
-function enviarCodigoWhatsapp(PDO $pdo, string $whatsapp, string $nome, string $codigo): array
+function enviarCodigoWhatsapp(PDO $pdo, int $id_cliente, string $whatsapp, string $nome, string $codigo): array
 {
     $config = $pdo->query(
         'SELECT n8n_webhook_url, evolution_base_url, evolution_api_key, evolution_instancia FROM config_dev WHERE id_config = 1'
@@ -435,6 +445,9 @@ function enviarCodigoWhatsapp(PDO $pdo, string $whatsapp, string $nome, string $
     if (!$config || empty($config['n8n_webhook_url'])) {
         return ['success' => false, 'message' => 'Verificação por WhatsApp não configurada.'];
     }
+
+    $pdo->prepare('UPDATE clientes SET whatsapp_ultimo_envio_em = NOW() WHERE id_cliente = :id')
+        ->execute([':id' => $id_cliente]);
 
     $configLoja = $pdo->query('SELECT nome_loja FROM config_loja WHERE id_config = 1')->fetch();
     $nomeLoja = $configLoja['nome_loja'] ?? 'a loja';
