@@ -274,10 +274,13 @@ function clienteVerificado(PDO $pdo, int $id_cliente): bool
 function dispararVerificacaoEmail(PDO $pdo, int $id_cliente, string $email, string $nome): array
 {
     $codigo = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
-    $expiraEm = date('Y-m-d H:i:s', time() + 1800); // 30 min
 
-    $pdo->prepare('UPDATE clientes SET token_verificacao_email = :t, token_verificacao_expira_em = :e WHERE id_cliente = :id')
-        ->execute([':t' => $codigo, ':e' => $expiraEm, ':id' => $id_cliente]);
+    // Expiração calculada dentro do próprio SQL (NOW() do MySQL), nunca com
+    // time()/date() do PHP -- os dois relógios podem estar em fusos
+    // diferentes (já aconteceu antes neste projeto), e gravar um horário
+    // calculado em PHP só é válido se os dois relógios baterem exatamente.
+    $pdo->prepare("UPDATE clientes SET token_verificacao_email = :t, token_verificacao_expira_em = DATE_ADD(NOW(), INTERVAL 30 MINUTE) WHERE id_cliente = :id")
+        ->execute([':t' => $codigo, ':id' => $id_cliente]);
 
     return enviarEmailCodigoVerificacao($pdo, $email, $nome, $codigo);
 }
@@ -342,10 +345,12 @@ function enviarEmailCodigoVerificacao(PDO $pdo, string $email, string $nome, str
 function dispararVerificacaoWhatsapp(PDO $pdo, int $id_cliente, string $whatsapp, string $nome): array
 {
     $codigo = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
-    $expiraEm = date('Y-m-d H:i:s', time() + 1800); // 30 min
 
-    $pdo->prepare('UPDATE clientes SET token_verificacao_whatsapp = :t, token_verificacao_whatsapp_expira_em = :e WHERE id_cliente = :id')
-        ->execute([':t' => $codigo, ':e' => $expiraEm, ':id' => $id_cliente]);
+    // Expiração calculada dentro do próprio SQL (NOW() do MySQL) -- ver
+    // mesma nota em dispararVerificacaoEmail() sobre não misturar
+    // time()/date() do PHP com horário do MySQL.
+    $pdo->prepare("UPDATE clientes SET token_verificacao_whatsapp = :t, token_verificacao_whatsapp_expira_em = DATE_ADD(NOW(), INTERVAL 30 MINUTE) WHERE id_cliente = :id")
+        ->execute([':t' => $codigo, ':id' => $id_cliente]);
 
     return enviarCodigoWhatsapp($pdo, $whatsapp, $nome, $codigo);
 }
@@ -356,11 +361,42 @@ function dispararVerificacaoWhatsapp(PDO $pdo, int $id_cliente, string $whatsapp
  * botão "não recebi" dentro do popup. Só gera um código novo se não existir
  * nenhum pendente ou se o que existe já expirou.
  */
+const REENVIO_WHATSAPP_INTERVALO_MINUTOS = 10;
+
+/**
+ * Trava de 10 minutos (fixa, por segurança) entre pedidos de reenvio do
+ * código por WhatsApp -- cada reenvio dispara um envio de verdade via
+ * Evolution API (custo real), então evita o cliente ficar clicando "não
+ * recebi" repetidamente. Não usa coluna nova: como dispararVerificacaoWhatsapp()
+ * sempre cria o código com exatamente 30min de validade, dá pra calcular
+ * "quando foi criado" a partir da própria expiração (expira_em - 30min) --
+ * comparado dentro do próprio SQL (NOW()), nunca com strtotime()/time() do
+ * PHP (ver nota em loja/ajax/validar_codigo_email.php sobre não misturar os
+ * dois relógios).
+ */
+function segundosDeEsperaReenvioWhatsapp(PDO $pdo, int $id_cliente): int
+{
+    $stmt = $pdo->prepare(
+        "SELECT TIMESTAMPDIFF(SECOND, NOW(), token_verificacao_whatsapp_expira_em) - ((30 - :intervalo) * 60) AS segundos_de_espera
+         FROM clientes WHERE id_cliente = :id AND token_verificacao_whatsapp IS NOT NULL"
+    );
+    $stmt->execute([':intervalo' => REENVIO_WHATSAPP_INTERVALO_MINUTOS, ':id' => $id_cliente]);
+    $segundos = $stmt->fetchColumn();
+
+    return $segundos !== false ? max(0, (int) $segundos) : 0;
+}
+
 function reenviarCodigoVerificacaoWhatsapp(PDO $pdo, int $id_cliente, string $whatsapp, string $nome): array
 {
-    // Expiração comparada dentro do SQL (NOW() do MySQL) -- ver nota em
-    // loja/ajax/validar_codigo_email.php sobre não misturar strtotime()/
-    // time() do PHP com horário vindo do MySQL.
+    $espera = segundosDeEsperaReenvioWhatsapp($pdo, $id_cliente);
+    if ($espera > 0) {
+        $minutos = (int) ceil($espera / 60);
+        return ['success' => false, 'message' => "Espera mais {$minutos} minuto" . ($minutos === 1 ? '' : 's') . " antes de pedir outro código."];
+    }
+
+    // Expiração comparada dentro do SQL (NOW() do MySQL) -- ver mesma nota
+    // acima sobre não misturar strtotime()/time() do PHP com horário vindo
+    // do MySQL.
     $stmt = $pdo->prepare(
         "SELECT token_verificacao_whatsapp, (token_verificacao_whatsapp_expira_em > NOW()) AS codigo_valido
          FROM clientes WHERE id_cliente = :id"
