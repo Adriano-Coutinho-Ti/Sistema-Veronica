@@ -147,12 +147,11 @@ function ativarMascaraTelefone(input) {
     });
 }
 
-// TESTE (só em minha_conta.php por enquanto, antes de espalhar pro campo
-// de login e pros outros campos do sistema) -- mesma máscara de
-// formatarTelefoneBr(), mas corrige sozinha quando o dígito logo depois do
-// DDD não é "9" (só existe celular válido começando com 9): digitar "348"
-// vira "(34) 98" na hora, inserindo o 9 que faltou, em vez de deixar
-// formar um número que o sistema ia rejeitar de qualquer jeito no fim.
+// Mesma máscara de formatarTelefoneBr(), mas corrige sozinha quando o
+// dígito logo depois do DDD não é "9" (só existe celular válido começando
+// com 9): digitar "348" vira "(34) 98" na hora, inserindo o 9 que faltou,
+// em vez de deixar formar um número que o sistema ia rejeitar de qualquer
+// jeito no fim. Usada em minha_conta.php e no cadastro/login (loja/cadastro.php).
 function formatarTelefoneBrComNoveAutomatico(valorBruto) {
     let digitos = valorBruto.replace(/\D/g, '');
     if (digitos.length >= 3 && digitos[2] !== '9') {
@@ -180,6 +179,26 @@ function ativarMascaraTelefoneComNoveAutomatico(input) {
         // Compensa o cursor pelo caractere "9" que a máscara pode ter
         // inserido no meio do texto -- sem isso, o cursor fica pra trás e
         // o próximo dígito digitado entra no lugar errado.
+        const diferenca = input.value.length - tamanhoAntes;
+        const novaPosicao = Math.max(0, (posicaoAntes || 0) + diferenca);
+        input.setSelectionRange(novaPosicao, novaPosicao);
+    });
+}
+
+// Campo de login/cadastro que aceita e-mail OU WhatsApp no mesmo input
+// (loja/cadastro.php, só quando a validação por WhatsApp está ativada) --
+// só aplica a máscara de telefone enquanto o que foi digitado até agora
+// parece um telefone (só dígitos/pontuação). Assim que aparecer uma letra
+// ou "@", entende que é e-mail sendo digitado e para de mexer no valor.
+function ativarMascaraIdentificadorLogin(input) {
+    if (!input) { return; }
+    input.addEventListener('input', function () {
+        if (/[a-zA-Z@]/.test(input.value)) {
+            return;
+        }
+        const posicaoAntes = input.selectionStart;
+        const tamanhoAntes = input.value.length;
+        input.value = formatarTelefoneBrComNoveAutomatico(input.value);
         const diferenca = input.value.length - tamanhoAntes;
         const novaPosicao = Math.max(0, (posicaoAntes || 0) + diferenca);
         input.setSelectionRange(novaPosicao, novaPosicao);

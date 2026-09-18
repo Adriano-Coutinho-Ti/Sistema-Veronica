@@ -217,12 +217,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <form method="post">
         <input type="hidden" name="acao" value="verificar_email">
         <?php if ($whatsappLoginHabilitado): ?>
-        <label>E-mail ou WhatsApp<input type="text" name="identificador" required placeholder="voce@email.com ou (11) 90000-0000" value="<?= htmlspecialchars($identificador) ?>"></label>
+        <label>E-mail ou WhatsApp<input type="text" name="identificador" id="campo-identificador" required placeholder="voce@email.com ou (11) 90000-0000" value="<?= htmlspecialchars($identificador) ?>"></label>
         <?php else: ?>
         <label>E-mail<input type="email" name="identificador" required placeholder="voce@email.com" value="<?= htmlspecialchars($identificador) ?>"></label>
         <?php endif; ?>
         <button type="submit" class="btn-bloco">Continuar</button>
     </form>
+    <?php if ($whatsappLoginHabilitado): ?>
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        ativarMascaraIdentificadorLogin(document.getElementById('campo-identificador'));
+    });
+    </script>
+    <?php endif; ?>
     <?php elseif ($etapa === 'cadastro'): ?>
     <h2>Complete seu cadastro</h2>
     <p class="alert alert-erro" id="erro-cadastro" hidden></p>
@@ -241,7 +248,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // não existiriam nesse ponto.
     document.addEventListener('DOMContentLoaded', function () {
         const campoWhatsapp = document.getElementById('campo-whatsapp');
-        ativarMascaraTelefone(campoWhatsapp);
+        ativarMascaraTelefoneComNoveAutomatico(campoWhatsapp);
 
         const campoSenha = document.getElementById('campo-senha');
         ativarFeedbackSenha(campoSenha);
