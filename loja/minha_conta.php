@@ -154,7 +154,9 @@ $whatsappVerificado = $cliente['whatsapp_verificado_em'] !== null;
     // executa antes do loja.js (que tem defer) — sem esperar, as funções
     // ativarMascaraTelefone()/ativarFeedbackSenha() ainda não existiriam.
     document.addEventListener('DOMContentLoaded', function () {
-        ativarMascaraTelefone(document.getElementById('campo-whatsapp'));
+        // Teste da máscara com auto-inserção do 9 -- só aqui por enquanto,
+        // ver nota em assets/js/loja.js.
+        ativarMascaraTelefoneComNoveAutomatico(document.getElementById('campo-whatsapp'));
         ativarFeedbackSenha(document.getElementById('campo-nova-senha'));
     });
     </script>

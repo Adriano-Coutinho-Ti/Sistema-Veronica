@@ -147,6 +147,45 @@ function ativarMascaraTelefone(input) {
     });
 }
 
+// TESTE (só em minha_conta.php por enquanto, antes de espalhar pro campo
+// de login e pros outros campos do sistema) -- mesma máscara de
+// formatarTelefoneBr(), mas corrige sozinha quando o dígito logo depois do
+// DDD não é "9" (só existe celular válido começando com 9): digitar "348"
+// vira "(34) 98" na hora, inserindo o 9 que faltou, em vez de deixar
+// formar um número que o sistema ia rejeitar de qualquer jeito no fim.
+function formatarTelefoneBrComNoveAutomatico(valorBruto) {
+    let digitos = valorBruto.replace(/\D/g, '');
+    if (digitos.length >= 3 && digitos[2] !== '9') {
+        digitos = digitos.slice(0, 2) + '9' + digitos.slice(2);
+    }
+    digitos = digitos.slice(0, 11);
+
+    if (digitos.length === 0) { return ''; }
+    if (digitos.length <= 2) { return '(' + digitos; }
+    const ddd = digitos.slice(0, 2);
+    const resto = digitos.slice(2);
+    const parte1 = resto.slice(0, 5);
+    const parte2 = resto.slice(5);
+    let formatado = '(' + ddd + ') ' + parte1;
+    if (parte2) { formatado += '-' + parte2; }
+    return formatado;
+}
+
+function ativarMascaraTelefoneComNoveAutomatico(input) {
+    if (!input) { return; }
+    input.addEventListener('input', function () {
+        const posicaoAntes = input.selectionStart;
+        const tamanhoAntes = input.value.length;
+        input.value = formatarTelefoneBrComNoveAutomatico(input.value);
+        // Compensa o cursor pelo caractere "9" que a máscara pode ter
+        // inserido no meio do texto -- sem isso, o cursor fica pra trás e
+        // o próximo dígito digitado entra no lugar errado.
+        const diferenca = input.value.length - tamanhoAntes;
+        const novaPosicao = Math.max(0, (posicaoAntes || 0) + diferenca);
+        input.setSelectionRange(novaPosicao, novaPosicao);
+    });
+}
+
 // Feedback visual (fica verde) quando a senha atinge o mínimo de 6 caracteres
 // — usado no cadastro e na troca de senha em "Minha conta".
 function ativarFeedbackSenha(input) {
