@@ -249,9 +249,146 @@ function iniciarLeitorCodigoBarras(idBotaoAbrir, aoLerCodigo, aoAbrir, aoFechar)
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !modal.hidden) { pararScanner(); } });
 }
 
+/**
+ * Máscara de telefone BR com auto-inserção do 9 — mesma lógica de
+ * assets/js/loja.js (formatarTelefoneBrComNoveAutomatico/
+ * ativarMascaraTelefoneComNoveAutomatico), duplicada aqui de propósito
+ * porque admin.js e loja.js são bundles independentes (ver header deste
+ * arquivo). Usada em clientes/novo.php, clientes/detalhe.php e
+ * config_sistema/aparencia.php.
+ */
+function formatarTelefoneBrComNoveAutomatico(valorBruto) {
+    let digitos = valorBruto.replace(/\D/g, '');
+    if (digitos.length >= 3 && digitos[2] !== '9') {
+        digitos = digitos.slice(0, 2) + '9' + digitos.slice(2);
+    }
+    digitos = digitos.slice(0, 11);
+
+    if (digitos.length === 0) { return ''; }
+    if (digitos.length <= 2) { return '(' + digitos; }
+    const ddd = digitos.slice(0, 2);
+    const resto = digitos.slice(2);
+    const parte1 = resto.slice(0, 5);
+    const parte2 = resto.slice(5);
+    let formatado = '(' + ddd + ') ' + parte1;
+    if (parte2) { formatado += '-' + parte2; }
+    return formatado;
+}
+
+function ativarMascaraTelefoneComNoveAutomatico(input) {
+    if (!input) { return; }
+    input.addEventListener('input', function () {
+        const posicaoAntes = input.selectionStart;
+        const tamanhoAntes = input.value.length;
+        input.value = formatarTelefoneBrComNoveAutomatico(input.value);
+        const diferenca = input.value.length - tamanhoAntes;
+        const novaPosicao = Math.max(0, (posicaoAntes || 0) + diferenca);
+        input.setSelectionRange(novaPosicao, novaPosicao);
+    });
+}
+
+/**
+ * Máscara de valor em reais — mesma lógica de assets/js/loja.js
+ * (formatarMoedaBr/ativarMascaraMoeda), duplicada aqui pelo mesmo motivo
+ * do bloco de telefone acima. Dígitos entram da direita pra esquerda:
+ * "15" vira "0,15", "150" vira "1,50".
+ */
+function formatarMoedaBr(valorBruto) {
+    let digitos = (valorBruto || '').replace(/\D/g, '').replace(/^0+(?=\d)/, '');
+    while (digitos.length < 3) {
+        digitos = '0' + digitos;
+    }
+    const centavos = digitos.slice(-2);
+    const inteiro = digitos.slice(0, -2).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    return inteiro + ',' + centavos;
+}
+
+function ativarMascaraMoeda(input) {
+    if (!input) { return; }
+    input.addEventListener('input', function () {
+        input.value = formatarMoedaBr(input.value);
+        input.setSelectionRange(input.value.length, input.value.length);
+    });
+}
+
+function ativarMascarasMoeda() {
+    document.querySelectorAll('.js-mascara-moeda').forEach(ativarMascaraMoeda);
+}
+
+/**
+ * Mesma ideia da máscara de moeda, só que sem separador de milhar — usada
+ * na Taxa de marketplace (%) do painel_dev, o único campo de porcentagem
+ * do sistema hoje. "150" vira "1,50" (1,5%).
+ */
+function formatarPercentualBr(valorBruto) {
+    let digitos = (valorBruto || '').replace(/\D/g, '').replace(/^0+(?=\d)/, '');
+    while (digitos.length < 3) {
+        digitos = '0' + digitos;
+    }
+    const decimais = digitos.slice(-2);
+    const inteiro = digitos.slice(0, -2).replace(/^0+(?=\d)/, '') || '0';
+    return inteiro + ',' + decimais;
+}
+
+function ativarMascaraPercentual(input) {
+    if (!input) { return; }
+    input.addEventListener('input', function () {
+        input.value = formatarPercentualBr(input.value);
+        input.setSelectionRange(input.value.length, input.value.length);
+    });
+}
+
+function ativarMascarasPercentual() {
+    document.querySelectorAll('.js-mascara-percentual').forEach(ativarMascaraPercentual);
+}
+
+/**
+ * Converte um valor no formato "1.234,56" (o que formatarMoedaBr() produz)
+ * pro float 1234.56 — usado em caixa/pagamento.php pra calcular troco no
+ * próprio navegador antes de enviar ao servidor. Precisa tirar o "." de
+ * milhar ANTES de trocar "," por "." de decimal, senão "1.234,56" vira
+ * "1.234.56" e o parseFloat para no primeiro ponto (== 1.234, errado).
+ */
+function converterMoedaBrParaFloat(valorFormatado) {
+    const limpo = (valorFormatado || '').replace(/\./g, '').replace(',', '.');
+    return parseFloat(limpo) || 0;
+}
+
+/**
+ * Mostra ao lado de um campo "minutos" (ex: config_sistema/pdv.php) o
+ * equivalente em horas/minutos conforme o valor é digitado — ex: "150"
+ * mostra "= 2h 30min". Existe especificamente pra pegar o erro de digitar
+ * pensando em horas num campo que é só minutos (ex: digitar "2" achando
+ * que são 2 horas, quando na verdade viraram só 2 minutos) — o valor
+ * errado fica visualmente óbvio assim que aparece.
+ */
+function ativarConversorMinutos(input, saida) {
+    if (!input || !saida) { return; }
+    function atualizar() {
+        const minutos = parseInt(input.value, 10);
+        if (!minutos || minutos < 1) {
+            saida.textContent = '';
+            return;
+        }
+        const horas = Math.floor(minutos / 60);
+        const restoMinutos = minutos % 60;
+        if (horas === 0) {
+            saida.textContent = '= ' + restoMinutos + ' min';
+        } else if (restoMinutos === 0) {
+            saida.textContent = '= ' + horas + 'h';
+        } else {
+            saida.textContent = '= ' + horas + 'h ' + restoMinutos + 'min';
+        }
+    }
+    input.addEventListener('input', atualizar);
+    atualizar();
+}
+
 document.addEventListener('DOMContentLoaded', function () {
     iniciarMenuMobileAdmin();
     iniciarConfirmacoesFormulario();
     iniciarAlternadoresVisualizacao();
     iniciarSubmenusAdmin();
+    ativarMascarasMoeda();
+    ativarMascarasPercentual();
 });

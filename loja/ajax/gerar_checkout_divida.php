@@ -10,7 +10,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 $id_cliente = (int) $_SESSION['id_cliente'];
-$valor = (float) str_replace(',', '.', $_POST['valor'] ?? '0');
+$valor = converterMoedaBrParaFloat($_POST['valor'] ?? '0');
 
 $stmtCliente = $pdo->prepare('SELECT saldo_devedor FROM clientes WHERE id_cliente = :id');
 $stmtCliente->execute([':id' => $id_cliente]);

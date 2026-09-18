@@ -12,7 +12,7 @@ exigirLogin();
 header('Content-Type: application/json');
 
 $id_venda = (int) ($_POST['id_venda'] ?? 0);
-$valor = (float) str_replace(',', '.', $_POST['valor'] ?? '0');
+$valor = converterMoedaBrParaFloat($_POST['valor'] ?? '0');
 
 $stmtV = $pdo->prepare(
     "SELECT v.id_venda FROM vendas v

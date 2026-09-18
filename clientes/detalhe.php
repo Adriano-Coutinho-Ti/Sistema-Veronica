@@ -75,7 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'atualiz
         exit;
     }
 
-    $novoLimite = (float) str_replace(',', '.', $_POST['limite_credito'] ?? '0');
+    $novoLimite = converterMoedaBrParaFloat($_POST['limite_credito'] ?? '0');
     if ($novoLimite < 0) {
         $erro = 'Limite inválido.';
     } else {
@@ -101,7 +101,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'atualiz
         $cliente['prazo_dias_credito'] = $novoPrazo;
     }
 } elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'registrar_pagamento') {
-    $valor = (float) str_replace(',', '.', $_POST['valor'] ?? '0');
+    $valor = converterMoedaBrParaFloat($_POST['valor'] ?? '0');
     $forma = trim($_POST['forma_pagamento'] ?? '');
     $formasValidas = ['Dinheiro', 'Débito', 'Crédito', 'Pix'];
     // Pagamento de dívida recebido no balcão entra na conferência do caixa do dia, então
@@ -200,7 +200,7 @@ $creditoDisponivel = (float) $cliente['limite_credito'] - (float) $cliente['sald
     <form method="post">
         <input type="hidden" name="acao" value="atualizar_dados">
         <label>Nome<input type="text" name="nome" value="<?= htmlspecialchars($cliente['nome']) ?>" required></label>
-        <label>WhatsApp (com DDD)<input type="text" name="whatsapp" value="<?= htmlspecialchars($cliente['whatsapp']) ?>" required></label>
+        <label>WhatsApp (com DDD)<input type="text" name="whatsapp" id="campo-whatsapp" value="<?= htmlspecialchars(formatarWhatsappParaEdicao($cliente['whatsapp'])) ?>" required></label>
         <label>E-mail (obrigatório pro cliente conseguir entrar na loja online)<input type="email" name="email" value="<?= htmlspecialchars($cliente['email'] ?? '') ?>"></label>
         <label>Endereço<input type="text" name="endereco" value="<?= htmlspecialchars($cliente['endereco'] ?? '') ?>"></label>
         <button type="submit" class="btn-bloco">Salvar dados</button>
@@ -254,7 +254,7 @@ $creditoDisponivel = (float) $cliente['limite_credito'] - (float) $cliente['sald
     <form method="post" class="form-linha-compacta">
         <input type="hidden" name="acao" value="atualizar_limite">
         <label>Novo limite de crédito
-            <input type="text" name="limite_credito" value="<?= number_format((float) $cliente['limite_credito'], 2, ',', '.') ?>">
+            <input type="text" name="limite_credito" class="js-mascara-moeda" value="<?= number_format((float) $cliente['limite_credito'], 2, ',', '.') ?>">
         </label>
         <button type="submit" class="btn-outline">Atualizar limite</button>
     </form>
@@ -274,7 +274,7 @@ $creditoDisponivel = (float) $cliente['limite_credito'] - (float) $cliente['sald
     <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:-8px; margin-bottom:12px;">Dinheiro/Débito/Crédito são lançados manualmente (o pagamento já foi recebido por fora). Pix gera um QR Code de verdade pelo Mercado Pago, confirmado sozinho quando o cliente pagar.</p>
     <form method="post" class="form-linha" id="form-pagamento-divida">
         <label>Valor recebido
-            <input type="text" name="valor" id="valor-pagamento-divida" placeholder="0,00">
+            <input type="text" name="valor" id="valor-pagamento-divida" class="js-mascara-moeda" placeholder="0,00">
         </label>
         <label>Forma de pagamento
             <select name="forma_pagamento" id="forma-pagamento-divida">
@@ -336,6 +336,8 @@ $creditoDisponivel = (float) $cliente['limite_credito'] - (float) $cliente['sald
 <?php if ((float) $cliente['saldo_devedor'] > 0): ?>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    ativarMascaraTelefoneComNoveAutomatico(document.getElementById('campo-whatsapp'));
+
     const idCliente = <?= (int) $id ?>;
     const formPagamento = document.getElementById('form-pagamento-divida');
     const selectForma = document.getElementById('forma-pagamento-divida');

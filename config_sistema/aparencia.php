@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../conecta_bd.php';
 require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/loja.php';
 exigirAdmin();
 
 $erro = '';
@@ -125,7 +126,7 @@ $config = $pdo->query('SELECT * FROM config_loja WHERE id_config = 1')->fetch();
         <div class="card">
             <h2>Contato da loja</h2>
             <p style="color:var(--cor-texto-suave); font-size:0.9rem; margin-top:-8px;">Aparece no rodapé e no botão flutuante de WhatsApp de todas as páginas da loja online. Deixe em branco o que não se aplica.</p>
-            <label>WhatsApp (com DDD)<input type="text" name="whatsapp_loja" placeholder="11987654321" value="<?= htmlspecialchars($config['whatsapp_loja'] ?? '') ?>"></label>
+            <label>WhatsApp (com DDD)<input type="text" name="whatsapp_loja" id="campo-whatsapp-loja" placeholder="(11) 90000-0000" value="<?= htmlspecialchars(formatarWhatsappParaEdicao($config['whatsapp_loja'] ?? '')) ?>"></label>
             <label>E-mail<input type="email" name="email_loja" value="<?= htmlspecialchars($config['email_loja'] ?? '') ?>"></label>
             <label>Endereço<input type="text" name="endereco_loja" placeholder="Ex: Atendimento online para todo o país" value="<?= htmlspecialchars($config['endereco_loja'] ?? '') ?>"></label>
             <label>Horário de atendimento<input type="text" name="horario_atendimento" placeholder="Ex: Segunda a sexta, 9h às 18h" value="<?= htmlspecialchars($config['horario_atendimento'] ?? '') ?>"></label>
@@ -137,6 +138,9 @@ $config = $pdo->query('SELECT * FROM config_loja WHERE id_config = 1')->fetch();
 <script>
 document.getElementById('tema').addEventListener('change', function () {
     document.getElementById('cores-personalizadas').style.display = this.value === 'personalizado' ? '' : 'none';
+});
+document.addEventListener('DOMContentLoaded', function () {
+    ativarMascaraTelefoneComNoveAutomatico(document.getElementById('campo-whatsapp-loja'));
 });
 </script>
 </main>

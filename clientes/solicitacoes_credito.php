@@ -16,7 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$solicitacao) {
         $erro = 'Solicitação não encontrada ou já respondida.';
     } elseif ($acao === 'aprovar') {
-        $valorAprovado = (float) str_replace(',', '.', $_POST['valor_aprovado'] ?? '0');
+        $valorAprovado = converterMoedaBrParaFloat($_POST['valor_aprovado'] ?? '0');
         if ($valorAprovado <= 0) {
             $erro = 'Informe um valor de limite válido.';
         } else {
@@ -103,7 +103,7 @@ $respondidas = $pdo->query(
                     <form method="post" class="form-linha-compacta">
                         <input type="hidden" name="id_solicitacao" value="<?= $s['id_solicitacao'] ?>">
                         <input type="hidden" name="acao" value="aprovar">
-                        <input type="text" name="valor_aprovado" value="<?= number_format($s['valor_solicitado'], 2, ',', '') ?>" class="campo-valor-curto">
+                        <input type="text" name="valor_aprovado" value="<?= number_format($s['valor_solicitado'], 2, ',', '.') ?>" class="campo-valor-curto js-mascara-moeda">
                         <button type="submit" class="btn-sm">Aprovar</button>
                     </form>
                     <form method="post" data-confirm="Rejeitar esta solicitação?">
@@ -133,7 +133,7 @@ $respondidas = $pdo->query(
                     <form method="post" class="form-linha-compacta">
                         <input type="hidden" name="id_solicitacao" value="<?= $s['id_solicitacao'] ?>">
                         <input type="hidden" name="acao" value="aprovar">
-                        <input type="text" name="valor_aprovado" value="<?= number_format($s['valor_solicitado'], 2, ',', '') ?>" class="campo-valor-curto">
+                        <input type="text" name="valor_aprovado" value="<?= number_format($s['valor_solicitado'], 2, ',', '.') ?>" class="campo-valor-curto js-mascara-moeda">
                         <button type="submit" class="btn-sm">Aprovar</button>
                     </form>
                     <form method="post" data-confirm="Rejeitar esta solicitação?">

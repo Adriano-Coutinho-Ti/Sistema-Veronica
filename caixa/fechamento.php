@@ -103,7 +103,7 @@ $resumoOperadores = $resumo->fetchAll();
     <div class="card" style="margin-top:20px;">
         <h2>Conferência e fechamento</h2>
         <form method="post" action="/caixa/ajax/fechar_caixa.php" data-confirm="Fechar o caixa? Depois de fechado não dá pra registrar mais vendas nesta sessão.">
-            <label>Valor contado no caixa (R$)<input type="text" name="valor_final_informado" required></label>
+            <label>Valor contado no caixa (R$)<input type="text" name="valor_final_informado" class="js-mascara-moeda" placeholder="0,00" required></label>
             <label>Observação<textarea name="observacao_fechamento"></textarea></label>
             <button type="submit" class="btn-bloco">Fechar caixa</button>
         </form>

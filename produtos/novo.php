@@ -11,7 +11,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $descricao = trim($_POST['descricao'] ?? '') ?: null;
     $id_categoria = (int) ($_POST['id_categoria'] ?? 0);
     $condicao = $_POST['condicao'] === 'novo' ? 'novo' : 'usado';
-    $preco_base = (float) str_replace(',', '.', $_POST['preco_base'] ?? '0');
+    $preco_base = converterMoedaBrParaFloat($_POST['preco_base'] ?? '0');
     // combinacoes[]: cada item é um JSON {"valores":[id_valor,...],"preco":x,"estoque":y}
     $combinacoesJson = $_POST['combinacoes'] ?? '[]';
     $combinacoes = json_decode($combinacoesJson, true) ?: [];
@@ -39,7 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             foreach ($combinacoes as $combinacao) {
                 $precoCombinacao = isset($combinacao['preco']) && $combinacao['preco'] !== ''
-                    ? (float) str_replace(',', '.', $combinacao['preco'])
+                    ? converterMoedaBrParaFloat($combinacao['preco'])
                     : null;
                 $estoque = (int) ($combinacao['estoque'] ?? 0);
 
@@ -107,7 +107,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <option value="novo">Novo</option>
                 </select>
             </label>
-            <label>Preço base (R$)<input type="text" name="preco_base" required></label>
+            <label>Preço base (R$)<input type="text" name="preco_base" class="js-mascara-moeda" placeholder="0,00" required></label>
 
             <h3 style="margin-top:28px;">Variações do produto</h3>
             <p style="color:var(--cor-texto-suave); font-size:0.9rem; margin-bottom:14px;">Escolha a categoria pra ver as variações disponíveis (opcional — sem marcar nenhuma, o produto usa a combinação Padrão).</p>
@@ -171,9 +171,10 @@ function atualizarCombinacoes() {
                 const strong = document.createElement('strong');
                 strong.textContent = nomeCombinacao;
                 div.appendChild(strong);
-                div.insertAdjacentHTML('beforeend', ' — Estoque: <input type="number" min="0" class="input-estoque" value="0"> Preço (deixe em branco para usar o preço base): <input type="text" class="input-preco">');
+                div.insertAdjacentHTML('beforeend', ' — Estoque: <input type="number" min="0" class="input-estoque" value="0"> Preço (deixe em branco para usar o preço base): <input type="text" class="input-preco" placeholder="0,00">');
                 div.dataset.valores = JSON.stringify(combinacao.map(v => v.id_valor));
                 container.appendChild(div);
+                ativarMascaraMoeda(div.querySelector('.input-preco'));
             });
         });
 }

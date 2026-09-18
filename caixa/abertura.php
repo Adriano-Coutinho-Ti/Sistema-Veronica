@@ -34,7 +34,7 @@ if ($multiCaixa) {
 $erro = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $valor_inicial = (float) str_replace(',', '.', $_POST['valor_inicial'] ?? '0');
+    $valor_inicial = converterMoedaBrParaFloat($_POST['valor_inicial'] ?? '0');
     if ($valor_inicial < 0) {
         $erro = 'Informe um valor inicial válido.';
     } else {
@@ -76,7 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <h2>Valor inicial</h2>
         <form method="post">
             <?php if ($multiCaixa): ?><input type="hidden" name="numero_caixa" value="<?= $numeroCaixa ?>"><?php endif; ?>
-            <label>Valor inicial em dinheiro (R$)<input type="text" name="valor_inicial" value="0,00" required></label>
+            <label>Valor inicial em dinheiro (R$)<input type="text" name="valor_inicial" class="js-mascara-moeda" value="0,00" required></label>
             <button type="submit" class="btn-bloco">Abrir caixa</button>
         </form>
         <?php if ($multiCaixa): ?><a href="/caixa/selecionar.php" class="btn-texto btn-sm" style="margin-top:10px;">← Escolher outro caixa</a><?php endif; ?>

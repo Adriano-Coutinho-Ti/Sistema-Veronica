@@ -65,7 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'definir
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'atualizar_dados') {
     $nome = trim($_POST['nome'] ?? '');
     $descricao = trim($_POST['descricao'] ?? '') ?: null;
-    $preco_base = (float) str_replace(',', '.', $_POST['preco_base'] ?? '0');
+    $preco_base = converterMoedaBrParaFloat($_POST['preco_base'] ?? '0');
     $ativo = isset($_POST['ativo']) ? 1 : 0;
     $estoqueGerenciado = isset($_POST['estoque_gerenciado']) ? 1 : 0;
 
@@ -86,7 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'atualiz
             ->execute([':estoque' => (int) $valor, ':id' => (int) $id_pv, ':ip' => $id_produto]);
     }
     foreach ($_POST['preco'] ?? [] as $id_pv => $valor) {
-        $precoCombinacao = $valor === '' ? null : (float) str_replace(',', '.', $valor);
+        $precoCombinacao = $valor === '' ? null : converterMoedaBrParaFloat($valor);
         $pdo->prepare('UPDATE produto_variacoes SET preco = :preco WHERE id_produto_variacao = :id AND id_produto = :ip')
             ->execute([':preco' => $precoCombinacao, ':id' => (int) $id_pv, ':ip' => $id_produto]);
     }
@@ -327,7 +327,7 @@ $idsValoresEmUso = $stmtValoresEmUso->fetchAll(PDO::FETCH_COLUMN);
                 <input type="hidden" name="acao" value="atualizar_dados">
                 <label>Nome<input type="text" name="nome" value="<?= htmlspecialchars($produto['nome']) ?>" required></label>
                 <label>Descrição<textarea name="descricao"><?= htmlspecialchars($produto['descricao'] ?? '') ?></textarea></label>
-                <label>Preço base (R$)<input type="text" name="preco_base" value="<?= number_format($produto['preco_base'], 2, ',', '') ?>" required></label>
+                <label>Preço base (R$)<input type="text" name="preco_base" class="js-mascara-moeda" value="<?= number_format($produto['preco_base'], 2, ',', '.') ?>" required></label>
 
                 <button type="submit" class="btn-bloco">Salvar dados do produto</button>
             </form>
@@ -350,7 +350,7 @@ $idsValoresEmUso = $stmtValoresEmUso->fetchAll(PDO::FETCH_COLUMN);
                         <tr>
                             <td><?= htmlspecialchars($c['descricao'] ?? 'Padrão (sem variação)') ?></td>
                             <td><input type="number" min="0" name="estoque[<?= $c['id_produto_variacao'] ?>]" value="<?= (int) $c['estoque'] ?>"></td>
-                            <td><input type="text" name="preco[<?= $c['id_produto_variacao'] ?>]" value="<?= $c['preco'] !== null ? number_format($c['preco'], 2, ',', '') : '' ?>"></td>
+                            <td><input type="text" name="preco[<?= $c['id_produto_variacao'] ?>]" class="js-mascara-moeda" placeholder="0,00" value="<?= $c['preco'] !== null ? number_format($c['preco'], 2, ',', '.') : '' ?>"></td>
                         </tr>
                         <?php endforeach; ?>
                     </table>

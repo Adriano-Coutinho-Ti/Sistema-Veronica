@@ -11,7 +11,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 $caixa = exigirCaixaAberto($pdo);
 
-$valor_final = (float) str_replace(',', '.', $_POST['valor_final_informado'] ?? '0');
+$valor_final = converterMoedaBrParaFloat($_POST['valor_final_informado'] ?? '0');
 $observacao = trim($_POST['observacao_fechamento'] ?? '') ?: null;
 
 $stmt = $pdo->prepare(

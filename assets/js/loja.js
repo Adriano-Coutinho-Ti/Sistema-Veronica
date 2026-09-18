@@ -205,6 +205,38 @@ function ativarMascaraIdentificadorLogin(input) {
     });
 }
 
+// Máscara de valor em reais — os dígitos entram da direita pra esquerda,
+// como em qualquer app bancário: digitar "15" vira "0,15", digitar mais um
+// "0" (ficando "150") vira "1,50". Aplicada em todo campo com a classe
+// "js-mascara-moeda" (ver ativarMascarasMoeda() abaixo). Igual em admin.js
+// (arquivos independentes por padrão deste projeto, ver header ali).
+function formatarMoedaBr(valorBruto) {
+    let digitos = (valorBruto || '').replace(/\D/g, '').replace(/^0+(?=\d)/, '');
+    while (digitos.length < 3) {
+        digitos = '0' + digitos;
+    }
+    const centavos = digitos.slice(-2);
+    const inteiro = digitos.slice(0, -2).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    return inteiro + ',' + centavos;
+}
+
+function ativarMascaraMoeda(input) {
+    if (!input) { return; }
+    input.addEventListener('input', function () {
+        input.value = formatarMoedaBr(input.value);
+        input.setSelectionRange(input.value.length, input.value.length);
+    });
+}
+
+// Liga a máscara de moeda em todo campo já presente na página marcado com
+// a classe "js-mascara-moeda". Campos criados depois via JS (ex: linha de
+// combinação nova em produtos/novo.php) precisam chamar ativarMascaraMoeda()
+// direto no elemento recém-criado — esta função só cobre o que existe no
+// DOMContentLoaded.
+function ativarMascarasMoeda() {
+    document.querySelectorAll('.js-mascara-moeda').forEach(ativarMascaraMoeda);
+}
+
 // Feedback visual (fica verde) quando a senha atinge o mínimo de 6 caracteres
 // — usado no cadastro e na troca de senha em "Minha conta".
 function ativarFeedbackSenha(input) {
@@ -362,4 +394,5 @@ document.addEventListener('DOMContentLoaded', function () {
     iniciarModalSair();
     iniciarModalValidarEmail();
     iniciarModalValidarWhatsapp();
+    ativarMascarasMoeda();
 });

@@ -126,7 +126,7 @@ $erro = $_GET['erro'] ?? '';
                 <h2>Pagar dívida</h2>
                 <form method="post" action="/loja/ajax/gerar_checkout_divida.php">
                     <label>Valor a pagar
-                        <input type="text" name="valor" placeholder="0,00" value="<?= number_format((float) $cliente['saldo_devedor'], 2, ',', '.') ?>">
+                        <input type="text" name="valor" class="js-mascara-moeda" placeholder="0,00" value="<?= number_format((float) $cliente['saldo_devedor'], 2, ',', '.') ?>">
                     </label>
                     <button type="submit" class="btn-lg btn-bloco">
                         <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 10V8a6 6 0 1 1 12 0v2h1a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V11a1 1 0 0 1 1-1h1Zm2 0h8V8a4 4 0 1 0-8 0v2Z"/></svg>
@@ -156,7 +156,7 @@ $erro = $_GET['erro'] ?? '';
                     <p>Você ainda não tem uma linha de crédito na loja. Solicite abaixo pra poder comprar a prazo.</p>
                     <form method="post" action="/loja/ajax/solicitar_credito.php">
                         <label>Valor desejado
-                            <input type="text" name="valor_solicitado" placeholder="0,00" required>
+                            <input type="text" name="valor_solicitado" class="js-mascara-moeda" placeholder="0,00" required>
                         </label>
                         <button type="submit" class="btn-outline btn-bloco">Solicitar linha de crédito</button>
                     </form>

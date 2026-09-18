@@ -8,7 +8,7 @@ $erro = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'criar') {
     $nome = trim($_POST['nome'] ?? '');
     $prazo_dias = $_POST['prazo_dias'] !== '' ? (int) $_POST['prazo_dias'] : null;
-    $custo = (float) str_replace(',', '.', $_POST['custo'] ?? '0');
+    $custo = converterMoedaBrParaFloat($_POST['custo'] ?? '0');
 
     if ($nome === '') {
         $erro = 'Informe o nome da forma de entrega.';
@@ -73,7 +73,7 @@ $entregas = array_values(array_filter($formas, fn($f) => (int) $f['fixa'] === 0)
             <input type="hidden" name="acao" value="criar">
             <input type="text" name="nome" placeholder="Nome (ex: Motoboy)" required>
             <input type="number" name="prazo_dias" placeholder="Prazo em dias">
-            <input type="text" name="custo" placeholder="Custo (R$)">
+            <input type="text" name="custo" class="js-mascara-moeda" placeholder="0,00">
             <button type="submit">Adicionar</button>
         </form>
         </div>

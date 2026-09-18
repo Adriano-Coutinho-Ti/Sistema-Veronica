@@ -73,7 +73,7 @@ $temMaquininha = (bool) $stmtTerminal->fetchColumn();
         </label>
 
         <div id="campos-manual" class="form-linha-compacta" style="margin-top:14px;">
-            <input type="text" id="valor-pagamento" placeholder="Valor recebido">
+            <input type="text" id="valor-pagamento" class="js-mascara-moeda" placeholder="0,00">
             <button type="button" id="btn-adicionar-pagamento" class="btn-outline">Adicionar</button>
         </div>
         <p id="troco-aviso" class="alert alert-sucesso" style="display:none; margin-top:12px;"></p>
@@ -150,7 +150,7 @@ document.getElementById('btn-adicionar-pagamento').addEventListener('click', fun
     document.getElementById('msg-pagamento').style.display = 'none';
 
     const forma = document.getElementById('forma-pagamento').value;
-    const valorRecebido = parseFloat(document.getElementById('valor-pagamento').value.replace(',', '.'));
+    const valorRecebido = converterMoedaBrParaFloat(document.getElementById('valor-pagamento').value);
     if (!valorRecebido || valorRecebido <= 0) { mostrarErroPagamento('Informe um valor válido.'); return; }
 
     const totalPagoAtual = pagamentos.reduce((acc, p) => acc + p.valor, 0);

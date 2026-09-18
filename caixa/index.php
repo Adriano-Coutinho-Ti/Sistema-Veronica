@@ -104,7 +104,7 @@ document.getElementById('btn-iniciar').addEventListener('click', function () {
         <div class="modal-card">
             <h3>Venda avulsa</h3>
             <p style="color:var(--cor-texto-suave); font-size:0.9rem; margin-bottom:14px;">Pra vender algo que ainda não está cadastrado no sistema. Informe só o valor.</p>
-            <input type="text" id="valor-avulsa" placeholder="Valor (R$)">
+            <input type="text" id="valor-avulsa" class="js-mascara-moeda" placeholder="0,00">
             <p id="erro-avulsa" class="alert alert-erro" style="display:none; margin-top:10px;"></p>
             <div class="modal-acoes">
                 <button type="button" class="btn-outline" id="btn-cancelar-avulsa">Cancelar</button>

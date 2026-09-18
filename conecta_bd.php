@@ -80,6 +80,22 @@ function fotoComVersao(?string $caminhoRelativo): ?string
 }
 
 /**
+ * Converte um valor no formato brasileiro "1.234,56" (o que a máscara JS
+ * de moeda/porcentagem produz nos campos .js-mascara-moeda/.js-mascara-
+ * percentual) pro float 1234.56. Precisa tirar o "." de milhar ANTES de
+ * trocar "," por "." de decimal — um simples str_replace(',', '.') sozinho
+ * (usado no código antes desta função existir) quebra em qualquer valor
+ * >= 1000: "1.234,56" viraria "1.234.56", e o cast (float) para no
+ * primeiro ponto e lê só "1.234" (== 1.234, errado).
+ */
+function converterMoedaBrParaFloat(?string $valor): float
+{
+    $limpo = str_replace('.', '', $valor ?? '');
+    $limpo = str_replace(',', '.', $limpo);
+    return (float) $limpo;
+}
+
+/**
  * O sistema pode ser instalado em domínios diferentes por cliente (mesma
  * estrutura de pastas, domínio muda) — então toda URL absoluta que o código
  * precisa montar (webhook do Mercado Pago, redirect_uri do OAuth, back_urls

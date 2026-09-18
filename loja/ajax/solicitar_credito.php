@@ -4,7 +4,7 @@ require_once __DIR__ . '/../../includes/auth_cliente.php';
 exigirClienteLogado();
 
 $id_cliente = (int) $_SESSION['id_cliente'];
-$valor = (float) str_replace(',', '.', $_POST['valor_solicitado'] ?? '0');
+$valor = converterMoedaBrParaFloat($_POST['valor_solicitado'] ?? '0');
 
 if ($valor <= 0) {
     header('Location: /loja/minha_divida.php?erro=' . urlencode('Informe um valor válido.'));

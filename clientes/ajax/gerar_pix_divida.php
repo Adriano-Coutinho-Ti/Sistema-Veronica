@@ -6,7 +6,7 @@ exigirLogin();
 header('Content-Type: application/json');
 
 $id_cliente = (int) ($_POST['id_cliente'] ?? 0);
-$valor = (float) str_replace(',', '.', $_POST['valor'] ?? '0');
+$valor = converterMoedaBrParaFloat($_POST['valor'] ?? '0');
 
 $stmt = $pdo->prepare('SELECT nome, saldo_devedor FROM clientes WHERE id_cliente = :id');
 $stmt->execute([':id' => $id_cliente]);

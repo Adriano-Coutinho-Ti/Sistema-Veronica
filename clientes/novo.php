@@ -65,12 +65,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <h2>Dados do cliente</h2>
         <form method="post">
             <label>Nome<input type="text" name="nome" required></label>
-            <label>WhatsApp (com DDD)<input type="text" name="whatsapp" required placeholder="11987654321"></label>
+            <label>WhatsApp (com DDD)<input type="text" name="whatsapp" id="campo-whatsapp" required placeholder="(11) 90000-0000"></label>
             <label>E-mail<input type="email" name="email"></label>
             <label>Endereço<input type="text" name="endereco"></label>
             <button type="submit" class="btn-bloco">Salvar</button>
         </form>
     </div>
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        ativarMascaraTelefoneComNoveAutomatico(document.getElementById('campo-whatsapp'));
+    });
+    </script>
 </main>
 </body>
 </html>
