@@ -376,14 +376,17 @@ const REENVIO_WHATSAPP_INTERVALO_MINUTOS = 10;
  */
 function segundosDeEsperaReenvioWhatsapp(PDO $pdo, int $id_cliente): int
 {
+    // GREATEST(0, ...) calculado dentro do próprio SQL -- nunca negativo
+    // mesmo se algo externo alterar token_verificacao_whatsapp_expira_em pra
+    // um valor inesperado; PHP só converte pra int o que já vem pronto.
     $stmt = $pdo->prepare(
-        "SELECT TIMESTAMPDIFF(SECOND, NOW(), token_verificacao_whatsapp_expira_em) - ((30 - :intervalo) * 60) AS segundos_de_espera
+        "SELECT GREATEST(0, TIMESTAMPDIFF(SECOND, NOW(), token_verificacao_whatsapp_expira_em) - ((30 - :intervalo) * 60)) AS segundos_de_espera
          FROM clientes WHERE id_cliente = :id AND token_verificacao_whatsapp IS NOT NULL"
     );
     $stmt->execute([':intervalo' => REENVIO_WHATSAPP_INTERVALO_MINUTOS, ':id' => $id_cliente]);
     $segundos = $stmt->fetchColumn();
 
-    return $segundos !== false ? max(0, (int) $segundos) : 0;
+    return $segundos !== false ? (int) $segundos : 0;
 }
 
 function reenviarCodigoVerificacaoWhatsapp(PDO $pdo, int $id_cliente, string $whatsapp, string $nome): array
