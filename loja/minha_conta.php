@@ -118,13 +118,13 @@ $whatsappVerificado = $cliente['whatsapp_verificado_em'] !== null;
                     <label><?= $whatsappLoginHabilitado ? ($whatsappVerificado ? 'WhatsApp (Validado)' : 'WhatsApp (Aguardando validação)') : 'WhatsApp' ?><input type="text" name="whatsapp" id="campo-whatsapp" value="<?= htmlspecialchars(formatarWhatsappParaEdicao($cliente['whatsapp'])) ?>" required inputmode="numeric" maxlength="16"></label>
                     <?php if ($whatsappLoginHabilitado && !$whatsappVerificado): ?>
                     <p style="margin-top:-8px; margin-bottom:14px;">
-                        <button type="button" class="btn-texto btn-abrir-validar-whatsapp" style="padding:0;">Validar WhatsApp</button>
+                        <button type="button" class="btn-outline btn-sm btn-abrir-validar-whatsapp">Validar WhatsApp</button>
                     </p>
                     <?php endif; ?>
                     <label><?= $emailVerificado ? 'E-mail (Validado)' : 'E-mail (Aguardando validação)' ?><input type="email" name="email" id="campo-email" value="<?= htmlspecialchars($cliente['email'] ?? '') ?>" required></label>
                     <?php if (!$emailVerificado): ?>
                     <p style="margin-top:-8px; margin-bottom:14px;">
-                        <button type="button" class="btn-texto btn-abrir-validar-email" style="padding:0;">Validar e-mail</button>
+                        <button type="button" class="btn-outline btn-sm btn-abrir-validar-email">Validar e-mail</button>
                     </p>
                     <?php endif; ?>
                     <label>Endereço<textarea name="endereco"><?= htmlspecialchars($cliente['endereco'] ?? '') ?></textarea></label>
