@@ -27,10 +27,21 @@ if ($cliente['whatsapp_verificado_em'] !== null) {
     exit;
 }
 
+// DEBUG TEMPORÁRIO -- remover depois de identificar por que a trava de 10min
+// não está bloqueando em produção.
+$debugEspera = segundosDeEsperaReenvioWhatsapp($pdo, $id_cliente);
+$debugAntes = $pdo->prepare('SELECT token_verificacao_whatsapp, token_verificacao_whatsapp_expira_em, NOW() AS agora FROM clientes WHERE id_cliente = :id');
+$debugAntes->execute([':id' => $id_cliente]);
+$debugLinha = $debugAntes->fetch();
+
 $resultado = reenviarCodigoVerificacaoWhatsapp($pdo, $id_cliente, $cliente['whatsapp'], $cliente['nome']);
 echo json_encode([
     'success' => $resultado['success'],
-    'message' => $resultado['success']
+    'message' => ($resultado['success']
         ? 'Código reenviado pro seu WhatsApp!'
-        : $resultado['message'],
+        : $resultado['message'])
+        . ' [DEBUG espera_calculada=' . $debugEspera
+        . ' expira_em_antes=' . $debugLinha['token_verificacao_whatsapp_expira_em']
+        . ' agora_antes=' . $debugLinha['agora']
+        . ' tinha_codigo=' . ($debugLinha['token_verificacao_whatsapp'] !== null ? 'sim' : 'nao') . ']',
 ]);
