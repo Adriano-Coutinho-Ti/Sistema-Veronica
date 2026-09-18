@@ -268,6 +268,12 @@ $vinculosAtuais = $pdo->query('SELECT numero_caixa, terminal_id FROM caixa_termi
             <h3>Travamentos</h3>
             <p>Bloqueio por pagamento em aberto ou modo manutenção.</p>
         </button>
+
+        <button type="button" class="card-config" data-modal="modal-gerador-hash">
+            <span class="icone-config"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a4 4 0 1 0-2.4 2.4L15 12l-1.5 1.5L15 15l-1.5 1.5L15 18l3-3-3.3-3.3a4 4 0 0 0 0-5.4Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M7 10a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" fill="currentColor"/></svg></span>
+            <h3>Gerador de hash de senha</h3>
+            <p>Converte uma senha em hash pra colar direto no banco (senha de recuperação).</p>
+        </button>
     </div>
 
     <div class="modal-overlay modal-config" id="modal-minha-conta" hidden>
@@ -506,6 +512,22 @@ $vinculosAtuais = $pdo->query('SELECT numero_caixa, terminal_id FROM caixa_termi
         </div>
     </div>
 
+    <div class="modal-overlay modal-config" id="modal-gerador-hash" hidden>
+        <div class="modal-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                <h3 style="margin:0;">Gerador de hash de senha</h3>
+                <button type="button" class="btn-texto btn-sm btn-fechar-config">Fechar</button>
+            </div>
+            <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:0; margin-bottom:16px;">Só converte pra hash — não salva nada aqui. Copie o resultado e cole direto no banco, na coluna <code>dev_usuarios.senha_recuperacao_hash</code> do dev correspondente.</p>
+            <label>Senha<input type="text" id="campo-senha-gerar-hash" placeholder="Digite a senha de recuperação"></label>
+            <button type="button" class="btn-bloco" id="btn-gerar-hash">Converter</button>
+            <p id="erro-gerar-hash" class="alert alert-erro" style="display:none; margin-top:12px;"></p>
+            <div id="resultado-gerar-hash" style="display:none; margin-top:16px;">
+                <label>Hash gerado (clique pra selecionar e copiar)<input type="text" id="campo-hash-gerado" readonly onclick="this.select()"></label>
+            </div>
+        </div>
+    </div>
+
     <div class="modal-overlay" id="modal-ajuda-whatsapp" hidden>
         <div class="modal-card" style="max-width:560px; max-height:85vh; overflow-y:auto; text-align:left;">
             <h3>Onde eu acho essas informações?</h3>
@@ -582,6 +604,41 @@ document.addEventListener('DOMContentLoaded', function () {
     if (acaoAbrir && modalPorAcao[acaoAbrir]) {
         const modalParaAbrir = document.getElementById(modalPorAcao[acaoAbrir]);
         if (modalParaAbrir) { modalParaAbrir.hidden = false; }
+    }
+
+    const btnGerarHash = document.getElementById('btn-gerar-hash');
+    if (btnGerarHash) {
+        const campoSenhaHash = document.getElementById('campo-senha-gerar-hash');
+        const erroHash = document.getElementById('erro-gerar-hash');
+        const resultadoHash = document.getElementById('resultado-gerar-hash');
+        const campoHashGerado = document.getElementById('campo-hash-gerado');
+
+        btnGerarHash.addEventListener('click', function () {
+            erroHash.style.display = 'none';
+            resultadoHash.style.display = 'none';
+            const senha = campoSenhaHash.value;
+            if (!senha) {
+                erroHash.textContent = 'Digite uma senha.';
+                erroHash.style.display = '';
+                return;
+            }
+            fetch('/painel_dev/ajax/gerar_hash_senha.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'senha=' + encodeURIComponent(senha)
+            }).then(function (r) { return r.json(); }).then(function (data) {
+                if (!data.success) {
+                    erroHash.textContent = data.message || 'Não foi possível gerar o hash.';
+                    erroHash.style.display = '';
+                    return;
+                }
+                campoHashGerado.value = data.hash;
+                resultadoHash.style.display = '';
+            }).catch(function () {
+                erroHash.textContent = 'Não foi possível gerar o hash agora.';
+                erroHash.style.display = '';
+            });
+        });
     }
 
     const modalAjudaWhatsapp = document.getElementById('modal-ajuda-whatsapp');
