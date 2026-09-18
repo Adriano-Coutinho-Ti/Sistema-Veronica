@@ -44,11 +44,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $erro = 'Informe um e-mail válido.';
                 $etapa = 'email';
             } else {
-                $stmt = $pdo->prepare('SELECT id_cliente, senha_hash FROM clientes WHERE email = :e');
+                $stmt = $pdo->prepare('SELECT id_cliente, senha_hash, excluido_em FROM clientes WHERE email = :e');
                 $stmt->execute([':e' => $emailNormalizado]);
                 $clienteExistente = $stmt->fetch();
 
-                if (!$clienteExistente) {
+                if ($clienteExistente && $clienteExistente['excluido_em'] !== null) {
+                    $erro = 'Esse cadastro não está disponível. Fale com a loja.';
+                    $etapa = 'email';
+                } elseif (!$clienteExistente) {
                     $etapa = 'cadastro';
                 } elseif (empty($clienteExistente['senha_hash'])) {
                     $etapa = 'ativar';
@@ -65,11 +68,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $erro = 'Informe um WhatsApp válido, com DDD e o 9 na frente (ex: (11) 90000-0000).';
                 $etapa = 'email';
             } else {
-                $stmt = $pdo->prepare('SELECT id_cliente, senha_hash FROM clientes WHERE whatsapp = :w');
+                $stmt = $pdo->prepare('SELECT id_cliente, senha_hash, excluido_em FROM clientes WHERE whatsapp = :w');
                 $stmt->execute([':w' => $whatsappNormalizado]);
                 $clienteExistente = $stmt->fetch();
 
-                if (!$clienteExistente) {
+                if ($clienteExistente && $clienteExistente['excluido_em'] !== null) {
+                    $erro = 'Esse cadastro não está disponível. Fale com a loja.';
+                    $etapa = 'email';
+                } elseif (!$clienteExistente) {
                     // Cadastro novo sempre começa pelo e-mail -- não existe fluxo de
                     // cadastro só com WhatsApp, então não faz sentido mandar pra
                     // etapa "cadastro" aqui.
@@ -153,7 +159,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $etapa = 'ativar';
         } else {
             $hash = password_hash($senha, PASSWORD_DEFAULT);
-            $stmt = $pdo->prepare("UPDATE clientes SET senha_hash = :senha WHERE $coluna = :id AND senha_hash IS NULL");
+            $stmt = $pdo->prepare("UPDATE clientes SET senha_hash = :senha WHERE $coluna = :id AND senha_hash IS NULL AND excluido_em IS NULL");
             $stmt->execute([':senha' => $hash, ':id' => $identificador]);
 
             // Only proceed if the update actually affected a row (passwordless account)
@@ -185,13 +191,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $coluna = $tipoIdentificador === 'whatsapp' ? 'whatsapp' : 'email';
         $senha = $_POST['senha'] ?? '';
 
-        $stmt = $pdo->prepare("SELECT id_cliente, nome, senha_hash FROM clientes WHERE $coluna = :id");
+        $stmt = $pdo->prepare("SELECT id_cliente, nome, senha_hash, excluido_em FROM clientes WHERE $coluna = :id");
         $stmt->execute([':id' => $identificador]);
         $cliente = $stmt->fetch();
 
         // senha_hash pode ser NULL (cliente criado pelo PDV em clientes/novo.php e nunca
         // ativado na loja) — password_verify() com NULL dispara deprecation/warning.
-        if ($cliente && $cliente['senha_hash'] !== null && password_verify($senha, $cliente['senha_hash'])) {
+        if ($cliente && $cliente['excluido_em'] === null && $cliente['senha_hash'] !== null && password_verify($senha, $cliente['senha_hash'])) {
             $_SESSION['id_cliente'] = (int) $cliente['id_cliente'];
             $_SESSION['nome_cliente'] = $cliente['nome'];
             session_regenerate_id(true);

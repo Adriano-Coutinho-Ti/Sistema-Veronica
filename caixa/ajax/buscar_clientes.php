@@ -10,6 +10,6 @@ if ($termo === '') {
     exit;
 }
 
-$stmt = $pdo->prepare('SELECT id_cliente, nome, whatsapp FROM clientes WHERE nome LIKE :termo OR whatsapp LIKE :termo ORDER BY nome LIMIT 10');
+$stmt = $pdo->prepare('SELECT id_cliente, nome, whatsapp FROM clientes WHERE excluido_em IS NULL AND (nome LIKE :termo OR whatsapp LIKE :termo) ORDER BY nome LIMIT 10');
 $stmt->execute([':termo' => '%' . $termo . '%']);
 echo json_encode(['clientes' => $stmt->fetchAll()]);

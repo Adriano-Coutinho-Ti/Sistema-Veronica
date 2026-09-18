@@ -10,7 +10,7 @@ if (!in_array($statusFiltro, ['verificados', 'nao_verificados', 'sem_email'], tr
     $statusFiltro = '';
 }
 
-$where = '1=1';
+$where = 'excluido_em IS NULL';
 $params = [];
 if ($busca !== '') {
     $where .= ' AND (nome LIKE :busca OR whatsapp LIKE :busca OR email LIKE :busca)';
@@ -25,6 +25,7 @@ if ($statusFiltro === 'verificados') {
 }
 
 const CLIENTES_POR_PAGINA = 20;
+$totalNaLixeira = (int) $pdo->query('SELECT COUNT(*) FROM clientes WHERE excluido_em IS NOT NULL')->fetchColumn();
 $pagina = max(1, (int) ($_GET['pagina'] ?? 1));
 
 $stmtTotal = $pdo->prepare("SELECT COUNT(*) FROM clientes WHERE $where");
@@ -72,9 +73,13 @@ function montarLinkFiltroClientes(int $pagina, string $status, string $busca): s
     </div>
 
     <?php if (isset($_GET['criado'])): ?><p class="alert alert-sucesso">Cliente cadastrado com sucesso.</p><?php endif; ?>
+    <?php if (isset($_GET['lixeira'])): ?><p class="alert alert-sucesso">Cliente movido para a lixeira.</p><?php endif; ?>
 
     <p class="acoes-topo">
         <a href="/clientes/novo.php" class="btn">+ Novo cliente</a>
+        <?php if (($_SESSION['perfil'] ?? '') === 'Admin'): ?>
+        <a href="/clientes/lixeira.php" class="btn-outline">Lixeira<?= $totalNaLixeira > 0 ? ' (' . $totalNaLixeira . ')' : '' ?></a>
+        <?php endif; ?>
     </p>
 
     <div class="layout-lateral">

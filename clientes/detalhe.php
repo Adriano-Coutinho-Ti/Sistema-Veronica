@@ -4,6 +4,7 @@ require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/caixa.php';
 require_once __DIR__ . '/../includes/loja.php';
 require_once __DIR__ . '/../includes/credito.php';
+require_once __DIR__ . '/../includes/clientes_lixeira.php';
 exigirLogin();
 
 $id = (int) ($_GET['id'] ?? 0);
@@ -11,14 +12,27 @@ $stmt = $pdo->prepare('SELECT * FROM clientes WHERE id_cliente = :id');
 $stmt->execute([':id' => $id]);
 $cliente = $stmt->fetch();
 
-if (!$cliente) {
+if (!$cliente || $cliente['excluido_em'] !== null) {
     http_response_code(404);
     echo 'Cliente não encontrado.';
     exit;
 }
 
+$ehAdmin = ($_SESSION['perfil'] ?? '') === 'Admin';
+
 $erro = '';
 $sucesso = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'mover_lixeira') {
+    if (!$ehAdmin) {
+        http_response_code(403);
+        echo 'Acesso restrito ao administrador.';
+        exit;
+    }
+    moverClienteParaLixeira($pdo, $id, (int) $_SESSION['id_usuario']);
+    header('Location: /clientes/lista.php?lixeira=1');
+    exit;
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'atualizar_dados') {
     $nome = trim($_POST['nome'] ?? '');
@@ -189,6 +203,12 @@ $creditoDisponivel = (float) $cliente['limite_credito'] - (float) $cliente['sald
             <svg viewBox="0 0 24 24" aria-hidden="true" width="14" height="14"><path d="M15 6 9 12l6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             Voltar
         </a>
+        <?php if ($ehAdmin): ?>
+        <form method="post" style="display:inline;" data-confirm="Mover <?= htmlspecialchars($cliente['nome'], ENT_QUOTES) ?> para a lixeira? Ele perde o acesso à loja na hora e some das listas. Dá pra restaurar depois, dentro da lixeira.">
+            <input type="hidden" name="acao" value="mover_lixeira">
+            <button type="submit" class="btn-perigo btn-sm">Mover para a lixeira</button>
+        </form>
+        <?php endif; ?>
     </p>
 
     <?php if ($erro): ?><p class="alert alert-erro"><?= htmlspecialchars($erro) ?></p><?php endif; ?>

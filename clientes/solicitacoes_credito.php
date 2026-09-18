@@ -46,7 +46,7 @@ $pendentes = $pdo->query(
     "SELECT sc.id_solicitacao, sc.valor_solicitado, sc.criado_em, c.nome, c.whatsapp, c.limite_credito
      FROM solicitacoes_credito sc
      JOIN clientes c ON c.id_cliente = sc.id_cliente
-     WHERE sc.status = 'Pendente'
+     WHERE sc.status = 'Pendente' AND c.excluido_em IS NULL
      ORDER BY sc.criado_em ASC"
 )->fetchAll();
 

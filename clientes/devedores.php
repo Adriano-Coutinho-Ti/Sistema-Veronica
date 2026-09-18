@@ -7,7 +7,7 @@ exigirLogin();
 
 $busca = trim($_GET['busca'] ?? '');
 
-$where = 'saldo_devedor > 0';
+$where = 'saldo_devedor > 0 AND excluido_em IS NULL';
 $params = [];
 if ($busca !== '') {
     $where .= ' AND (nome LIKE :busca OR whatsapp LIKE :busca)';

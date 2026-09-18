@@ -14,7 +14,7 @@ $vendasHoje = $pdo->query(
 )->fetch();
 
 $clientesDevedores = $pdo->query(
-    'SELECT COUNT(*) AS qtd, COALESCE(SUM(saldo_devedor), 0) AS total FROM clientes WHERE saldo_devedor > 0'
+    'SELECT COUNT(*) AS qtd, COALESCE(SUM(saldo_devedor), 0) AS total FROM clientes WHERE excluido_em IS NULL AND saldo_devedor > 0'
 )->fetch();
 
 $produtosEsgotados = (int) $pdo->query(
