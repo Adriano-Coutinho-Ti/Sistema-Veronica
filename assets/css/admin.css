@@ -873,3 +873,87 @@ a.stat-credito:hover { border-color: var(--cor-primaria); }
     .filtros-lateral { display: block; position: sticky; top: 90px; }
     .filtros-mobile { display: none; }
 }
+
+/* ============ painel_dev: cards de configuração ============ */
+/* Cada seção que antes era um <details class="card-sanfona"> agora é um
+   card clicável (ícone + título + descrição de uma linha) que abre um
+   modal com scroll contendo o formulário — grid mobile-first (1 coluna,
+   2+ a partir de 640px), igual ao padrão .grade-cards já usado em listas
+   admin, só que os cards aqui são <button> (semântica de ação, não item). */
+.grade-cards-config { display: grid; grid-template-columns: 1fr; gap: 14px; }
+@media (min-width: 640px) {
+    .grade-cards-config { grid-template-columns: repeat(2, 1fr); }
+}
+@media (min-width: 1024px) {
+    .grade-cards-config { grid-template-columns: repeat(3, 1fr); }
+}
+.card-config {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    text-align: left;
+    background: var(--cor-fundo);
+    color: var(--cor-texto);
+    border: 1px solid var(--cor-borda);
+    border-radius: var(--raio-lg);
+    box-shadow: var(--sombra-sm);
+    padding: 20px;
+    cursor: pointer;
+    font-family: var(--fonte-corpo);
+    transition: box-shadow 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
+}
+.card-config:hover, .card-config:focus-visible {
+    /* .card-config é um <button> puro (sem .btn/.btn-outline) -- sem
+       "background" aqui, a regra genérica button:hover (mais específica
+       que o background parado de .card-config, que não é :hover) preenche
+       o card inteiro com --cor-primaria-hover, apagando o texto. Mesma
+       classe de bug já documentada nesta página (iteração 25 da memória
+       do projeto): um <button> sem .btn herda o reset genérico. */
+    background: var(--cor-fundo);
+    box-shadow: var(--sombra-md);
+    border-color: var(--cor-primaria);
+    transform: translateY(-2px);
+}
+.card-config .icone-config {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--raio-md);
+    background: var(--cor-primaria-suave);
+    color: var(--cor-primaria);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.card-config .icone-config svg { width: 24px; height: 24px; }
+.card-config h3 { margin: 0; font-size: 1rem; }
+.card-config p { margin: 0; font-size: 0.85rem; color: var(--cor-texto-suave); line-height: 1.45; }
+
+.modal-config .modal-card {
+    max-width: 640px;
+    max-height: 85vh;
+    overflow-y: auto;
+    text-align: left;
+}
+.modal-config .modal-card > *:first-child { margin-top: 0; }
+
+/* ============ painel_dev: modo recuperação ============ */
+/* Login feito com a senha de recuperação (não a senha normal do dev) --
+   troca a cor de destaque pro dourado em toda a área do painel, pra ficar
+   visualmente óbvio que essa sessão não é o login normal. Mesmo tom de
+   --cor-dourado usado na loja (assets/css/loja.css). */
+body.modo-recuperacao {
+    --cor-primaria: #C9971F;
+    --cor-secundaria: #E0B23D;
+    --cor-primaria-hover: color-mix(in srgb, #C9971F 85%, black);
+    --cor-primaria-suave: color-mix(in srgb, #C9971F 12%, var(--cor-fundo));
+}
+.faixa-recuperacao {
+    background: #C9971F;
+    color: #1F1400;
+    text-align: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+    padding: 8px 16px;
+}

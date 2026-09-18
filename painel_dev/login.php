@@ -1,6 +1,9 @@
 <?php
 require_once __DIR__ . '/../conecta_bd.php';
 require_once __DIR__ . '/../includes/auth_dev.php';
+require_once __DIR__ . '/../includes/config_dev.php';
+require_once __DIR__ . '/../includes/email_smtp.php';
+require_once __DIR__ . '/../includes/dev_seguranca.php';
 
 // Senha de instalação — trava quem consegue ver o formulário de configuração
 // do banco. Não é uma senha secreta forte (é o mesmo "DevMaster" usado como
@@ -97,19 +100,33 @@ if ($bancoDisponivel && !$modoEdicaoBanco) {
         $usuario = trim($_POST['usuario'] ?? '');
         $senha = $_POST['senha'] ?? '';
 
-        $stmt = $pdo->prepare('SELECT id_dev_usuario, senha_hash FROM dev_usuarios WHERE usuario = :usuario');
-        $stmt->execute([':usuario' => $usuario]);
-        $dev = $stmt->fetch();
+        $dev = buscarDevParaLogin($pdo, $usuario);
+        $bloqueio = $dev ? mensagemBloqueioLogin($dev) : null;
 
-        if ($dev && password_verify($senha, $dev['senha_hash'])) {
-            $_SESSION['dev_usuario_id'] = $dev['id_dev_usuario'];
-            $_SESSION['dev_usuario_nome'] = $usuario;
+        if ($dev && $bloqueio) {
+            $erro = $bloqueio;
+        } elseif ($dev && password_verify($senha, $dev['senha_hash'])) {
+            limparTentativasLogin($pdo, (int) $dev['id_dev_usuario']);
+            $_SESSION['dev_usuario_id'] = (int) $dev['id_dev_usuario'];
+            $_SESSION['dev_usuario_nome'] = $dev['nome'] ?: $usuario;
+            $_SESSION['dev_modo_recuperacao'] = false;
             session_regenerate_id(true);
-            header('Location: /painel_dev/index.php');
+            header('Location: ' . destinoAposLoginDev($dev));
             exit;
+        } elseif ($dev && !empty($dev['senha_recuperacao_hash']) && password_verify($senha, $dev['senha_recuperacao_hash'])) {
+            limparTentativasLogin($pdo, (int) $dev['id_dev_usuario']);
+            $_SESSION['dev_usuario_id'] = (int) $dev['id_dev_usuario'];
+            $_SESSION['dev_usuario_nome'] = $dev['nome'] ?: $usuario;
+            $_SESSION['dev_modo_recuperacao'] = true;
+            session_regenerate_id(true);
+            header('Location: ' . destinoAposLoginDev($dev));
+            exit;
+        } else {
+            if ($dev) {
+                registrarTentativaFalha($pdo, $dev);
+            }
+            $erro = 'Usuário ou senha incorretos.';
         }
-
-        $erro = 'Usuário ou senha incorretos.';
     }
 }
 

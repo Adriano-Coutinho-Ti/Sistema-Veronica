@@ -57,6 +57,16 @@ $usuarios = $pdo->query('SELECT id_usuario, nome, email, perfil, ativo FROM usua
     <?php if ($erro): ?><p class="alert alert-erro"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
     <?php if ($sucesso): ?><p class="alert alert-sucesso"><?= htmlspecialchars($sucesso) ?></p><?php endif; ?>
 
+    <div class="alternador-visualizacao" data-chave="usuarios-dev" data-alvo-lista="visualizacao-lista" data-alvo-cards="visualizacao-cards">
+        <button type="button" class="btn-sm btn-outline" data-modo="lista" title="Ver em lista">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+        <button type="button" class="btn-sm btn-outline" data-modo="cards" title="Ver em cards">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+        </button>
+    </div>
+
+    <div id="visualizacao-lista">
     <div class="card">
         <div class="tabela-wrap">
         <table>
@@ -75,6 +85,26 @@ $usuarios = $pdo->query('SELECT id_usuario, nome, email, perfil, ativo FROM usua
             <?php endforeach; ?>
         </table>
         </div>
+    </div>
+    </div>
+
+    <div id="visualizacao-cards" hidden>
+    <div class="grade-cards">
+        <?php foreach ($usuarios as $u): ?>
+        <div class="item-card">
+            <div class="item-card-topo">
+                <strong><?= htmlspecialchars($u['nome']) ?></strong>
+                <span class="status-pill<?= $u['ativo'] ? ' sucesso' : ' erro' ?>"><?= $u['ativo'] ? 'Ativo' : 'Inativo' ?></span>
+            </div>
+            <p><?= htmlspecialchars($u['email']) ?></p>
+            <p><span class="status-pill<?= $u['perfil'] === 'Admin' ? ' sucesso' : '' ?>"><?= htmlspecialchars($u['perfil']) ?></span></p>
+            <div class="celula-acoes">
+                <button type="button" class="btn-sm btn-outline btn-editar-usuario" data-id-usuario="<?= $u['id_usuario'] ?>" data-nome-usuario="<?= htmlspecialchars($u['nome']) ?>" data-perfil="<?= htmlspecialchars($u['perfil']) ?>" data-ativo="<?= $u['ativo'] ?>">Editar</button>
+                <button type="button" class="btn-sm btn-outline btn-resetar-senha" data-id-usuario="<?= $u['id_usuario'] ?>" data-nome-usuario="<?= htmlspecialchars($u['nome']) ?>">Resetar senha</button>
+            </div>
+        </div>
+        <?php endforeach; ?>
+    </div>
     </div>
 
     <div class="modal-overlay" id="modal-editar-usuario" <?= ($erro && ($_POST['acao'] ?? '') === 'atualizar_usuario') ? '' : 'hidden' ?>>

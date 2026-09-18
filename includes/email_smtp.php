@@ -44,6 +44,45 @@ function montarEmailHtmlLoja(PDO $pdo, string $titulo, array $paragrafos, string
 }
 
 /**
+ * Mesma ideia de montarEmailHtmlLoja(), mas pro dev do sistema (não pro
+ * cliente da loja) -- usa o nome do sistema (config_dev.nome_sistema) em
+ * vez da marca da loja, e mostra um botão/link em vez de um código, já que
+ * os e-mails de segurança do painel_dev linkam pra uma página de ação
+ * (redefinir senha), não pedem um código digitado num popup. $botaoTexto/
+ * $botaoUrl são opcionais -- omitidos, o e-mail só tem os parágrafos.
+ */
+function montarEmailHtmlDev(PDO $pdo, string $titulo, array $paragrafos, ?string $botaoTexto = null, ?string $botaoUrl = null): string
+{
+    $nomeSistema = nomeDoSistema($pdo);
+
+    $paragrafosHtml = '';
+    foreach ($paragrafos as $paragrafo) {
+        $paragrafosHtml .= '<p style="margin:0 0 14px; color:#444444; font-size:14px; line-height:1.55;">' . $paragrafo . '</p>';
+    }
+
+    $botaoHtml = '';
+    if ($botaoTexto && $botaoUrl) {
+        $botaoHtml = '
+          <div style="text-align:center; margin:28px 0 8px;">
+            <a href="' . htmlspecialchars($botaoUrl) . '" style="display:inline-block; background:#4F46E5; color:#ffffff; text-decoration:none; font-weight:700; font-size:15px; padding:14px 28px; border-radius:8px;">' . htmlspecialchars($botaoTexto) . '</a>
+          </div>';
+    }
+
+    return '
+    <div style="background:#f4f6f8; padding:32px 16px; font-family:Arial, Helvetica, sans-serif;">
+      <div style="max-width:460px; margin:0 auto;">
+        <div style="text-align:center; padding-bottom:22px;"><span style="font-family:Georgia,serif; font-size:22px; font-weight:600; color:#222222;">' . htmlspecialchars($nomeSistema) . '</span></div>
+        <div style="background:#ffffff; border-radius:10px; padding:32px; box-shadow:0 2px 12px rgba(0,0,0,0.07);">
+          <h2 style="margin:0 0 18px; font-size:19px; color:#222222;">' . htmlspecialchars($titulo) . '</h2>
+          ' . $paragrafosHtml . $botaoHtml . '
+          <p style="font-size:12px; color:#999999; margin-top:24px; line-height:1.5; text-align:center;">Painel do desenvolvedor — se você não reconhece essa atividade, sua conta continua protegida enquanto o e-mail/senha não forem comprometidos.</p>
+        </div>
+        <p style="text-align:center; color:#aaaaaa; font-size:12px; margin-top:24px;">' . htmlspecialchars($nomeSistema) . '</p>
+      </div>
+    </div>';
+}
+
+/**
  * Credenciais SMTP: vêm do painel_dev (config_dev) se o desenvolvedor já
  * preencheu por lá, senão caem nas constantes SMTP_* definidas em
  * brechodaveve_config_credenciais.php, do jeito que sempre funcionou.

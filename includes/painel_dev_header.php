@@ -7,11 +7,16 @@
  */
 $versaoCssAdmin = @filemtime(__DIR__ . '/../assets/css/admin.css') ?: time();
 $versaoJsAdmin = @filemtime(__DIR__ . '/../assets/js/admin.js') ?: time();
+$modoRecuperacaoDev = !empty($_SESSION['dev_modo_recuperacao']);
 ?>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap">
 <link rel="stylesheet" href="/assets/css/admin.css?v=<?= $versaoCssAdmin ?>">
+<?php if ($modoRecuperacaoDev): ?>
+<div class="faixa-recuperacao">Você entrou com a senha de recuperação — não é o login normal desta conta.</div>
+<script>document.body.classList.add('modo-recuperacao');</script>
+<?php endif; ?>
 <header class="site-header" style="background:#0F172A; border-bottom-color:#1E293B;">
     <div class="site-header-inner">
         <a href="/painel_dev/index.php" class="site-logo" style="color:#fff;">Painel do desenvolvedor</a>
@@ -21,7 +26,7 @@ $versaoJsAdmin = @filemtime(__DIR__ . '/../assets/js/admin.js') ?: time();
         <nav class="site-nav" id="site-nav" style="background:#0F172A;">
             <a href="/painel_dev/index.php" style="color:#fff;">Configurações</a>
             <a href="/painel_dev/usuarios.php" style="color:#fff;">Usuários da loja</a>
-            <span class="site-nav-user" style="color:#94A3B8;">DevMaster</span>
+            <span class="site-nav-user" style="color:#94A3B8;"><?= htmlspecialchars($_SESSION['dev_usuario_nome'] ?? '') ?></span>
             <a href="/painel_dev/sair.php" class="link-sair" style="color:#fff;">Sair</a>
         </nav>
     </div>

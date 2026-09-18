@@ -9,7 +9,43 @@ exigirDev();
 $erro = '';
 $sucesso = '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'atualizar_nome') {
+$id_dev_usuario = (int) $_SESSION['dev_usuario_id'];
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'atualizar_meus_dados') {
+    $nomeDev = trim($_POST['nome_dev'] ?? '');
+    $emailDev = mb_strtolower(trim($_POST['email_dev'] ?? ''));
+
+    if ($nomeDev === '') {
+        $erro = 'Informe seu nome.';
+    } elseif (!filter_var($emailDev, FILTER_VALIDATE_EMAIL)) {
+        $erro = 'Informe um e-mail válido.';
+    } else {
+        $pdo->prepare('UPDATE dev_usuarios SET nome = :nome, email = :email WHERE id_dev_usuario = :id')
+            ->execute([':nome' => $nomeDev, ':email' => $emailDev, ':id' => $id_dev_usuario]);
+        $_SESSION['dev_usuario_nome'] = $nomeDev;
+        $sucesso = 'Seus dados foram atualizados.';
+    }
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'trocar_minha_senha') {
+    $senhaAtual = $_POST['senha_atual'] ?? '';
+    $novaSenha = $_POST['nova_senha_dev'] ?? '';
+    $confirmarSenha = $_POST['confirmar_senha_dev'] ?? '';
+
+    $stmtDev = $pdo->prepare('SELECT senha_hash FROM dev_usuarios WHERE id_dev_usuario = :id');
+    $stmtDev->execute([':id' => $id_dev_usuario]);
+    $devAtual = $stmtDev->fetch();
+
+    if (!$devAtual || !password_verify($senhaAtual, $devAtual['senha_hash'])) {
+        $erro = 'Senha atual incorreta.';
+    } elseif (strlen($novaSenha) < 6) {
+        $erro = 'A nova senha precisa ter pelo menos 6 caracteres.';
+    } elseif ($novaSenha !== $confirmarSenha) {
+        $erro = 'A confirmação não bate com a nova senha.';
+    } else {
+        $pdo->prepare('UPDATE dev_usuarios SET senha_hash = :senha WHERE id_dev_usuario = :id')
+            ->execute([':senha' => password_hash($novaSenha, PASSWORD_DEFAULT), ':id' => $id_dev_usuario]);
+        $sucesso = 'Senha alterada com sucesso.';
+    }
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'atualizar_nome') {
     $nome = trim($_POST['nome_sistema'] ?? '');
     if ($nome === '') {
         $erro = 'Informe um nome pro sistema.';
@@ -124,6 +160,10 @@ $acaoAbrir = $_POST['acao'] ?? null;
 $config = buscarConfigDev($pdo);
 $dominio = urlBaseAtual();
 
+$stmtDevAtual = $pdo->prepare('SELECT nome, email, usuario FROM dev_usuarios WHERE id_dev_usuario = :id');
+$stmtDevAtual->execute([':id' => $id_dev_usuario]);
+$devAtual = $stmtDevAtual->fetch();
+
 $conexaoOk = false;
 try {
     $pdo->query('SELECT 1');
@@ -168,10 +208,100 @@ $vinculosAtuais = $pdo->query('SELECT numero_caixa, terminal_id FROM caixa_termi
     <?php if ($erro): ?><p class="alert alert-erro"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
     <?php if ($sucesso): ?><p class="alert alert-sucesso"><?= htmlspecialchars($sucesso) ?></p><?php endif; ?>
 
-    <div class="grade-sanfona">
-    <details class="card card-sanfona" name="sanfona-dev">
-        <summary>Conexão com o banco de dados <svg class="icone-sanfona" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
-        <div class="sanfona-corpo">
+    <div class="grade-cards-config">
+        <button type="button" class="card-config" data-modal="modal-minha-conta">
+            <span class="icone-config"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 8c0-3.31 3.13-6 7-6s7 2.69 7 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <h3>Minha conta</h3>
+            <p>Seu nome, e-mail de recuperação e senha.</p>
+        </button>
+
+        <button type="button" class="card-config" data-modal="modal-banco">
+            <span class="icone-config"><svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="6" rx="8" ry="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M4 6v6c0 1.66 3.58 3 8 3s8-1.34 8-3V6M4 12v6c0 1.66 3.58 3 8 3s8-1.34 8-3v-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+            <h3>Conexão com o banco de dados</h3>
+            <p><span class="status-pill<?= $conexaoOk ? ' sucesso' : ' erro' ?>"><?= $conexaoOk ? 'Conectado' : 'Falha na conexão' ?></span></p>
+        </button>
+
+        <button type="button" class="card-config" data-modal="modal-nome-sistema">
+            <span class="icone-config"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3h6a2 2 0 0 1 2 2v6L11 20l-8-8L12 3Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 8h.01" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></span>
+            <h3>Nome do sistema</h3>
+            <p>Aparece no cabeçalho do admin e na tela de login.</p>
+        </button>
+
+        <button type="button" class="card-config" data-modal="modal-rodape">
+            <span class="icone-config"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <h3>Crédito no rodapé da loja</h3>
+            <p>O "Desenvolvido por ..." no rodapé da loja online.</p>
+        </button>
+
+        <button type="button" class="card-config" data-modal="modal-mercado-pago">
+            <span class="icone-config"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M2 10h20" stroke="currentColor" stroke-width="1.8"/></svg></span>
+            <h3>Mercado Pago (aplicativo)</h3>
+            <p>Credenciais do aplicativo e taxa de marketplace.</p>
+        </button>
+
+        <button type="button" class="card-config" data-modal="modal-smtp">
+            <span class="icone-config"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3 7l9 6 9-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <h3>E-mail (SMTP)</h3>
+            <p>Usado pra mandar e-mail de verificação de cadastro.</p>
+        </button>
+
+        <button type="button" class="card-config" data-modal="modal-caixas">
+            <span class="icone-config"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16M6 20V10a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v10M9 8V6a3 3 0 0 1 6 0v2M10 14h4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <h3>PDV — Caixas</h3>
+            <p>Quantos caixas físicos o sistema vai trabalhar.</p>
+        </button>
+
+        <button type="button" class="card-config" data-modal="modal-maquininhas">
+            <span class="icone-config"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M9 7h6M9 11h6M9 15h2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+            <h3>PDV — Maquininhas (Point)</h3>
+            <p>Vincule cada caixa a uma maquininha física.</p>
+        </button>
+
+        <button type="button" class="card-config" data-modal="modal-whatsapp">
+            <span class="icone-config"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <h3>WhatsApp (Evolution API + n8n)</h3>
+            <p>Login/validação do cliente pelo número de WhatsApp.</p>
+        </button>
+
+        <button type="button" class="card-config" data-modal="modal-travamentos">
+            <span class="icone-config"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8 11V7a4 4 0 0 1 8 0v4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+            <h3>Travamentos</h3>
+            <p>Bloqueio por pagamento em aberto ou modo manutenção.</p>
+        </button>
+    </div>
+
+    <div class="modal-overlay modal-config" id="modal-minha-conta" hidden>
+        <div class="modal-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                <h3 style="margin:0;">Minha conta</h3>
+                <button type="button" class="btn-texto btn-sm btn-fechar-config">Fechar</button>
+            </div>
+            <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:0; margin-bottom:16px;">Usuário de login: <strong><?= htmlspecialchars($devAtual['usuario'] ?? '') ?></strong> (não pode ser trocado por aqui).</p>
+            <form method="post">
+                <input type="hidden" name="acao" value="atualizar_meus_dados">
+                <label>Nome<input type="text" name="nome_dev" value="<?= htmlspecialchars($devAtual['nome'] ?? '') ?>" required></label>
+                <label>E-mail (recuperação de conta)<input type="email" name="email_dev" value="<?= htmlspecialchars($devAtual['email'] ?? '') ?>" required></label>
+                <button type="submit" class="btn-bloco">Salvar meus dados</button>
+            </form>
+            <div style="margin-top:18px; padding-top:16px; border-top:1px solid var(--cor-borda);">
+                <h3>Trocar minha senha</h3>
+                <form method="post">
+                    <input type="hidden" name="acao" value="trocar_minha_senha">
+                    <label>Senha atual<input type="password" name="senha_atual" required></label>
+                    <label>Nova senha<input type="password" name="nova_senha_dev" minlength="6" required></label>
+                    <label>Confirmar nova senha<input type="password" name="confirmar_senha_dev" minlength="6" required></label>
+                    <button type="submit" class="btn-outline btn-bloco">Trocar senha</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay modal-config" id="modal-banco" hidden>
+        <div class="modal-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                <h3 style="margin:0;">Conexão com o banco de dados</h3>
+                <button type="button" class="btn-texto btn-sm btn-fechar-config">Fechar</button>
+            </div>
             <p><span class="status-pill<?= $conexaoOk ? ' sucesso' : ' erro' ?>"><?= $conexaoOk ? 'Conectado' : 'Falha na conexão' ?></span></p>
             <div style="margin-top:12px; font-size:0.85rem;">
                 <p style="margin:0 0 4px;"><strong>Host:</strong> <?= htmlspecialchars($host ?? '') ?></p>
@@ -184,11 +314,14 @@ $vinculosAtuais = $pdo->query('SELECT numero_caixa, terminal_id FROM caixa_termi
             </p>
             <a href="/painel_dev/login.php?editar_banco=1" class="btn-outline btn-sm" style="margin-top:6px;">Editar dados do banco</a>
         </div>
-    </details>
+    </div>
 
-    <details class="card card-sanfona" name="sanfona-dev" <?= $acaoAbrir === 'atualizar_nome' ? 'open' : '' ?>>
-        <summary>Nome do sistema <svg class="icone-sanfona" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
-        <div class="sanfona-corpo">
+    <div class="modal-overlay modal-config" id="modal-nome-sistema" hidden>
+        <div class="modal-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                <h3 style="margin:0;">Nome do sistema</h3>
+                <button type="button" class="btn-texto btn-sm btn-fechar-config">Fechar</button>
+            </div>
             <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:0; margin-bottom:16px;">Aparece no cabeçalho do admin e na tela de login.</p>
             <form method="post">
                 <input type="hidden" name="acao" value="atualizar_nome">
@@ -196,11 +329,14 @@ $vinculosAtuais = $pdo->query('SELECT numero_caixa, terminal_id FROM caixa_termi
                 <button type="submit" class="btn-bloco">Salvar nome</button>
             </form>
         </div>
-    </details>
+    </div>
 
-    <details class="card card-sanfona" name="sanfona-dev" <?= $acaoAbrir === 'atualizar_rodape' ? 'open' : '' ?>>
-        <summary>Crédito no rodapé da loja <svg class="icone-sanfona" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
-        <div class="sanfona-corpo">
+    <div class="modal-overlay modal-config" id="modal-rodape" hidden>
+        <div class="modal-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                <h3 style="margin:0;">Crédito no rodapé da loja</h3>
+                <button type="button" class="btn-texto btn-sm btn-fechar-config">Fechar</button>
+            </div>
             <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:0; margin-bottom:16px;">O "Desenvolvido por ..." no rodapé da loja online. Deixe em branco pra continuar mostrando CoderNex.</p>
             <form method="post">
                 <input type="hidden" name="acao" value="atualizar_rodape">
@@ -209,11 +345,14 @@ $vinculosAtuais = $pdo->query('SELECT numero_caixa, terminal_id FROM caixa_termi
                 <button type="submit" class="btn-bloco">Salvar rodapé</button>
             </form>
         </div>
-    </details>
+    </div>
 
-    <details class="card card-sanfona" name="sanfona-dev" <?= $acaoAbrir === 'atualizar_mercado_pago' ? 'open' : '' ?>>
-        <summary>Mercado Pago (aplicativo) <svg class="icone-sanfona" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
-        <div class="sanfona-corpo">
+    <div class="modal-overlay modal-config" id="modal-mercado-pago" hidden>
+        <div class="modal-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                <h3 style="margin:0;">Mercado Pago (aplicativo)</h3>
+                <button type="button" class="btn-texto btn-sm btn-fechar-config">Fechar</button>
+            </div>
             <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:0; margin-bottom:16px;">Credenciais do aplicativo cadastrado em <a href="https://www.mercadopago.com.br/developers" target="_blank" rel="noopener">Mercado Pago Developers</a> — são elas que permitem o botão "Conectar Mercado Pago" funcionar (cada loja conecta a própria conta através desse aplicativo). Pegue o Client ID e o Client Secret na página do seu aplicativo, aba de credenciais de produção. Não é o token de pagamento de uma loja específica — isso cada lojista configura na própria conta, em Configurações → Mercado Pago.</p>
             <form method="post">
                 <input type="hidden" name="acao" value="atualizar_mercado_pago">
@@ -235,11 +374,14 @@ $vinculosAtuais = $pdo->query('SELECT numero_caixa, terminal_id FROM caixa_termi
                 <label style="font-size:0.8rem;">URL de webhook<input type="text" readonly value="<?= htmlspecialchars($dominio) ?>/integracoes/mercado_pago/webhook.php" onclick="this.select()"></label>
             </div>
         </div>
-    </details>
+    </div>
 
-    <details class="card card-sanfona" name="sanfona-dev" <?= $acaoAbrir === 'atualizar_smtp' ? 'open' : '' ?>>
-        <summary>E-mail (SMTP) <svg class="icone-sanfona" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
-        <div class="sanfona-corpo">
+    <div class="modal-overlay modal-config" id="modal-smtp" hidden>
+        <div class="modal-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                <h3 style="margin:0;">E-mail (SMTP)</h3>
+                <button type="button" class="btn-texto btn-sm btn-fechar-config">Fechar</button>
+            </div>
             <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:0; margin-bottom:16px;">Usado pra mandar e-mail de verificação de cadastro da loja online. Deixe em branco pra continuar usando o que já está no arquivo de credenciais.</p>
             <form method="post">
                 <input type="hidden" name="acao" value="atualizar_smtp">
@@ -252,11 +394,14 @@ $vinculosAtuais = $pdo->query('SELECT numero_caixa, terminal_id FROM caixa_termi
                 <button type="submit" class="btn-bloco">Salvar e-mail</button>
             </form>
         </div>
-    </details>
+    </div>
 
-    <details class="card card-sanfona" name="sanfona-dev" <?= $acaoAbrir === 'atualizar_caixas' ? 'open' : '' ?>>
-        <summary>PDV — Caixas <svg class="icone-sanfona" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
-        <div class="sanfona-corpo">
+    <div class="modal-overlay modal-config" id="modal-caixas" hidden>
+        <div class="modal-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                <h3 style="margin:0;">PDV — Caixas</h3>
+                <button type="button" class="btn-texto btn-sm btn-fechar-config">Fechar</button>
+            </div>
             <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:0; margin-bottom:16px;">Quantos caixas físicos o sistema vai trabalhar. Com 1 (padrão), o sistema funciona exatamente como sempre funcionou — qualquer usuário atende no único caixa aberto, sem nenhuma tela extra. Com mais de 1, cada usuário escolhe em qual caixa vai atender.</p>
             <form method="post">
                 <input type="hidden" name="acao" value="atualizar_caixas">
@@ -269,11 +414,14 @@ $vinculosAtuais = $pdo->query('SELECT numero_caixa, terminal_id FROM caixa_termi
                 <button type="submit" class="btn-bloco">Salvar caixas</button>
             </form>
         </div>
-    </details>
+    </div>
 
-    <details class="card card-sanfona" name="sanfona-dev" <?= $acaoAbrir === 'atualizar_terminais' ? 'open' : '' ?>>
-        <summary>PDV — Maquininhas (Point) <svg class="icone-sanfona" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
-        <div class="sanfona-corpo">
+    <div class="modal-overlay modal-config" id="modal-maquininhas" hidden>
+        <div class="modal-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                <h3 style="margin:0;">PDV — Maquininhas (Point)</h3>
+                <button type="button" class="btn-texto btn-sm btn-fechar-config">Fechar</button>
+            </div>
             <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:0; margin-bottom:16px;">Vincule cada caixa a uma maquininha física. Uma mesma maquininha pode atender mais de um caixa (loja com só 1 maquininha pra vários caixas funciona normalmente — o sistema trava pra não mandar duas cobranças ao mesmo tempo pra ela). Caixa sem maquininha vinculada continua com lançamento manual de Débito/Crédito, como sempre foi. A maquininha só aparece na lista abaixo depois de associada a uma loja/caixa dentro do próprio app do Mercado Pago.</p>
             <?php if ($erroTerminais): ?><p class="alert alert-erro"><?= htmlspecialchars($erroTerminais) ?></p><?php endif; ?>
             <?php if (!$erroTerminais && empty($terminaisDisponiveis)): ?><p class="alert alert-erro">Nenhuma maquininha encontrada na conta conectada.</p><?php endif; ?>
@@ -296,11 +444,14 @@ $vinculosAtuais = $pdo->query('SELECT numero_caixa, terminal_id FROM caixa_termi
             </form>
             <?php endif; ?>
         </div>
-    </details>
+    </div>
 
-    <details class="card card-sanfona" name="sanfona-dev" <?= $acaoAbrir === 'atualizar_whatsapp' ? 'open' : '' ?>>
-        <summary>WhatsApp (Evolution API + n8n) <svg class="icone-sanfona" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
-        <div class="sanfona-corpo">
+    <div class="modal-overlay modal-config" id="modal-whatsapp" hidden>
+        <div class="modal-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                <h3 style="margin:0;">WhatsApp (Evolution API + n8n)</h3>
+                <button type="button" class="btn-texto btn-sm btn-fechar-config">Fechar</button>
+            </div>
             <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:0; margin-bottom:16px;">Deixa o cliente validar (e entrar) pelo número de WhatsApp, além do e-mail. Desativado, o cliente só usa e-mail — nada muda pra ele. Nosso sistema manda o código de verificação num único POST pro webhook do n8n, levando junto as credenciais da Evolution API preenchidas abaixo — o workflow do n8n (baixe o modelo pronto e importe no seu n8n) é genérico e usa o que chega em cada chamada, nunca tem credencial fixa dentro dele.</p>
             <p style="margin-top:-6px; margin-bottom:16px;"><button type="button" class="btn-outline btn-sm" id="btn-ajuda-whatsapp">Onde eu acho essas informações?</button></p>
             <?php if ($erro && ($_POST['acao'] ?? '') === 'atualizar_whatsapp'): ?><p class="alert alert-erro"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
@@ -318,11 +469,14 @@ $vinculosAtuais = $pdo->query('SELECT numero_caixa, terminal_id FROM caixa_termi
             </form>
             <p style="margin-top:14px;"><a href="/painel_dev/n8n-whatsapp-verificacao.json" class="btn-texto" download>Baixar o modelo do workflow do n8n</a></p>
         </div>
-    </details>
+    </div>
 
-    <details class="card card-sanfona" name="sanfona-dev" <?= $acaoAbrir === 'atualizar_travamento' ? 'open' : '' ?>>
-        <summary>Travamentos <svg class="icone-sanfona" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
-        <div class="sanfona-corpo">
+    <div class="modal-overlay modal-config" id="modal-travamentos" hidden>
+        <div class="modal-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                <h3 style="margin:0;">Travamentos</h3>
+                <button type="button" class="btn-texto btn-sm btn-fechar-config">Fechar</button>
+            </div>
             <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:0; margin-bottom:16px;">Só um travamento pode estar ativo por vez — escolher um desliga o outro sozinho.</p>
             <form method="post" id="form-travamento">
                 <input type="hidden" name="acao" value="atualizar_travamento">
@@ -350,7 +504,6 @@ $vinculosAtuais = $pdo->query('SELECT numero_caixa, terminal_id FROM caixa_termi
                 <button type="submit" class="btn-bloco" style="margin-top:14px;">Salvar travamento</button>
             </form>
         </div>
-    </details>
     </div>
 
     <div class="modal-overlay" id="modal-ajuda-whatsapp" hidden>
@@ -389,6 +542,48 @@ $vinculosAtuais = $pdo->query('SELECT numero_caixa, terminal_id FROM caixa_termi
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    // Cards de configuração -- cada um abre o modal com o formulário daquela
+    // seção (id em data-modal). Fecha no botão "Fechar", clicando fora do
+    // card, ou Esc -- mesmo padrão dos outros modais desta página.
+    const modaisConfig = document.querySelectorAll('.modal-config');
+    document.querySelectorAll('.card-config').forEach(function (card) {
+        card.addEventListener('click', function () {
+            const modal = document.getElementById(card.dataset.modal);
+            if (modal) { modal.hidden = false; }
+        });
+    });
+    modaisConfig.forEach(function (modal) {
+        modal.querySelectorAll('.btn-fechar-config').forEach(function (btn) {
+            btn.addEventListener('click', function () { modal.hidden = true; });
+        });
+        modal.addEventListener('click', function (e) { if (e.target === modal) { modal.hidden = true; } });
+    });
+    document.addEventListener('keydown', function (e) {
+        if (e.key !== 'Escape') { return; }
+        modaisConfig.forEach(function (modal) { if (!modal.hidden) { modal.hidden = true; } });
+    });
+
+    // Qual modal abre sozinho depois de salvar um formulário -- tanto faz se
+    // deu certo ou erro, o dev quer ver o resultado sem precisar reabrir o
+    // card na mão.
+    const modalPorAcao = {
+        atualizar_meus_dados: 'modal-minha-conta',
+        trocar_minha_senha: 'modal-minha-conta',
+        atualizar_nome: 'modal-nome-sistema',
+        atualizar_rodape: 'modal-rodape',
+        atualizar_mercado_pago: 'modal-mercado-pago',
+        atualizar_smtp: 'modal-smtp',
+        atualizar_caixas: 'modal-caixas',
+        atualizar_terminais: 'modal-maquininhas',
+        atualizar_whatsapp: 'modal-whatsapp',
+        atualizar_travamento: 'modal-travamentos',
+    };
+    const acaoAbrir = <?= json_encode($acaoAbrir) ?>;
+    if (acaoAbrir && modalPorAcao[acaoAbrir]) {
+        const modalParaAbrir = document.getElementById(modalPorAcao[acaoAbrir]);
+        if (modalParaAbrir) { modalParaAbrir.hidden = false; }
+    }
+
     const modalAjudaWhatsapp = document.getElementById('modal-ajuda-whatsapp');
     const btnAjudaWhatsapp = document.getElementById('btn-ajuda-whatsapp');
     if (btnAjudaWhatsapp) {
