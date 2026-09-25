@@ -31,7 +31,7 @@ $payload = [
     'transaction_amount' => round($valor_total, 2),
     'description' => 'Venda #' . $id_venda,
     'payment_method_id' => 'pix',
-    'payer' => ['email' => 'pagamentos@brechodaveve.com.br'],
+    'payer' => ['email' => emailPagadorPadrao()],
     'external_reference' => $external_reference,
     'notification_url' => $notification_url,
     // /v1/payments valida o nome dos parâmetros e rejeita marketplace_fee

@@ -175,7 +175,7 @@ if (!empty($listaRelacionados)) {
 <title><?= htmlspecialchars($produto['nome']) ?></title>
 <meta property="og:type" content="product">
 <meta property="og:title" content="<?= htmlspecialchars($produto['nome']) ?>">
-<meta property="og:description" content="R$ <?= number_format($produto['preco_base'], 2, ',', '.') ?> — confira na Brechó da Veve">
+<meta property="og:description" content="R$ <?= number_format($produto['preco_base'], 2, ',', '.') ?> — confira na <?= htmlspecialchars((string) ($pdo->query('SELECT nome_loja FROM config_loja WHERE id_config = 1')->fetchColumn() ?: 'nossa loja')) ?>">
 <?php if ($fotoOgAbsoluta): ?><meta property="og:image" content="<?= htmlspecialchars($fotoOgAbsoluta) ?>"><?php endif; ?>
 <meta property="og:url" content="<?= htmlspecialchars($urlProdutoAbsoluta) ?>">
 <meta name="twitter:card" content="summary_large_image">

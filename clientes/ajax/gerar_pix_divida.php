@@ -42,7 +42,7 @@ $payload = [
     'transaction_amount' => round($valor, 2),
     'description' => 'Pagamento de dívida - ' . $cliente['nome'],
     'payment_method_id' => 'pix',
-    'payer' => ['email' => 'pagamentos@brechodaveve.com.br'],
+    'payer' => ['email' => emailPagadorPadrao()],
     'external_reference' => 'divida_' . $id_movimento,
     'notification_url' => urlBaseAtual() . '/integracoes/mercado_pago/webhook.php',
     // /v1/payments valida o nome dos parâmetros e rejeita marketplace_fee

@@ -107,6 +107,17 @@ function dominioAtual(): string
     return $_SERVER['HTTP_HOST'] ?? 'localhost';
 }
 
+/**
+ * E-mail "pagador" que o Mercado Pago exige pra gerar um Pix sem cliente
+ * identificado -- só precisa ter formato válido, nunca recebe nada. Sai do
+ * domínio onde o sistema está instalado (cada instalação tem o seu).
+ */
+function emailPagadorPadrao(): string
+{
+    $host = preg_replace('/^www\./', '', explode(':', dominioAtual())[0]);
+    return 'pagamentos@' . $host;
+}
+
 function urlBaseAtual(): string
 {
     // Em hospedagem atrás de proxy/balanceador que termina o HTTPS antes do

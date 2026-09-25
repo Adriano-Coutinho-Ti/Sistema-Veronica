@@ -47,9 +47,11 @@ $id_movimento = (int) $pdo->lastInsertId();
 
 $application_fee = ceil($valor * (mpTaxaMarketplace($pdo) / 100) * 100) / 100;
 
+$nomeLojaMp = $pdo->query('SELECT nome_loja FROM config_loja WHERE id_config = 1')->fetchColumn() ?: 'Sua Loja';
+
 $preference = [
     'items' => [[
-        'title' => 'Pagamento de dívida - Brechó da Veve',
+        'title' => 'Pagamento de dívida - ' . $nomeLojaMp,
         'quantity' => 1,
         'currency_id' => 'BRL',
         'unit_price' => $valor,

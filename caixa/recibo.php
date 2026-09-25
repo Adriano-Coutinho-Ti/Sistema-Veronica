@@ -83,7 +83,7 @@ $imprimirAuto = isset($_GET['print']) && $_GET['print'] === '1';
 <body>
     <div class="recibo">
         <div class="recibo-cabecalho">
-            <strong><?= htmlspecialchars($configLoja['nome_loja'] ?? 'Brechó da Veve') ?></strong>
+            <strong><?= htmlspecialchars($configLoja['nome_loja'] ?? 'Sua Loja') ?></strong>
             <?php if (!empty($configLoja['endereco_loja'])): ?><span><?= htmlspecialchars($configLoja['endereco_loja']) ?></span><?php endif; ?>
         </div>
         <div class="recibo-corpo">
