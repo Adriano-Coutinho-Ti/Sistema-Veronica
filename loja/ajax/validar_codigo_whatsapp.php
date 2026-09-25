@@ -31,7 +31,7 @@ if (!hash_equals($cliente['token_verificacao_whatsapp'], $codigo)) {
     exit;
 }
 
-$pdo->prepare('UPDATE clientes SET whatsapp_verificado_em = NOW(), token_verificacao_whatsapp = NULL, token_verificacao_whatsapp_expira_em = NULL WHERE id_cliente = :id')
+$pdo->prepare('UPDATE clientes SET whatsapp_verificado_em = NOW(), login_whatsapp_bloqueado = 0, token_verificacao_whatsapp = NULL, token_verificacao_whatsapp_expira_em = NULL WHERE id_cliente = :id')
     ->execute([':id' => $id_cliente]);
 
 echo json_encode(['success' => true, 'message' => 'WhatsApp confirmado!']);

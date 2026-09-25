@@ -11,6 +11,7 @@ $erroSenha = '';
 $sucessoPerfil = false;
 $sucessoSenha = false;
 $avisoEmailMudou = false;
+$popupTrocaWhatsapp = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'perfil') {
     $nome = trim($_POST['nome'] ?? '');
@@ -18,9 +19,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'perfil'
     $whatsappNormalizado = normalizarWhatsapp($_POST['whatsapp'] ?? '');
     $endereco = trim($_POST['endereco'] ?? '');
 
+    // Quem já entra só por WhatsApp (sem e-mail) pode continuar sem e-mail mesmo com o
+    // login por WhatsApp desligado -- só não dá pra APAGAR um e-mail que já existe.
+    $stmtEmailAtual = $pdo->prepare('SELECT email FROM clientes WHERE id_cliente = :id');
+    $stmtEmailAtual->execute([':id' => $id_cliente]);
+    $jaTinhaEmail = $stmtEmailAtual->fetchColumn() !== null;
+
     if ($nome === '') {
         $erroPerfil = 'Informe seu nome.';
-    } elseif ($email === '' && !$whatsappLoginHabilitado) {
+    } elseif ($email === '' && !$whatsappLoginHabilitado && $jaTinhaEmail) {
         // E-mail é o login do cliente — não dá pra deixar em branco depois de já ter
         // uma conta ativa (diferente do cadastro pelo PDV, que ainda aceita sem e-mail).
         $erroPerfil = 'Informe seu e-mail — ele é usado pra entrar na loja.';
@@ -42,11 +49,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'perfil'
         } elseif ($stmtDupWhats->fetch()) {
             $erroPerfil = 'Esse WhatsApp já está sendo usado por outra conta.';
         } else {
-            $dadosAtuais = $pdo->prepare('SELECT email, whatsapp FROM clientes WHERE id_cliente = :id');
+            $dadosAtuais = $pdo->prepare('SELECT email, whatsapp, email_verificado_em FROM clientes WHERE id_cliente = :id');
             $dadosAtuais->execute([':id' => $id_cliente]);
             $atual = $dadosAtuais->fetch();
             $emailMudou = $atual['email'] !== $emailParaGravar;
             $whatsappMudou = $atual['whatsapp'] !== $whatsappNormalizado;
+
+            // Com a validação por WhatsApp desligada o número novo nunca poderá ser
+            // validado -- então ele deixa de servir de login, e só dá pra trocar
+            // depois de ter um e-mail JÁ validado (o acesso passa a ser só por ele).
+            // Sem essa trava dava pra abrir outra conta com o número novo e deixar
+            // a dívida na antiga. Confere o e-mail como está no banco, não o digitado.
+            $emailJaValidado = $atual['email'] !== null && $atual['email_verificado_em'] !== null && !$emailMudou;
+            if ($whatsappMudou && !$whatsappLoginHabilitado && !$emailJaValidado) {
+                $popupTrocaWhatsapp = ['tem_email' => $atual['email'] !== null];
+                $erroPerfil = 'Não foi possível trocar o WhatsApp — veja o aviso.';
+            } else {
 
             // Novo e-mail/WhatsApp é um dado não confirmado até o cliente validar de
             // novo — mesma regra do cadastro. Trava o carrinho até essa confirmação
@@ -56,6 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'perfil'
                 'UPDATE clientes SET nome = :nome, whatsapp = :whatsapp, email = :email, endereco = :endereco'
                 . ($emailMudou ? ', email_verificado_em = NULL' : '')
                 . ($whatsappMudou ? ', whatsapp_verificado_em = NULL' : '')
+                . ($whatsappMudou && !$whatsappLoginHabilitado ? ', login_whatsapp_bloqueado = 1' : '')
                 . ' WHERE id_cliente = :id'
             )->execute([':nome' => $nome, ':whatsapp' => $whatsappNormalizado, ':email' => $emailParaGravar, ':endereco' => $endereco ?: null, ':id' => $id_cliente]);
 
@@ -68,6 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'perfil'
             }
             $_SESSION['nome_cliente'] = $nome;
             $sucessoPerfil = true;
+            }
         }
     }
 } elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'senha') {
@@ -119,12 +139,15 @@ $whatsappVerificado = $cliente['whatsapp_verificado_em'] !== null;
                     <input type="hidden" name="acao" value="perfil">
                     <label>Nome<input type="text" name="nome" value="<?= htmlspecialchars($cliente['nome']) ?>" required></label>
                     <label><?= $whatsappLoginHabilitado ? ($whatsappVerificado ? 'WhatsApp (Validado)' : 'WhatsApp (Aguardando validação)') : 'WhatsApp' ?><input type="text" name="whatsapp" id="campo-whatsapp" value="<?= htmlspecialchars(formatarWhatsappParaEdicao($cliente['whatsapp'])) ?>" required inputmode="numeric" maxlength="16"></label>
+                    <?php if (!$whatsappLoginHabilitado): ?>
+                    <p style="margin-top:-8px; font-size:0.85rem; color:var(--cor-texto-suave);">O login e a validação por WhatsApp estão desativados. Se você trocar o número, seus próximos acessos serão só pelo e-mail.</p>
+                    <?php endif; ?>
                     <?php if ($whatsappLoginHabilitado && !$whatsappVerificado): ?>
                     <p style="margin-top:-8px; margin-bottom:14px;">
                         <button type="button" class="btn-outline btn-sm btn-abrir-validar-whatsapp">Validar WhatsApp</button>
                     </p>
                     <?php endif; ?>
-                    <label><?= empty($cliente['email']) ? 'E-mail (opcional)' : ($emailVerificado ? 'E-mail (Validado)' : 'E-mail (Aguardando validação)') ?><input type="email" name="email" id="campo-email" value="<?= htmlspecialchars($cliente['email'] ?? '') ?>"<?= $whatsappLoginHabilitado ? '' : ' required' ?>></label>
+                    <label><?= empty($cliente['email']) ? 'E-mail (opcional)' : ($emailVerificado ? 'E-mail (Validado)' : 'E-mail (Aguardando validação)') ?><input type="email" name="email" id="campo-email" value="<?= htmlspecialchars($cliente['email'] ?? '') ?>"<?= (!$whatsappLoginHabilitado && !empty($cliente['email'])) ? ' required' : '' ?>></label>
                     <?php if (!empty($cliente['email']) && !$emailVerificado): ?>
                     <p style="margin-top:-8px; margin-bottom:14px;">
                         <button type="button" class="btn-outline btn-sm btn-abrir-validar-email">Validar e-mail</button>
@@ -152,6 +175,19 @@ $whatsappVerificado = $cliente['whatsapp_verificado_em'] !== null;
             </div>
         </div>
     </div>
+    <?php if ($popupTrocaWhatsapp): ?>
+    <div class="modal-overlay" id="modal-troca-whatsapp">
+        <div class="modal-card" style="border:2px solid var(--cor-erro); background:var(--cor-erro-fundo);">
+            <h3 style="color:var(--cor-erro);">Não dá pra trocar o WhatsApp agora</h3>
+            <p><strong>O login e a validação por WhatsApp foram desativados</strong> nesta loja. Um número novo não consegue mais ser confirmado por código, então ele não pode ser usado pra entrar na sua conta.</p>
+            <p>Pra trocar o número, você precisa <strong><?= $popupTrocaWhatsapp['tem_email'] ? 'validar o seu e-mail' : 'cadastrar um e-mail e validá-lo' ?></strong> primeiro. <?= $popupTrocaWhatsapp['tem_email'] ? '' : 'Preencha o campo E-mail abaixo, salve e confirme o código que enviaremos. ' ?>Depois disso a troca é liberada, e <strong>seus próximos acessos serão apenas pelo e-mail validado</strong> — não mais pelo número.</p>
+            <div class="modal-acoes">
+                <?php if ($popupTrocaWhatsapp['tem_email']): ?><button type="button" class="btn-outline btn-abrir-validar-email" onclick="document.getElementById('modal-troca-whatsapp').hidden = true;">Validar e-mail</button><?php endif; ?>
+                <button type="button" class="btn" onclick="document.getElementById('modal-troca-whatsapp').hidden = true;">Entendi</button>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
     <script>
     // Roda depois do DOMContentLoaded porque esse script inline (sem defer)
     // executa antes do loja.js (que tem defer) — sem esperar, as funções

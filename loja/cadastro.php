@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $entrada = trim($_POST['identificador'] ?? '');
         $pareceEmail = str_contains($entrada, '@');
 
-        if ($pareceEmail || !$whatsappLoginHabilitado) {
+        if ($pareceEmail) {
             $emailNormalizado = normalizarEmail($entrada);
             $identificador = $emailNormalizado;
             $tipoIdentificador = 'email';
@@ -65,15 +65,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $tipoIdentificador = 'whatsapp';
 
             if ($whatsappNormalizado === '') {
-                $erro = 'Informe um WhatsApp válido, com DDD e o 9 na frente (ex: (11) 90000-0000).';
+                $erro = $whatsappLoginHabilitado
+                    ? 'Informe um WhatsApp válido, com DDD e o 9 na frente (ex: (11) 90000-0000).'
+                    : 'Informe um e-mail válido, ou o WhatsApp de uma conta que já existe.';
                 $etapa = 'email';
             } else {
-                $stmt = $pdo->prepare('SELECT id_cliente, senha_hash, excluido_em FROM clientes WHERE whatsapp = :w');
+                $stmt = $pdo->prepare('SELECT id_cliente, senha_hash, excluido_em, login_whatsapp_bloqueado FROM clientes WHERE whatsapp = :w');
                 $stmt->execute([':w' => $whatsappNormalizado]);
                 $clienteExistente = $stmt->fetch();
 
                 if ($clienteExistente && $clienteExistente['excluido_em'] !== null) {
                     $erro = 'Esse cadastro não está disponível. Fale com a loja.';
+                    $etapa = 'email';
+                } elseif ($clienteExistente && (int) $clienteExistente['login_whatsapp_bloqueado'] === 1) {
+                    $erro = 'O acesso por WhatsApp foi desativado nesta conta. Entre com o seu e-mail.';
+                    $etapa = 'email';
+                } elseif (!$clienteExistente && !$whatsappLoginHabilitado) {
+                    // Login por número de quem já tem conta continua valendo com o recurso
+                    // desligado, mas cadastro novo só com número precisa dele ligado.
+                    $erro = 'Esse WhatsApp não tem cadastro. Cadastre-se com seu e-mail.';
                     $etapa = 'email';
                 } elseif (!$clienteExistente) {
                     // Cadastro só com o número: sem e-mail, o cliente entra e valida
@@ -203,7 +213,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $etapa = 'ativar';
         } else {
             $hash = password_hash($senha, PASSWORD_DEFAULT);
-            $stmt = $pdo->prepare("UPDATE clientes SET senha_hash = :senha WHERE $coluna = :id AND senha_hash IS NULL AND excluido_em IS NULL");
+            $stmt = $pdo->prepare("UPDATE clientes SET senha_hash = :senha WHERE $coluna = :id AND senha_hash IS NULL AND excluido_em IS NULL" . ($coluna === 'whatsapp' ? ' AND login_whatsapp_bloqueado = 0' : ''));
             $stmt->execute([':senha' => $hash, ':id' => $identificador]);
 
             // Only proceed if the update actually affected a row (passwordless account)
@@ -235,13 +245,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $coluna = $tipoIdentificador === 'whatsapp' ? 'whatsapp' : 'email';
         $senha = $_POST['senha'] ?? '';
 
-        $stmt = $pdo->prepare("SELECT id_cliente, nome, senha_hash, excluido_em FROM clientes WHERE $coluna = :id");
+        $stmt = $pdo->prepare("SELECT id_cliente, nome, senha_hash, excluido_em, login_whatsapp_bloqueado FROM clientes WHERE $coluna = :id");
         $stmt->execute([':id' => $identificador]);
         $cliente = $stmt->fetch();
 
         // senha_hash pode ser NULL (cliente criado pelo PDV em clientes/novo.php e nunca
         // ativado na loja) — password_verify() com NULL dispara deprecation/warning.
-        if ($cliente && $cliente['excluido_em'] === null && $cliente['senha_hash'] !== null && password_verify($senha, $cliente['senha_hash'])) {
+        if ($cliente && $cliente['excluido_em'] === null && !($tipoIdentificador === 'whatsapp' && (int) $cliente['login_whatsapp_bloqueado'] === 1) && $cliente['senha_hash'] !== null && password_verify($senha, $cliente['senha_hash'])) {
             $_SESSION['id_cliente'] = (int) $cliente['id_cliente'];
             $_SESSION['nome_cliente'] = $cliente['nome'];
             session_regenerate_id(true);
@@ -266,20 +276,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <h1>Entrar na loja</h1>
     <form method="post">
         <input type="hidden" name="acao" value="verificar_email">
-        <?php if ($whatsappLoginHabilitado): ?>
         <label>E-mail ou WhatsApp<input type="text" name="identificador" id="campo-identificador" required placeholder="voce@email.com ou (11) 90000-0000" value="<?= htmlspecialchars($identificador) ?>"></label>
-        <?php else: ?>
-        <label>E-mail<input type="email" name="identificador" required placeholder="voce@email.com" value="<?= htmlspecialchars($identificador) ?>"></label>
-        <?php endif; ?>
         <button type="submit" class="btn-bloco">Continuar</button>
     </form>
-    <?php if ($whatsappLoginHabilitado): ?>
     <script>
     document.addEventListener('DOMContentLoaded', function () {
         ativarMascaraIdentificadorLogin(document.getElementById('campo-identificador'));
     });
     </script>
-    <?php endif; ?>
     <?php elseif ($etapa === 'cadastro'): ?>
     <h2>Complete seu cadastro</h2>
     <p class="alert alert-erro" id="erro-cadastro" hidden></p>
