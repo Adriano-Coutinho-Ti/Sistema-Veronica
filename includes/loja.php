@@ -547,3 +547,45 @@ function processarWebhookVendaLoja(PDO $pdo, int $id_venda, array $pagamento, st
         )->execute([':id' => $id_venda]);
     }
 }
+
+
+/**
+ * Selo de "esse contato já foi validado pelo cliente?" pras telas do admin
+ * (lista/detalhe de clientes) -- o lojista usa isso pra saber por onde pode
+ * falar com o cliente com confiança. $validacaoAtiva só importa pro WhatsApp:
+ * com a validação por WhatsApp desligada no painel_dev, nenhum cliente tem
+ * como validar, então "não validado" seria enganoso.
+ */
+function seloContatoValidado(bool $temContato, ?string $validadoEm, bool $validacaoAtiva = true): string
+{
+    if (!$temContato) {
+        return '<span class="status-pill">Sem cadastro</span>';
+    }
+    if ($validadoEm !== null && $validadoEm !== '') {
+        return '<span class="status-pill sucesso" title="Validado em ' . htmlspecialchars(date('d/m/Y H:i', strtotime($validadoEm))) . '">✓ Validado</span>';
+    }
+    if (!$validacaoAtiva) {
+        return '<span class="status-pill" title="A validação por WhatsApp está desativada no sistema">Sem validação</span>';
+    }
+    return '<span class="status-pill alerta">Não validado</span>';
+}
+
+/**
+ * Frase curta dizendo qual canal é confiável agora, montada a partir do que o
+ * cliente já validou.
+ */
+function resumoCanalConfiavel(bool $whatsappValidado, bool $emailValidado, bool $whatsappAtivo): string
+{
+    if ($whatsappValidado && $emailValidado) {
+        return 'WhatsApp e e-mail validados — pode falar por qualquer um dos dois com confiança.';
+    }
+    if ($whatsappValidado) {
+        return 'WhatsApp validado — pode falar por aqui com confiança.';
+    }
+    if ($emailValidado) {
+        return $whatsappAtivo
+            ? 'O WhatsApp ainda não foi validado (o número pode estar errado) — prefira o e-mail, que já foi validado.'
+            : 'E-mail validado — prefira ele pra falar com o cliente.';
+    }
+    return 'O cliente ainda não validou nenhum contato — o WhatsApp e o e-mail cadastrados podem estar errados.';
+}

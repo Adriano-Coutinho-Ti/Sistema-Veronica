@@ -270,7 +270,8 @@ document.addEventListener('DOMContentLoaded', function () {
                         linha.appendChild(tdData);
 
                         const tdTipo = document.createElement('td');
-                        tdTipo.textContent = mov.tipo === 'compra' ? 'Compra a prazo' : 'Pagamento';
+                        tdTipo.textContent = mov.manual ? 'Dívida do caderno' : (mov.tipo === 'compra' ? 'Compra a prazo' : 'Pagamento');
+                        if (mov.manual && mov.observacao) { tdTipo.textContent += ' — ' + mov.observacao; }
                         linha.appendChild(tdTipo);
 
                         const tdSituacao = document.createElement('td');

@@ -19,9 +19,58 @@ if (!$cliente || $cliente['excluido_em'] !== null) {
 }
 
 $ehAdmin = ($_SESSION['perfil'] ?? '') === 'Admin';
+$whatsappAtivo = (bool) $pdo->query('SELECT whatsapp_verificacao_ativo FROM config_dev WHERE id_config = 1')->fetchColumn();
 
 $erro = '';
 $sucesso = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'lancar_divida_manual') {
+    if (!$ehAdmin) {
+        http_response_code(403);
+        echo 'Acesso restrito ao administrador.';
+        exit;
+    }
+
+    $valorDivida = converterMoedaBrParaFloat($_POST['valor_divida'] ?? '0');
+    $dataDivida = trim($_POST['data_divida'] ?? '');
+    $obsDivida = trim(mb_substr($_POST['observacao_divida'] ?? '', 0, 255)) ?: null;
+    $dataObj = DateTime::createFromFormat('Y-m-d', $dataDivida);
+    $dataValida = $dataObj && $dataObj->format('Y-m-d') === $dataDivida;
+
+    if ($valorDivida <= 0) {
+        $erro = 'Informe o valor da dívida.';
+    } elseif (!$dataValida) {
+        $erro = 'Informe a data em que a dívida foi feita.';
+    } else {
+        // "Data no futuro" é decidido pelo relógio do MySQL, nunca pelo do PHP.
+        $stmtFuturo = $pdo->prepare('SELECT :d > CURDATE()');
+        $stmtFuturo->execute([':d' => $dataDivida]);
+        if ($stmtFuturo->fetchColumn()) {
+            $erro = 'A data da dívida não pode ser no futuro.';
+        } else {
+            // Migração de dívida antiga: não passa pelo caixa (sem id_caixa/id_venda)
+            // e ignora o limite de crédito de propósito -- a dívida já existe.
+            $pdo->beginTransaction();
+            try {
+                $pdo->prepare('UPDATE clientes SET saldo_devedor = saldo_devedor + :v WHERE id_cliente = :id')
+                    ->execute([':v' => $valorDivida, ':id' => $id]);
+                $pdo->prepare(
+                    "INSERT INTO movimentos_credito (id_cliente, tipo, status, valor, observacao, criado_por, data_movimento)
+                     VALUES (:ic, 'compra', 'Confirmado', :v, :obs, :cp, CONCAT(:d, ' 12:00:00'))"
+                )->execute([':ic' => $id, ':v' => $valorDivida, ':obs' => $obsDivida, ':cp' => (int) $_SESSION['id_usuario'], ':d' => $dataDivida]);
+                $pdo->commit();
+                header('Location: /clientes/detalhe.php?id=' . $id . '&divida_lancada=1');
+                exit;
+            } catch (Throwable $e) {
+                if ($pdo->inTransaction()) {
+                    $pdo->rollBack();
+                }
+                error_log('detalhe.php: falha ao lançar dívida manual: ' . $e->getMessage());
+                $erro = 'Não foi possível lançar a dívida. Nada foi gravado.';
+            }
+        }
+    }
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'mover_lixeira') {
     if (!$ehAdmin) {
@@ -198,6 +247,19 @@ $creditoDisponivel = (float) $cliente['limite_credito'] - (float) $cliente['sald
         </div>
     </div>
 
+    <?php
+    $whatsappValidado = !empty($cliente['whatsapp_verificado_em']);
+    $emailValidado = !empty($cliente['email']) && !empty($cliente['email_verificado_em']);
+    ?>
+    <div class="card" style="margin-bottom:20px;">
+        <p style="margin:0 0 10px;">
+            <strong>WhatsApp</strong> <?= seloContatoValidado(true, $cliente['whatsapp_verificado_em'], $whatsappAtivo) ?>
+            &nbsp;&nbsp;
+            <strong>E-mail</strong> <?= seloContatoValidado(!empty($cliente['email']), $cliente['email_verificado_em']) ?>
+        </p>
+        <p style="margin:0; color:var(--cor-texto-suave); font-size:0.9rem;"><?= htmlspecialchars(resumoCanalConfiavel($whatsappValidado, $emailValidado, $whatsappAtivo)) ?></p>
+    </div>
+
     <p class="acoes-topo">
         <a href="/clientes/lista.php" class="btn-outline btn-sm">
             <svg viewBox="0 0 24 24" aria-hidden="true" width="14" height="14"><path d="M15 6 9 12l6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -212,6 +274,7 @@ $creditoDisponivel = (float) $cliente['limite_credito'] - (float) $cliente['sald
     </p>
 
     <?php if ($erro): ?><p class="alert alert-erro"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
+    <?php if (isset($_GET['divida_lancada'])): ?><p class="alert alert-sucesso">Dívida lançada no saldo do cliente.</p><?php endif; ?>
     <?php if ($sucesso): ?><p class="alert alert-sucesso"><?= htmlspecialchars($sucesso) ?></p><?php endif; ?>
 
     <div class="grade-2col">
@@ -269,6 +332,10 @@ $creditoDisponivel = (float) $cliente['limite_credito'] - (float) $cliente['sald
         </div>
     </div>
 
+    <?php if ($creditoDisponivel < 0): ?>
+    <p class="alert alert-info">O saldo devedor está acima do limite de crédito — o cliente não consegue comprar a prazo até pagar ou o limite aumentar.</p>
+    <?php endif; ?>
+
     <?php if (($_SESSION['perfil'] ?? '') === 'Admin'): ?>
     <div style="display:flex; gap:24px; flex-wrap:wrap;">
     <form method="post" class="form-linha-compacta">
@@ -287,6 +354,22 @@ $creditoDisponivel = (float) $cliente['limite_credito'] - (float) $cliente['sald
     </form>
     </div>
     <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:8px;">Quantos dias esse cliente tem pra pagar cada compra a partir da data dela — usado pra calcular se uma compra já venceu.</p>
+
+    <h3 style="margin-top:28px;">Lançar dívida do caderno</h3>
+    <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:-8px; margin-bottom:12px;">Pra passar pro sistema uma dívida antiga anotada no caderno. Não passa pelo caixa, não mexe no estoque e não depende do limite de crédito. A data é a de quando o cliente ficou devendo — o vencimento é contado a partir dela (mais o prazo de pagamento deste cliente).</p>
+    <form method="post" class="form-linha" data-confirm="Lançar essa dívida no saldo de <?= htmlspecialchars($cliente['nome'], ENT_QUOTES) ?>? O saldo devedor aumenta e ela aparece no extrato como dívida do caderno.">
+        <input type="hidden" name="acao" value="lancar_divida_manual">
+        <label>Valor
+            <input type="text" name="valor_divida" class="js-mascara-moeda" placeholder="0,00" required>
+        </label>
+        <label>Data da dívida
+            <input type="date" name="data_divida" required>
+        </label>
+        <label>Descrição (opcional)
+            <input type="text" name="observacao_divida" maxlength="255" placeholder="Ex: blusa e calça — caderno de março">
+        </label>
+        <button type="submit" class="btn" style="align-self:flex-end; margin-bottom:14px;">Lançar dívida</button>
+    </form>
     <?php endif; ?>
 
     <?php if ((float) $cliente['saldo_devedor'] > 0): ?>
@@ -334,7 +417,11 @@ $creditoDisponivel = (float) $cliente['limite_credito'] - (float) $cliente['sald
         <?php $sitCompra = $mov['tipo'] === 'compra' ? ($situacaoCredito['compras'][(int) $mov['id_movimento']] ?? null) : null; ?>
         <tr>
             <td><?= htmlspecialchars($mov['data_movimento']) ?></td>
-            <td><?= $mov['tipo'] === 'compra' ? 'Compra a prazo' : 'Pagamento' ?></td>
+            <td>
+                <?php if ($mov['tipo'] === 'compra' && $mov['id_venda'] === null): ?>Dívida do caderno<?= !empty($mov['observacao']) ? '<br><small>' . htmlspecialchars($mov['observacao']) . '</small>' : '' ?>
+                <?php else: ?><?= $mov['tipo'] === 'compra' ? 'Compra a prazo' : 'Pagamento' ?>
+                <?php endif; ?>
+            </td>
             <td>
                 <?php if ($sitCompra === null): ?>—
                 <?php elseif ($sitCompra['vencido'] > 0): ?><span class="status-pill erro">Vencido há <?= $sitCompra['dias_atraso'] ?>d</span>

@@ -19,7 +19,7 @@ if (!$cliente) {
 $situacao = calcularSituacaoCreditoCliente($pdo, $id_cliente, (int) $cliente['prazo_dias_credito']);
 
 $stmtExtrato = $pdo->prepare(
-    'SELECT id_movimento, tipo, status, valor, forma_pagamento, data_movimento
+    'SELECT id_movimento, tipo, status, valor, forma_pagamento, data_movimento, id_venda, observacao
      FROM movimentos_credito
      WHERE id_cliente = :id
      ORDER BY data_movimento DESC'
@@ -34,6 +34,8 @@ foreach ($stmtExtrato->fetchAll() as $mov) {
         'status' => $mov['status'],
         'valor' => (float) $mov['valor'],
         'forma_pagamento' => $mov['forma_pagamento'],
+        'manual' => $mov['tipo'] === 'compra' && $mov['id_venda'] === null,
+        'observacao' => $mov['observacao'],
         'data_movimento' => date('d/m/Y H:i', strtotime($mov['data_movimento'])),
         'em_aberto' => $sit['em_aberto'] ?? null,
         'vencido' => $sit['vencido'] ?? null,

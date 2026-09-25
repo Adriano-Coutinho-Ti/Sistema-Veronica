@@ -25,6 +25,7 @@ if ($statusFiltro === 'verificados') {
 }
 
 const CLIENTES_POR_PAGINA = 20;
+$whatsappAtivo = (bool) $pdo->query('SELECT whatsapp_verificacao_ativo FROM config_dev WHERE id_config = 1')->fetchColumn();
 $totalNaLixeira = (int) $pdo->query('SELECT COUNT(*) FROM clientes WHERE excluido_em IS NOT NULL')->fetchColumn();
 $pagina = max(1, (int) ($_GET['pagina'] ?? 1));
 
@@ -36,7 +37,7 @@ $pagina = min($pagina, $totalPaginas);
 $offset = ($pagina - 1) * CLIENTES_POR_PAGINA;
 
 $stmt = $pdo->prepare(
-    "SELECT id_cliente, nome, whatsapp, email, email_verificado_em FROM clientes WHERE $where
+    "SELECT id_cliente, nome, whatsapp, email, email_verificado_em, whatsapp_verificado_em FROM clientes WHERE $where
      ORDER BY nome LIMIT :limite OFFSET :offset"
 );
 foreach ($params as $chave => $valor) {
@@ -122,18 +123,14 @@ function montarLinkFiltroClientes(int $pagina, string $status, string $busca): s
             <div id="visualizacao-lista">
             <div class="tabela-wrap">
             <table>
-                <tr><th>Nome</th><th>WhatsApp</th><th>E-mail</th><th>E-mail verificado</th><th></th></tr>
+                <tr><th>Nome</th><th>WhatsApp</th><th>WhatsApp validado</th><th>E-mail</th><th>E-mail validado</th><th></th></tr>
                 <?php foreach ($clientes as $c): ?>
                 <tr>
                     <td><?= htmlspecialchars($c['nome']) ?></td>
                     <td><?= htmlspecialchars(formatarWhatsappExibicao($c['whatsapp'])) ?></td>
+                    <td><?= seloContatoValidado(true, $c['whatsapp_verificado_em'], $whatsappAtivo) ?></td>
                     <td><?= htmlspecialchars($c['email'] ?? '') ?></td>
-                    <td>
-                        <?php if (!$c['email']): ?>—
-                        <?php elseif ($c['email_verificado_em']): ?><span class="status-pill sucesso">✓ Verificado</span>
-                        <?php else: ?><span class="status-pill alerta">Não verificado</span>
-                        <?php endif; ?>
-                    </td>
+                    <td><?= seloContatoValidado(!empty($c['email']), $c['email_verificado_em']) ?></td>
                     <td><a href="/clientes/detalhe.php?id=<?= $c['id_cliente'] ?>" class="btn-sm btn-outline">ver</a></td>
                 </tr>
                 <?php endforeach; ?>
@@ -147,13 +144,9 @@ function montarLinkFiltroClientes(int $pagina, string $status, string $busca): s
                 <div class="item-card">
                     <div class="item-card-topo">
                         <strong><?= htmlspecialchars($c['nome']) ?></strong>
-                        <?php if (!$c['email']): ?><span class="status-pill">Sem e-mail</span>
-                        <?php elseif ($c['email_verificado_em']): ?><span class="status-pill sucesso">✓ Verificado</span>
-                        <?php else: ?><span class="status-pill alerta">Não verificado</span>
-                        <?php endif; ?>
                     </div>
-                    <p><?= htmlspecialchars(formatarWhatsappExibicao($c['whatsapp'])) ?></p>
-                    <?php if ($c['email']): ?><p><?= htmlspecialchars($c['email']) ?></p><?php endif; ?>
+                    <p><?= htmlspecialchars(formatarWhatsappExibicao($c['whatsapp'])) ?> <?= seloContatoValidado(true, $c['whatsapp_verificado_em'], $whatsappAtivo) ?></p>
+                    <?php if ($c['email']): ?><p><?= htmlspecialchars($c['email']) ?> <?= seloContatoValidado(true, $c['email_verificado_em']) ?></p><?php endif; ?>
                     <div class="celula-acoes">
                         <a href="/clientes/detalhe.php?id=<?= $c['id_cliente'] ?>" class="btn-sm btn-outline">ver</a>
                     </div>

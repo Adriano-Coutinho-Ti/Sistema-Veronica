@@ -22,7 +22,7 @@ $pagina = min($pagina, $totalPaginasExtrato);
 $offsetExtrato = ($pagina - 1) * EXTRATO_POR_PAGINA;
 
 $stmtExtrato = $pdo->prepare(
-    "SELECT mc.tipo, mc.status, mc.valor, mc.forma_pagamento, mc.data_movimento,
+    "SELECT mc.tipo, mc.status, mc.valor, mc.forma_pagamento, mc.data_movimento, mc.id_venda, mc.observacao,
             (SELECT iv.nome_produto FROM itens_venda iv WHERE iv.id_venda = mc.id_venda ORDER BY iv.id_item LIMIT 1) AS produto_nome,
             (SELECT pf.caminho_arquivo
              FROM itens_venda iv
@@ -73,8 +73,10 @@ $erro = $_GET['erro'] ?? '';
             <div>
                 <?php foreach ($extrato as $mov): ?>
                 <?php
-                    $ehCompra = $mov['tipo'] === 'compra';
-                    $descricao = $ehCompra ? ($mov['produto_nome'] ?? 'Compra a prazo') : 'Pagamento';
+                    $ehManual = $mov['tipo'] === 'compra' && $mov['id_venda'] === null;
+                    $ehCompra = $mov['tipo'] === 'compra' && !$ehManual;
+                    $descricao = $ehManual ? (($mov['observacao'] ?? '') !== '' ? $mov['observacao'] : 'Dívida anterior')
+                        : ($ehCompra ? ($mov['produto_nome'] ?? 'Compra a prazo') : 'Pagamento');
                     if ($ehCompra && (int) $mov['qtd_itens'] > 1) {
                         $descricao .= ' e mais ' . ((int) $mov['qtd_itens'] - 1) . ' item(ns)';
                     }
@@ -91,7 +93,7 @@ $erro = $_GET['erro'] ?? '';
                     <?php endif; ?>
                     <div class="desc-wrap">
                         <div class="desc"><?= htmlspecialchars($descricao) ?></div>
-                        <?php if ($ehCompra): ?><div class="variacao">Compra a prazo</div><?php endif; ?>
+                        <?php if ($ehCompra): ?><div class="variacao">Compra a prazo</div><?php elseif ($ehManual): ?><div class="variacao">Dívida anterior registrada pela loja</div><?php endif; ?>
                         <div class="data"><?= htmlspecialchars(date('d/m/Y H:i', strtotime($mov['data_movimento']))) ?><?php if ($mov['tipo'] === 'pagamento' && $mov['status'] !== 'Confirmado'): ?> — aguardando confirmação<?php endif; ?></div>
                     </div>
                     <div class="valor<?= $mov['tipo'] === 'pagamento' ? ' pagamento' : '' ?>">
