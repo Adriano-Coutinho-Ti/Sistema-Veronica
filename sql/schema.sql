@@ -82,7 +82,7 @@ CREATE TABLE produto_fotos (
 
 CREATE TABLE config_loja (
     id_config INT PRIMARY KEY,
-    nome_loja VARCHAR(150) NOT NULL DEFAULT 'Minha Loja',
+    nome_loja VARCHAR(150) NOT NULL DEFAULT 'Sua Loja - CoderNex',
     logo_arquivo VARCHAR(255) NULL,
     cor_primaria CHAR(7) NOT NULL DEFAULT '#8B5CF6',
     cor_secundaria CHAR(7) NOT NULL DEFAULT '#F472B6'

@@ -1,14 +1,14 @@
 <?php
 
 /**
- * Nome do sistema exibido no lugar de "Sistema Veronica" (cabeçalho do admin
+ * Nome do sistema exibido (cabeçalho do admin
  * e tela de login) — configurável pelo painel_dev. Cai no nome padrão se a
  * linha ainda não tiver sido preenchida.
  */
 function nomeDoSistema(PDO $pdo): string
 {
     $nome = $pdo->query('SELECT nome_sistema FROM config_dev WHERE id_config = 1')->fetchColumn();
-    return ($nome !== false && $nome !== null && $nome !== '') ? $nome : 'Sistema CoderNex';
+    return ($nome !== false && $nome !== null && $nome !== '') ? $nome : 'Sua Loja - CoderNex';
 }
 
 /**

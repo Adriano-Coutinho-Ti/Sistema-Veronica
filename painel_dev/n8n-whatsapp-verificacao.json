@@ -1,9 +1,9 @@
 {
-  "name": "Verificação WhatsApp — Sistema CoderNex",
+  "name": "Verificação WhatsApp — Sua Loja - CoderNex",
   "nodes": [
     {
       "parameters": {
-        "content": "## Verificação de WhatsApp — Sistema CoderNex\n\nEsse workflow é **genérico**: não tem nenhuma credencial fixa dentro dele. A cada chamada, o Sistema CoderNex manda no próprio corpo do POST tudo que precisa pra falar com a Evolution API daquela instalação (URL base, API key, instância) — então o mesmo arquivo serve pra qualquer loja/instalação, sem editar nada aqui.\n\n**Como configurar:**\n1. Importe este workflow no seu n8n.\n2. Ative o workflow.\n3. Copie a URL do nó \"Webhook\" (produção) e cole em Painel do Dev → WhatsApp (Evolution API + n8n) → \"URL do webhook do n8n\".\n4. Preencha, no mesmo painel, a URL base / API key / nome da instância da sua Evolution API.\n\n**Corpo que chega no webhook:**\n```json\n{\n  \"evolution\": { \"base_url\": \"...\", \"api_key\": \"...\", \"instancia\": \"...\" },\n  \"telefone\": \"5511987654321\",\n  \"codigo\": \"123456\",\n  \"nome\": \"Maria\",\n  \"loja\": \"Brechó da Veve\",\n  \"mensagem\": \"Olá, Maria! Seu código de verificação...\"\n}\n```",
+        "content": "## Verificação de WhatsApp — Sua Loja - CoderNex\n\nEsse workflow é **genérico**: não tem nenhuma credencial fixa dentro dele. A cada chamada, o Sistema CoderNex manda no próprio corpo do POST tudo que precisa pra falar com a Evolution API daquela instalação (URL base, API key, instância) — então o mesmo arquivo serve pra qualquer loja/instalação, sem editar nada aqui.\n\n**Como configurar:**\n1. Importe este workflow no seu n8n.\n2. Ative o workflow.\n3. Copie a URL do nó \"Webhook\" (produção) e cole em Painel do Dev → WhatsApp (Evolution API + n8n) → \"URL do webhook do n8n\".\n4. Preencha, no mesmo painel, a URL base / API key / nome da instância da sua Evolution API.\n\n**Corpo que chega no webhook:**\n```json\n{\n  \"evolution\": { \"base_url\": \"...\", \"api_key\": \"...\", \"instancia\": \"...\" },\n  \"telefone\": \"5511987654321\",\n  \"codigo\": \"123456\",\n  \"nome\": \"Maria\",\n  \"loja\": \"Brechó da Veve\",\n  \"mensagem\": \"Olá, Maria! Seu código de verificação...\"\n}\n```",
         "height": 420,
         "width": 460
       },
@@ -25,7 +25,7 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [460, 100],
-      "webhookId": "verificacao-whatsapp-sistema-veronica"
+      "webhookId": "verificacao-whatsapp-codernex"
     },
     {
       "parameters": {

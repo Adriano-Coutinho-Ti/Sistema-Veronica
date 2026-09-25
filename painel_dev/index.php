@@ -331,7 +331,7 @@ $vinculosAtuais = $pdo->query('SELECT numero_caixa, terminal_id FROM caixa_termi
             <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:0; margin-bottom:16px;">Aparece no cabeçalho do admin e na tela de login.</p>
             <form method="post">
                 <input type="hidden" name="acao" value="atualizar_nome">
-                <label>Nome<input type="text" name="nome_sistema" value="<?= htmlspecialchars($config['nome_sistema'] ?? 'Sistema CoderNex') ?>" required></label>
+                <label>Nome<input type="text" name="nome_sistema" value="<?= htmlspecialchars($config['nome_sistema'] ?? 'Sua Loja - CoderNex') ?>" required></label>
                 <button type="submit" class="btn-bloco">Salvar nome</button>
             </form>
         </div>
@@ -396,7 +396,7 @@ $vinculosAtuais = $pdo->query('SELECT numero_caixa, terminal_id FROM caixa_termi
                 <label>Usuário<input type="text" name="smtp_user" value="<?= htmlspecialchars($config['smtp_user'] ?? '') ?>" placeholder="Deixado em branco = usa o arquivo"></label>
                 <label>Senha<input type="text" name="smtp_pass" value="<?= htmlspecialchars($config['smtp_pass'] ?? '') ?>" autocomplete="off"></label>
                 <label>E-mail de envio<input type="email" name="smtp_from_email" value="<?= htmlspecialchars($config['smtp_from_email'] ?? '') ?>"></label>
-                <label>Nome de exibição<input type="text" name="smtp_from_name" value="<?= htmlspecialchars($config['smtp_from_name'] ?? '') ?>" placeholder="Ex: Brechó da Veve"></label>
+                <label>Nome de exibição<input type="text" name="smtp_from_name" value="<?= htmlspecialchars($config['smtp_from_name'] ?? '') ?>" placeholder="Ex: Sua Loja"></label>
                 <button type="submit" class="btn-bloco">Salvar e-mail</button>
             </form>
         </div>
@@ -469,7 +469,7 @@ $vinculosAtuais = $pdo->query('SELECT numero_caixa, terminal_id FROM caixa_termi
                 </label>
                 <label style="margin-top:12px;">URL base da Evolution API<input type="text" name="evolution_base_url" value="<?= htmlspecialchars($config['evolution_base_url'] ?? '') ?>" placeholder="https://sua-evolution-api.com"></label>
                 <label>API Key<input type="text" name="evolution_api_key" value="<?= htmlspecialchars($config['evolution_api_key'] ?? '') ?>" placeholder="Chave da instância na Evolution API"></label>
-                <label>Nome da instância<input type="text" name="evolution_instancia" value="<?= htmlspecialchars($config['evolution_instancia'] ?? '') ?>" placeholder="Ex: brechodaveve"></label>
+                <label>Nome da instância<input type="text" name="evolution_instancia" value="<?= htmlspecialchars($config['evolution_instancia'] ?? '') ?>" placeholder="Ex: sualoja"></label>
                 <label>URL do webhook do n8n<input type="text" name="n8n_webhook_url" value="<?= htmlspecialchars($config['n8n_webhook_url'] ?? '') ?>" placeholder="https://seu-n8n.com/webhook/xxxxx"></label>
                 <button type="submit" class="btn-bloco">Salvar WhatsApp</button>
             </form>

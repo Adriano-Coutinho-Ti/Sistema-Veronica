@@ -4,7 +4,7 @@
 -- o nome aqui, use o proprio formulario em painel_dev/index.php, nao precisa
 -- de SQL pra isso.
 ALTER TABLE config_dev
-    MODIFY COLUMN nome_sistema VARCHAR(150) NOT NULL DEFAULT 'Sistema CoderNex';
+    MODIFY COLUMN nome_sistema VARCHAR(150) NOT NULL DEFAULT 'Sua Loja - CoderNex';
 
 -- Credito "Desenvolvido por ..." no rodape da loja -- ate agora fixo em
 -- "CoderNex" / codernex.com.br no codigo. Cada desenvolvedor que instalar
