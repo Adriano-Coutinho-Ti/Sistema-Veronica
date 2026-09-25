@@ -20,21 +20,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'perfil'
 
     if ($nome === '') {
         $erroPerfil = 'Informe seu nome.';
-    } elseif ($email === '') {
+    } elseif ($email === '' && !$whatsappLoginHabilitado) {
         // E-mail é o login do cliente — não dá pra deixar em branco depois de já ter
         // uma conta ativa (diferente do cadastro pelo PDV, que ainda aceita sem e-mail).
         $erroPerfil = 'Informe seu e-mail — ele é usado pra entrar na loja.';
-    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    } elseif ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $erroPerfil = 'Informe um e-mail válido.';
     } elseif ($whatsappNormalizado === '') {
         $erroPerfil = 'Informe um WhatsApp válido, com DDD e o 9 na frente (ex: (11) 90000-0000).';
     } else {
+        // Sem e-mail (só possível com o login por WhatsApp ativo) grava NULL, nunca
+        // string vazia -- a chave UNIQUE de email aceita vários NULL, mas não vários "".
+        $emailParaGravar = $email !== '' ? $email : null;
         $stmtDupEmail = $pdo->prepare('SELECT id_cliente FROM clientes WHERE email = :email AND id_cliente != :id');
-        $stmtDupEmail->execute([':email' => $email, ':id' => $id_cliente]);
+        $stmtDupEmail->execute([':email' => $emailParaGravar, ':id' => $id_cliente]);
         $stmtDupWhats = $pdo->prepare('SELECT id_cliente FROM clientes WHERE whatsapp = :w AND id_cliente != :id');
         $stmtDupWhats->execute([':w' => $whatsappNormalizado, ':id' => $id_cliente]);
 
-        if ($stmtDupEmail->fetch()) {
+        if ($emailParaGravar !== null && $stmtDupEmail->fetch()) {
             $erroPerfil = 'Esse e-mail já está sendo usado por outra conta.';
         } elseif ($stmtDupWhats->fetch()) {
             $erroPerfil = 'Esse WhatsApp já está sendo usado por outra conta.';
@@ -42,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'perfil'
             $dadosAtuais = $pdo->prepare('SELECT email, whatsapp FROM clientes WHERE id_cliente = :id');
             $dadosAtuais->execute([':id' => $id_cliente]);
             $atual = $dadosAtuais->fetch();
-            $emailMudou = $atual['email'] !== $email;
+            $emailMudou = $atual['email'] !== $emailParaGravar;
             $whatsappMudou = $atual['whatsapp'] !== $whatsappNormalizado;
 
             // Novo e-mail/WhatsApp é um dado não confirmado até o cliente validar de
@@ -54,10 +57,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'perfil'
                 . ($emailMudou ? ', email_verificado_em = NULL' : '')
                 . ($whatsappMudou ? ', whatsapp_verificado_em = NULL' : '')
                 . ' WHERE id_cliente = :id'
-            )->execute([':nome' => $nome, ':whatsapp' => $whatsappNormalizado, ':email' => $email, ':endereco' => $endereco ?: null, ':id' => $id_cliente]);
+            )->execute([':nome' => $nome, ':whatsapp' => $whatsappNormalizado, ':email' => $emailParaGravar, ':endereco' => $endereco ?: null, ':id' => $id_cliente]);
 
-            if ($emailMudou) {
-                dispararVerificacaoEmail($pdo, $id_cliente, $email, $nome);
+            if ($emailMudou && $emailParaGravar !== null) {
+                dispararVerificacaoEmail($pdo, $id_cliente, $emailParaGravar, $nome);
                 $avisoEmailMudou = true;
             }
             if ($whatsappMudou && $whatsappLoginHabilitado) {
@@ -121,8 +124,8 @@ $whatsappVerificado = $cliente['whatsapp_verificado_em'] !== null;
                         <button type="button" class="btn-outline btn-sm btn-abrir-validar-whatsapp">Validar WhatsApp</button>
                     </p>
                     <?php endif; ?>
-                    <label><?= $emailVerificado ? 'E-mail (Validado)' : 'E-mail (Aguardando validação)' ?><input type="email" name="email" id="campo-email" value="<?= htmlspecialchars($cliente['email'] ?? '') ?>" required></label>
-                    <?php if (!$emailVerificado): ?>
+                    <label><?= empty($cliente['email']) ? 'E-mail (opcional)' : ($emailVerificado ? 'E-mail (Validado)' : 'E-mail (Aguardando validação)') ?><input type="email" name="email" id="campo-email" value="<?= htmlspecialchars($cliente['email'] ?? '') ?>"<?= $whatsappLoginHabilitado ? '' : ' required' ?>></label>
+                    <?php if (!empty($cliente['email']) && !$emailVerificado): ?>
                     <p style="margin-top:-8px; margin-bottom:14px;">
                         <button type="button" class="btn-outline btn-sm btn-abrir-validar-email">Validar e-mail</button>
                     </p>

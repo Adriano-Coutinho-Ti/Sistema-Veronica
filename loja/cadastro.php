@@ -76,15 +76,59 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $erro = 'Esse cadastro não está disponível. Fale com a loja.';
                     $etapa = 'email';
                 } elseif (!$clienteExistente) {
-                    // Cadastro novo sempre começa pelo e-mail -- não existe fluxo de
-                    // cadastro só com WhatsApp, então não faz sentido mandar pra
-                    // etapa "cadastro" aqui.
-                    $erro = 'Esse WhatsApp não tem cadastro. Cadastre-se com seu e-mail.';
-                    $etapa = 'email';
+                    // Cadastro só com o número: sem e-mail, o cliente entra e valida
+                    // o WhatsApp depois (código enviado logo após o cadastro).
+                    $etapa = 'cadastro';
                 } elseif (empty($clienteExistente['senha_hash'])) {
                     $etapa = 'ativar';
                 } else {
                     $etapa = 'login';
+                }
+            }
+        }
+    } elseif ($acao === 'cadastro' && $whatsappLoginHabilitado && ($_POST['tipo_identificador'] ?? '') === 'whatsapp') {
+        // Cadastro começado pelo número de WhatsApp (sem e-mail). O número chega
+        // de um campo readonly, mas um POST direto poderia trazer qualquer coisa --
+        // normaliza e checa duplicidade de novo, igual ao caminho por e-mail.
+        $whatsappNormalizado = normalizarWhatsapp($_POST['whatsapp'] ?? '');
+        $nome = trim($_POST['nome'] ?? '');
+        $senha = $_POST['senha'] ?? '';
+        $tipoIdentificador = 'whatsapp';
+        $identificador = $whatsappNormalizado;
+
+        if ($whatsappNormalizado === '') {
+            $erro = 'Informe um WhatsApp válido, com DDD e o 9 na frente (ex: (11) 90000-0000).';
+            $etapa = 'email';
+        } elseif (!nomeCompleto($nome)) {
+            $erro = 'Informe seu nome completo (nome e sobrenome).';
+            $etapa = 'cadastro';
+        } elseif (strlen($senha) < 6) {
+            $erro = 'A senha precisa ter pelo menos 6 caracteres.';
+            $etapa = 'cadastro';
+        } else {
+            $stmtWhats = $pdo->prepare('SELECT id_cliente FROM clientes WHERE whatsapp = :w');
+            $stmtWhats->execute([':w' => $whatsappNormalizado]);
+
+            if ($stmtWhats->fetch()) {
+                $erro = 'Esse WhatsApp já tem cadastro. Tente entrar em vez de se cadastrar.';
+                $etapa = 'email';
+            } else {
+                try {
+                    $stmt = $pdo->prepare('INSERT INTO clientes (nome, whatsapp, senha_hash) VALUES (:nome, :whatsapp, :senha)');
+                    $stmt->execute([':nome' => $nome, ':whatsapp' => $whatsappNormalizado, ':senha' => password_hash($senha, PASSWORD_DEFAULT)]);
+                    $idClienteNovo = (int) $pdo->lastInsertId();
+                    $_SESSION['id_cliente'] = $idClienteNovo;
+                    $_SESSION['nome_cliente'] = $nome;
+                    session_regenerate_id(true);
+                    // Mesmo papel da verificação de e-mail no cadastro por e-mail: o
+                    // cliente já navega, só fica sem o carrinho até validar o contato.
+                    dispararVerificacaoWhatsapp($pdo, $idClienteNovo, $whatsappNormalizado, $nome);
+                    header('Location: /loja/index.php');
+                    exit;
+                } catch (PDOException $e) {
+                    error_log('PDOException in cadastro (whatsapp): ' . $e->getMessage());
+                    $erro = 'Erro ao cadastrar. Tente novamente.';
+                    $etapa = 'email';
                 }
             }
         }
@@ -241,9 +285,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <p class="alert alert-erro" id="erro-cadastro" hidden></p>
     <form method="post" id="form-cadastro">
         <input type="hidden" name="acao" value="cadastro">
+        <?php if ($tipoIdentificador === 'whatsapp'): ?>
+        <input type="hidden" name="tipo_identificador" value="whatsapp">
+        <?php else: ?>
         <input type="hidden" name="email" value="<?= htmlspecialchars($emailNormalizado) ?>">
+        <?php endif; ?>
         <label>Nome completo<input type="text" name="nome" id="campo-nome" required></label>
-        <label>WhatsApp (com DDD)<input type="text" name="whatsapp" id="campo-whatsapp" required placeholder="(11) 98765-4321" inputmode="numeric" maxlength="16"></label>
+        <label>WhatsApp (com DDD)<input type="text" name="whatsapp" id="campo-whatsapp" required placeholder="(11) 98765-4321" inputmode="numeric" maxlength="16"<?= $tipoIdentificador === 'whatsapp' ? ' readonly value="' . htmlspecialchars(formatarWhatsappParaEdicao($identificador)) . '"' : '' ?>></label>
+        <?php if ($tipoIdentificador === 'whatsapp'): ?><p style="margin-top:-8px; font-size:0.85rem; color:var(--cor-texto-suave);">Esse é o número que você digitou. <a href="/loja/cadastro.php">Trocar</a></p><?php endif; ?>
         <label>Crie uma senha<input type="password" name="senha" id="campo-senha" required minlength="6"></label>
         <button type="submit" class="btn-bloco">Cadastrar</button>
     </form>
