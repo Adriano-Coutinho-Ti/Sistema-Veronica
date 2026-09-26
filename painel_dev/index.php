@@ -150,6 +150,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'atualiz
         ]);
         $sucesso = 'Configuração de WhatsApp atualizada.';
     }
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'atualizar_superfrete') {
+    $modoSf = in_array($_POST['superfrete_modo'] ?? '', ['consulta', 'etiquetas'], true) ? $_POST['superfrete_modo'] : 'desativado';
+    $ambienteSf = ($_POST['superfrete_ambiente'] ?? '') === 'sandbox' ? 'sandbox' : 'producao';
+    $tokenSf = trim($_POST['superfrete_token_dev'] ?? '');
+
+    // Token em branco mantém o que já estava salvo (o campo nunca mostra o valor).
+    $tokenSalvo = trim((string) $pdo->query('SELECT superfrete_token_dev FROM config_dev WHERE id_config = 1')->fetchColumn());
+    if ($modoSf !== 'desativado' && $tokenSf === '' && $tokenSalvo === '') {
+        $erro = 'Cole o token de consulta da SuperFrete antes de ativar.';
+    } else {
+        $pdo->prepare('UPDATE config_dev SET superfrete_modo = :m, superfrete_ambiente = :a, superfrete_token_dev = :t WHERE id_config = 1')
+            ->execute([':m' => $modoSf, ':a' => $ambienteSf, ':t' => $tokenSf !== '' ? $tokenSf : ($tokenSalvo ?: null)]);
+        $sucesso = 'SuperFrete atualizada.';
+    }
 }
 
 // Qual seção da sanfona abre sozinha depois de salvar um formulário -- tanto
@@ -267,6 +281,12 @@ $vinculosAtuais = $pdo->query('SELECT numero_caixa, terminal_id FROM caixa_termi
             <span class="icone-config"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8 11V7a4 4 0 0 1 8 0v4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
             <h3>Travamentos</h3>
             <p>Bloqueio por pagamento em aberto ou modo manutenção.</p>
+        </button>
+
+        <button type="button" class="card-config" data-modal="modal-superfrete">
+            <span class="icone-config"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7l9-4 9 4-9 4-9-4Zm0 0v10l9 4 9-4V7M12 11v10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <h3>SuperFrete (frete e etiquetas)</h3>
+            <p><span class="status-pill<?= ($config['superfrete_modo'] ?? 'desativado') !== 'desativado' ? ' sucesso' : '' ?>"><?= htmlspecialchars(['consulta' => 'Só consulta', 'etiquetas' => 'Consulta + etiquetas'][$config['superfrete_modo'] ?? ''] ?? 'Desativado') ?></span></p>
         </button>
 
         <button type="button" class="card-config" data-modal="modal-gerador-hash">
@@ -512,6 +532,36 @@ $vinculosAtuais = $pdo->query('SELECT numero_caixa, terminal_id FROM caixa_termi
         </div>
     </div>
 
+    <div class="modal-overlay modal-config" id="modal-superfrete" hidden>
+        <div class="modal-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                <h3 style="margin:0;">SuperFrete</h3>
+                <button type="button" class="btn-texto btn-sm btn-fechar-config">Fechar</button>
+            </div>
+            <?php if ($erro && ($_POST['acao'] ?? '') === 'atualizar_superfrete'): ?><p class="alert alert-erro"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
+            <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:0; margin-bottom:16px;">Desativado, a loja e o admin ficam exatamente como sempre foram. <strong>Só consulta:</strong> o cliente vê o frete calculado pelo CEP na loja e o lojista vê os dados de envio do pedido. <strong>Consulta + etiquetas:</strong> além disso, o lojista cadastra o próprio token da SuperFrete e imprime as etiquetas (exige nota fiscal do pedido).</p>
+            <form method="post">
+                <input type="hidden" name="acao" value="atualizar_superfrete">
+                <label>Modo
+                    <select name="superfrete_modo">
+                        <option value="desativado" <?= ($config['superfrete_modo'] ?? 'desativado') === 'desativado' ? 'selected' : '' ?>>Desativado</option>
+                        <option value="consulta" <?= ($config['superfrete_modo'] ?? '') === 'consulta' ? 'selected' : '' ?>>Super Frete consulta</option>
+                        <option value="etiquetas" <?= ($config['superfrete_modo'] ?? '') === 'etiquetas' ? 'selected' : '' ?>>Super Frete etiquetas</option>
+                    </select>
+                </label>
+                <label>Ambiente
+                    <select name="superfrete_ambiente">
+                        <option value="producao" <?= ($config['superfrete_ambiente'] ?? 'producao') === 'producao' ? 'selected' : '' ?>>Produção</option>
+                        <option value="sandbox" <?= ($config['superfrete_ambiente'] ?? '') === 'sandbox' ? 'selected' : '' ?>>Sandbox (testes)</option>
+                    </select>
+                </label>
+                <label>Token de consulta (conta do desenvolvedor)<input type="password" name="superfrete_token_dev" autocomplete="off" placeholder="<?= !empty($config['superfrete_token_dev']) ? 'Já salvo — deixe em branco para manter' : 'Cole o token da conta de consulta' ?>"></label>
+                <p style="color:var(--cor-texto-suave); font-size:0.8rem; margin-top:-8px;">Usado só para calcular preços enquanto o lojista não cadastrar o token dele. Conta sem saldo, só para consulta. Fica no banco, nunca no código.</p>
+                <button type="submit" class="btn-bloco">Salvar SuperFrete</button>
+            </form>
+        </div>
+    </div>
+
     <div class="modal-overlay modal-config" id="modal-gerador-hash" hidden>
         <div class="modal-card">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
@@ -599,6 +649,7 @@ document.addEventListener('DOMContentLoaded', function () {
         atualizar_terminais: 'modal-maquininhas',
         atualizar_whatsapp: 'modal-whatsapp',
         atualizar_travamento: 'modal-travamentos',
+        atualizar_superfrete: 'modal-superfrete',
     };
     const acaoAbrir = <?= json_encode($acaoAbrir) ?>;
     if (acaoAbrir && modalPorAcao[acaoAbrir]) {

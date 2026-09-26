@@ -3,13 +3,14 @@ require_once __DIR__ . '/../conecta_bd.php';
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/pedidos.php';
 require_once __DIR__ . '/../includes/loja.php';
+require_once __DIR__ . '/../includes/superfrete.php';
 exigirLogin();
 
 $id_venda = (int) ($_GET['id_venda'] ?? 0);
 
 $stmt = $pdo->prepare(
     "SELECT v.*, c.nome AS cliente_nome, c.whatsapp AS cliente_whatsapp, c.endereco AS cliente_endereco,
-            fe.nome AS entrega_nome, fe.tipo AS entrega_tipo,
+            fe.nome AS entrega_nome, fe.tipo AS entrega_tipo, fe.superfrete AS entrega_superfrete,
             GREATEST(0, TIMESTAMPDIFF(SECOND, NOW(), v.pagamento_expira_em)) AS segundos_restantes_pagamento
      FROM vendas v
      LEFT JOIN clientes c ON c.id_cliente = v.id_cliente
@@ -34,6 +35,10 @@ $itens = $pdo->prepare(
 );
 $itens->execute([':id' => $id_venda]);
 $listaItens = $itens->fetchAll();
+
+$envioSf = (!empty($pedido['entrega_superfrete']) && superfreteAtivo($pdo)) ? superfreteEnvioDaVenda($pdo, $id_venda) : null;
+$etiquetasOn = $envioSf && superfreteEtiquetasAtivas($pdo);
+$tokenLojistaOk = trim((string) (superfreteConfigLojista($pdo)['superfrete_token'] ?? '')) !== '';
 
 $nomeLoja = $pdo->query('SELECT nome_loja FROM config_loja WHERE id_config = 1')->fetchColumn() ?: 'a loja';
 ?>
@@ -85,6 +90,36 @@ $nomeLoja = $pdo->query('SELECT nome_loja FROM config_loja WHERE id_config = 1')
     </table>
     </div>
     </div>
+
+    <?php if ($envioSf): ?>
+    <div class="card" style="margin-top:20px;">
+    <h3>Envio — SuperFrete</h3>
+    <p>
+        <strong>Serviço:</strong> <?= htmlspecialchars($envioSf['servico_nome'] ?? '—') ?><?= $envioSf['prazo_dias'] ? ' (' . (int) $envioSf['prazo_dias'] . ' dias úteis)' : '' ?><br>
+        <strong>Frete cobrado do cliente:</strong> R$ <?= number_format((float) $envioSf['valor_frete'], 2, ',', '.') ?><br>
+        <strong>Destinatário:</strong> <?= htmlspecialchars($envioSf['destino_nome']) ?> — CPF/CNPJ <?= htmlspecialchars($envioSf['destino_documento']) ?><br>
+        <?php if ($envioSf['destino_telefone']): ?><strong>Telefone:</strong> <?= htmlspecialchars($envioSf['destino_telefone']) ?><br><?php endif; ?>
+        <strong>Endereço:</strong> <?= htmlspecialchars($envioSf['destino_endereco'] . ', ' . $envioSf['destino_numero'] . ($envioSf['destino_complemento'] ? ' — ' . $envioSf['destino_complemento'] : '') . ' — ' . $envioSf['destino_bairro'] . ' — ' . $envioSf['destino_cidade'] . '/' . $envioSf['destino_uf'] . ' — CEP ' . $envioSf['destino_cep']) ?>
+    </p>
+    <?php if ($envioSf['superfrete_rastreio']): ?><p><strong>Rastreio:</strong> <?= htmlspecialchars($envioSf['superfrete_rastreio']) ?></p><?php endif; ?>
+
+    <?php if ($etiquetasOn && $pedido['status'] === 'Pago'): ?>
+        <?php if (!$tokenLojistaOk): ?>
+        <p class="alert alert-info">Para gerar etiquetas, cadastre o seu token em <a href="/config_sistema/superfrete.php">Configurações → SuperFrete</a>.</p>
+        <?php else: ?>
+            <?php if (!$envioSf['superfrete_order_id']): ?>
+            <p style="color:var(--cor-texto-suave); font-size:0.9rem;">A nota fiscal do pedido é obrigatória para gerar a etiqueta.</p>
+            <div class="form-linha-compacta">
+                <input type="text" id="nota-numero" inputmode="numeric" placeholder="Número da nota" value="<?= htmlspecialchars($envioSf['nota_numero'] ?? '') ?>">
+                <input type="text" id="nota-chave" inputmode="numeric" maxlength="44" placeholder="Chave de acesso (44 dígitos)" value="<?= htmlspecialchars($envioSf['nota_chave'] ?? '') ?>">
+            </div>
+            <?php endif; ?>
+            <button type="button" class="btn" id="btn-etiqueta" style="margin-top:10px;"><?= $envioSf['superfrete_etiqueta_url'] ? 'Reimprimir etiqueta' : 'Gerar etiqueta' ?></button>
+            <p id="etiqueta-msg"></p>
+        <?php endif; ?>
+    <?php endif; ?>
+    </div>
+    <?php endif; ?>
 
     <?php if ($pedido['status'] === 'Reservado' && $pedido['pagamento_expira_em'] !== null): ?>
     <div class="card" style="margin-top:20px; max-width:480px;">
@@ -191,6 +226,33 @@ if (formStatus) {
             document.getElementById('status-msg').textContent = data.message;
             if (data.success) { window.location.reload(); }
         });
+    });
+}
+
+const btnEtiqueta = document.getElementById('btn-etiqueta');
+if (btnEtiqueta) {
+    const msgEtiqueta = document.getElementById('etiqueta-msg');
+    const post = corpo => fetch('/pedidos/ajax/etiqueta.php', {
+        method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'}, body: 'id_venda=' + idVenda + '&' + corpo
+    }).then(r => r.json());
+    const mostrar = (ok, texto) => { msgEtiqueta.textContent = texto; msgEtiqueta.className = ok ? 'alert alert-sucesso' : 'alert alert-erro'; };
+
+    btnEtiqueta.addEventListener('click', async function () {
+        btnEtiqueta.disabled = true;
+        try {
+            const numero = document.getElementById('nota-numero');
+            if (numero) {
+                const nota = await post('acao=salvar_nota&nota_numero=' + encodeURIComponent(numero.value) + '&nota_chave=' + encodeURIComponent(document.getElementById('nota-chave').value));
+                if (!nota.success) { mostrar(false, nota.message); return; }
+            }
+            const r = await post('acao=gerar');
+            mostrar(r.success, r.message);
+            if (r.success && r.url) { window.open(r.url, '_blank'); setTimeout(function () { window.location.reload(); }, 800); }
+        } catch (e) {
+            mostrar(false, 'Erro de conexão. Tente novamente.');
+        } finally {
+            btnEtiqueta.disabled = false;
+        }
     });
 }
 

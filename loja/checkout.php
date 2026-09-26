@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../conecta_bd.php';
 require_once __DIR__ . '/../includes/auth_cliente.php';
 require_once __DIR__ . '/../includes/loja.php';
+require_once __DIR__ . '/../includes/superfrete.php';
 exigirClienteLogado();
 
 liberarReservasExpiradas($pdo);
@@ -42,14 +43,15 @@ $stmtIds = $pdo->prepare('SELECT DISTINCT pv.id_produto FROM itens_venda iv JOIN
 $stmtIds->execute([':id' => $id_venda]);
 $idsProdutosCheckout = array_map('intval', $stmtIds->fetchAll(PDO::FETCH_COLUMN));
 
-$stmtCliente = $pdo->prepare('SELECT endereco, limite_credito, saldo_devedor FROM clientes WHERE id_cliente = :id');
+$stmtCliente = $pdo->prepare('SELECT nome, email, endereco, limite_credito, saldo_devedor FROM clientes WHERE id_cliente = :id');
 $stmtCliente->execute([':id' => $id_cliente]);
 $cliente = $stmtCliente->fetch();
 
 $creditoDisponivel = (float) $cliente['limite_credito'] - (float) $cliente['saldo_devedor'];
 $temLimiteCredito = (float) $cliente['limite_credito'] > 0;
 
-$formasEntrega = $pdo->query('SELECT id_entrega, nome, tipo, prazo_dias, custo FROM formas_entrega WHERE ativo = 1 ORDER BY fixa DESC, nome')->fetchAll();
+$superfreteOn = superfreteAtivo($pdo);
+$formasEntrega = $pdo->query('SELECT id_entrega, nome, tipo, prazo_dias, custo, superfrete FROM formas_entrega WHERE ativo = 1' . ($superfreteOn ? '' : ' AND superfrete = 0') . ' ORDER BY fixa DESC, nome')->fetchAll();
 
 // Total só dos itens (sem a linha de "Entrega", que ainda não foi escolhida ou pode
 // mudar) — é a base que o JS soma ao custo da entrega selecionada, pra o Total
@@ -89,14 +91,31 @@ $erro = $_GET['erro'] ?? '';
                 <label>Forma de entrega
                     <select name="id_entrega" id="id_entrega">
                         <?php foreach ($formasEntrega as $f): ?>
-                        <option value="<?= $f['id_entrega'] ?>" data-tipo="<?= htmlspecialchars($f['tipo']) ?>" data-custo="<?= number_format((float) $f['custo'], 2, '.', '') ?>">
+                        <option value="<?= $f['id_entrega'] ?>" data-tipo="<?= htmlspecialchars($f['tipo']) ?>" data-superfrete="<?= (int) $f['superfrete'] ?>" data-custo="<?= number_format((float) $f['custo'], 2, '.', '') ?>">
                             <?= htmlspecialchars($f['nome']) ?>
                             <?= $f['prazo_dias'] !== null ? '(Prazo de ' . (int) $f['prazo_dias'] . ' dias)' : '' ?>
-                            — R$ <?= number_format($f['custo'], 2, ',', '.') ?>
+                            <?= $f['superfrete'] ? '— calculado pelo CEP' : '— R$ ' . number_format($f['custo'], 2, ',', '.') ?>
                         </option>
                         <?php endforeach; ?>
                     </select>
                 </label>
+                <div id="campo-superfrete" style="display:none;">
+                    <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin:10px 0;">Informe os dados de quem vai receber esta compra. Eles valem só para este pedido e não ficam no seu cadastro.</p>
+                    <label>Nome de quem recebe<input type="text" name="envio_nome" value="<?= htmlspecialchars($cliente['nome'] ?? '') ?>"></label>
+                    <label>CPF (ou CNPJ)<input type="text" name="envio_documento" id="envio_documento" inputmode="numeric" maxlength="14" placeholder="Somente números"></label>
+                    <label>Telefone (opcional)<input type="text" name="envio_telefone" inputmode="numeric" maxlength="11" placeholder="DDD + número"></label>
+                    <label>E-mail (opcional)<input type="email" name="envio_email" value="<?= htmlspecialchars($cliente['email'] ?? '') ?>"></label>
+                    <label>CEP<input type="text" name="envio_cep" id="envio_cep" inputmode="numeric" maxlength="9" placeholder="00000-000"></label>
+                    <label>Rua<input type="text" name="envio_endereco" id="envio_endereco"></label>
+                    <label>Número<input type="text" name="envio_numero" id="envio_numero"></label>
+                    <label>Complemento (opcional)<input type="text" name="envio_complemento"></label>
+                    <label>Bairro<input type="text" name="envio_bairro" id="envio_bairro"></label>
+                    <label>Cidade<input type="text" name="envio_cidade" id="envio_cidade"></label>
+                    <label>Estado (UF)<input type="text" name="envio_uf" id="envio_uf" maxlength="2" style="text-transform:uppercase;"></label>
+                    <button type="button" class="btn-outline btn-bloco" id="btn-calcular-frete" style="margin-top:10px;">Calcular frete</button>
+                    <p id="frete-msg" class="alert alert-erro" style="display:none; margin-top:10px;"></p>
+                    <div id="frete-opcoes" style="margin-top:10px;"></div>
+                </div>
                 <div id="campo-endereco">
                     <label>Endereço de entrega
                         <textarea name="endereco"><?= htmlspecialchars($cliente['endereco'] ?? '') ?></textarea>
@@ -132,7 +151,9 @@ function atualizarCampoEndereco() {
     const select = document.getElementById('id_entrega');
     const opcao = select.options[select.selectedIndex];
     const tipo = opcao ? opcao.dataset.tipo : null;
-    document.getElementById('campo-endereco').style.display = tipo === 'retirada' ? 'none' : '';
+    const ehSf = !!opcao && opcao.dataset.superfrete === '1';
+    document.getElementById('campo-endereco').style.display = (tipo === 'retirada' || ehSf) ? 'none' : '';
+    document.getElementById('campo-superfrete').style.display = ehSf ? '' : 'none';
 }
 document.getElementById('id_entrega').addEventListener('change', atualizarCampoEndereco);
 atualizarCampoEndereco();
@@ -143,6 +164,10 @@ atualizarCampoEndereco();
 const itensSubtotalCheckout = <?= json_encode($itensSubtotal) ?>;
 const creditoDisponivelCheckout = <?= json_encode($creditoDisponivel) ?>;
 
+// Só pra mostrar o total na tela: quem cobra é o servidor, com o preço da
+// cotação guardada na sessão (o navegador manda só o ID do serviço).
+let freteEscolhido = 0;
+
 function formatarMoeda(valor) {
     return 'R$ ' + valor.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d)(?=,))/g, '.');
 }
@@ -150,7 +175,8 @@ function formatarMoeda(valor) {
 function atualizarTotalCheckout() {
     const select = document.getElementById('id_entrega');
     const opcao = select.options[select.selectedIndex];
-    const custoEntrega = opcao ? parseFloat(opcao.dataset.custo || '0') : 0;
+    let custoEntrega = opcao ? parseFloat(opcao.dataset.custo || '0') : 0;
+    if (opcao && opcao.dataset.superfrete === '1') { custoEntrega = freteEscolhido; }
     const total = itensSubtotalCheckout + custoEntrega;
 
     document.getElementById('valor-total-checkout').textContent = formatarMoeda(total);
@@ -167,6 +193,56 @@ function atualizarTotalCheckout() {
 }
 document.getElementById('id_entrega').addEventListener('change', atualizarTotalCheckout);
 atualizarTotalCheckout();
+
+// ---- SuperFrete: CEP -> ViaCEP preenche o endereço (editável) -> cotação ----
+const campoCep = document.getElementById('envio_cep');
+if (campoCep) {
+    const soDigitos = v => v.replace(/\D/g, '');
+    campoCep.addEventListener('input', function () {
+        const d = soDigitos(campoCep.value).slice(0, 8);
+        campoCep.value = d.length > 5 ? d.slice(0, 5) + '-' + d.slice(5) : d;
+        if (d.length === 8) {
+            fetch('https://viacep.com.br/ws/' + d + '/json/').then(r => r.json()).then(function (e) {
+                if (e.erro) { return; }
+                document.getElementById('envio_endereco').value = e.logradouro || '';
+                document.getElementById('envio_bairro').value = e.bairro || '';
+                document.getElementById('envio_cidade').value = e.localidade || '';
+                document.getElementById('envio_uf').value = e.uf || '';
+                document.getElementById('envio_numero').focus();
+            }).catch(function () {});
+        }
+    });
+    document.getElementById('envio_documento').addEventListener('input', function (e) {
+        e.target.value = soDigitos(e.target.value).slice(0, 14);
+    });
+
+    const msgFrete = document.getElementById('frete-msg');
+    const boxOpcoes = document.getElementById('frete-opcoes');
+    function limparFrete() { freteEscolhido = 0; boxOpcoes.innerHTML = ''; atualizarTotalCheckout(); }
+    campoCep.addEventListener('change', limparFrete);
+
+    document.getElementById('btn-calcular-frete').addEventListener('click', function () {
+        msgFrete.style.display = 'none';
+        limparFrete();
+        fetch('/loja/ajax/cotar_frete.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: 'cep=' + encodeURIComponent(campoCep.value)
+        }).then(r => r.json()).then(function (data) {
+            if (!data.success) { msgFrete.textContent = data.message; msgFrete.style.display = ''; return; }
+            data.opcoes.forEach(function (o) {
+                const label = document.createElement('label');
+                label.style.display = 'block';
+                const radio = document.createElement('input');
+                radio.type = 'radio'; radio.name = 'frete_servico'; radio.value = o.id;
+                radio.addEventListener('change', function () { freteEscolhido = o.valor; atualizarTotalCheckout(); });
+                label.appendChild(radio);
+                label.appendChild(document.createTextNode(' ' + o.nome + (o.prazo ? ' — ' + o.prazo + ' dias úteis' : '') + ' — ' + formatarMoeda(o.valor)));
+                boxOpcoes.appendChild(label);
+            });
+        }).catch(function () { msgFrete.textContent = 'Erro de conexão. Tente novamente.'; msgFrete.style.display = ''; });
+    });
+}
 
 <?php if (!$carrinhoLivre): ?>
 let restante = <?= (int) $venda['segundos_restantes'] ?>;
