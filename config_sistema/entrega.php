@@ -25,15 +25,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'atualiz
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'alternar_ativo') {
     $id = (int) $_POST['id_entrega'];
-    $pdo->prepare('UPDATE formas_entrega SET ativo = NOT ativo WHERE id_entrega = :id AND fixa = 0')->execute([':id' => $id]);
+    $pdo->prepare('UPDATE formas_entrega SET ativo = NOT ativo WHERE id_entrega = :id AND fixa = 0 AND superfrete = 0')->execute([':id' => $id]);
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'deletar') {
     $id = (int) $_POST['id_entrega'];
-    $pdo->prepare('DELETE FROM formas_entrega WHERE id_entrega = :id AND fixa = 0')->execute([':id' => $id]);
+    $pdo->prepare('DELETE FROM formas_entrega WHERE id_entrega = :id AND fixa = 0 AND superfrete = 0')->execute([':id' => $id]);
 }
 
-$formas = $pdo->query('SELECT * FROM formas_entrega ORDER BY fixa DESC, nome')->fetchAll();
+$formas = $pdo->query('SELECT * FROM formas_entrega WHERE superfrete = 0 ORDER BY fixa DESC, nome')->fetchAll();
 $retirada = array_values(array_filter($formas, fn($f) => (int) $f['fixa'] === 1))[0] ?? null;
 $entregas = array_values(array_filter($formas, fn($f) => (int) $f['fixa'] === 0));
 ?>

@@ -13,6 +13,7 @@ require_once __DIR__ . '/config_dev.php';
 $versaoCssAdmin = @filemtime(__DIR__ . '/../assets/css/admin.css') ?: time();
 $versaoJsAdmin = @filemtime(__DIR__ . '/../assets/js/admin.js') ?: time();
 $nomeSistemaAtual = nomeDoSistema($pdo);
+$superfreteMenu = in_array($pdo->query('SELECT superfrete_modo FROM config_dev WHERE id_config = 1')->fetchColumn(), ['consulta', 'etiquetas'], true);
 ?>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -63,6 +64,7 @@ $nomeSistemaAtual = nomeDoSistema($pdo);
                     <a href="/config_sistema/entrega.php">Entrega</a>
                     <a href="/config_sistema/pdv.php">PDV</a>
                     <a href="/integracoes/mercado_pago/conectar.php">Mercado Pago</a>
+                    <?php if ($superfreteMenu): ?><a href="/config_sistema/superfrete.php">SuperFrete</a><?php endif; ?>
                 </div>
             </div>
             <?php endif; ?>

@@ -3,6 +3,7 @@ require_once __DIR__ . '/../conecta_bd.php';
 require_once __DIR__ . '/../includes/auth_cliente.php';
 require_once __DIR__ . '/../includes/pedidos.php';
 require_once __DIR__ . '/../includes/loja.php';
+require_once __DIR__ . '/../includes/superfrete.php';
 exigirClienteLogado();
 
 $id_venda = (int) ($_GET['id_venda'] ?? 0);
@@ -33,6 +34,8 @@ $itens = $pdo->prepare(
 );
 $itens->execute([':id' => $id_venda]);
 $listaItens = $itens->fetchAll();
+
+$envioSf = superfreteAtivo($pdo) ? superfreteEnvioDaVenda($pdo, $id_venda) : null;
 
 $rotulo = rotuloStatusPedido($venda['status'], $venda['status_entrega'], $venda['entrega_tipo']);
 $classePill = classePillStatusPedido($venda['status'], $venda['status_entrega']);
@@ -84,6 +87,10 @@ if (!empty($listaRelacionados)) {
     </div>
 
     <span class="status-pill<?= $classePill ? ' ' . $classePill : '' ?>" style="font-size:0.9rem; padding:8px 16px;"><?= htmlspecialchars($rotulo) ?></span>
+
+    <?php if ($envioSf && $envioSf['servico_nome']): ?>
+        <p style="margin-top:12px;"><strong>Entrega:</strong> <?= htmlspecialchars($envioSf['servico_nome']) ?><?= $envioSf['superfrete_rastreio'] ? ' — código de rastreio: <strong>' . htmlspecialchars($envioSf['superfrete_rastreio']) . '</strong>' : '' ?></p>
+    <?php endif; ?>
 
     <?php if ($venda['status'] === 'Cancelado'): ?>
         <p class="alert alert-erro" style="margin-top:16px;">Item não liberado. Demora no pagamento. Se você já pagou, a loja entrará em contato pra resolver (reembolso ou reposição).</p>
