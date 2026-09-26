@@ -354,9 +354,6 @@ function superfreteGerarEtiqueta(PDO $pdo, int $id_venda): array
     if (!$envio || !$envio['servico_id']) {
         return ['success' => false, 'message' => 'Este pedido não foi feito com frete SuperFrete.'];
     }
-    if (empty($envio['nota_chave']) || empty($envio['nota_numero'])) {
-        return ['success' => false, 'message' => 'Informe o número e a chave da nota fiscal do pedido antes de gerar a etiqueta.'];
-    }
 
     try {
         $orderId = $envio['superfrete_order_id'];
@@ -416,10 +413,9 @@ function superfreteGerarEtiqueta(PDO $pdo, int $id_venda): array
                     'insurance_value' => $usaSeguro ? max(SUPERFRETE_SEGURO_MINIMO, $dados['valor_declarado']) : 0,
                     'receipt' => false,
                     'own_hand' => false,
-                    // Nota fiscal obrigatória: a chave vem de vendas_envio
-                    // (digitada hoje; preenchida pelo módulo de NF quando existir).
-                    'non_commercial' => false,
-                    'invoice' => ['number' => $envio['nota_numero'], 'key' => $envio['nota_chave']],
+                    // A SuperFrete não exige nota fiscal para gerar a etiqueta:
+                    // sem nota, o envio segue com declaração de conteúdo.
+                    'non_commercial' => true,
                 ],
                 'platform' => 'CoderNex',
             ], $token);

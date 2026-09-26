@@ -17,19 +17,6 @@ if (!superfreteEnvioDaVenda($pdo, $id_venda)) {
     exit;
 }
 
-if ($acao === 'salvar_nota') {
-    $numero = preg_replace('/\D/', '', (string) ($_POST['nota_numero'] ?? ''));
-    $chave = preg_replace('/\D/', '', (string) ($_POST['nota_chave'] ?? ''));
-    if ($numero === '' || strlen($numero) > 20 || strlen($chave) !== 44) {
-        echo json_encode(['success' => false, 'message' => 'Informe o número da nota e a chave de acesso com 44 dígitos.']);
-        exit;
-    }
-    $pdo->prepare('UPDATE vendas_envio SET nota_numero = :n, nota_chave = :c WHERE id_venda = :iv AND superfrete_order_id IS NULL')
-        ->execute([':n' => $numero, ':c' => $chave, ':iv' => $id_venda]);
-    echo json_encode(['success' => true, 'message' => 'Nota fiscal salva.']);
-    exit;
-}
-
 if ($acao === 'gerar') {
     echo json_encode(superfreteGerarEtiqueta($pdo, $id_venda));
     exit;

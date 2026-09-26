@@ -539,7 +539,7 @@ $vinculosAtuais = $pdo->query('SELECT numero_caixa, terminal_id FROM caixa_termi
                 <button type="button" class="btn-texto btn-sm btn-fechar-config">Fechar</button>
             </div>
             <?php if ($erro && ($_POST['acao'] ?? '') === 'atualizar_superfrete'): ?><p class="alert alert-erro"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
-            <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:0; margin-bottom:16px;">Desativado, a loja e o admin ficam exatamente como sempre foram. <strong>Só consulta:</strong> o cliente vê o frete calculado pelo CEP na loja e o lojista vê os dados de envio do pedido. <strong>Consulta + etiquetas:</strong> além disso, o lojista cadastra o próprio token da SuperFrete e imprime as etiquetas (exige nota fiscal do pedido).</p>
+            <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:0; margin-bottom:16px;">Desativado, a loja e o admin ficam exatamente como sempre foram. <strong>Só consulta:</strong> o cliente vê o frete calculado pelo CEP na loja e o lojista vê os dados de envio do pedido. <strong>Consulta + etiquetas:</strong> além disso, o lojista cadastra o próprio token da SuperFrete e imprime as etiquetas.</p>
             <form method="post">
                 <input type="hidden" name="acao" value="atualizar_superfrete">
                 <label>Modo

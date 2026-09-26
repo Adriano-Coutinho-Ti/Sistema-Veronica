@@ -107,13 +107,6 @@ $nomeLoja = $pdo->query('SELECT nome_loja FROM config_loja WHERE id_config = 1')
         <?php if (!$tokenLojistaOk): ?>
         <p class="alert alert-info">Para gerar etiquetas, cadastre o seu token em <a href="/config_sistema/superfrete.php">Configurações → SuperFrete</a>.</p>
         <?php else: ?>
-            <?php if (!$envioSf['superfrete_order_id']): ?>
-            <p style="color:var(--cor-texto-suave); font-size:0.9rem;">A nota fiscal do pedido é obrigatória para gerar a etiqueta.</p>
-            <div class="form-linha-compacta">
-                <input type="text" id="nota-numero" inputmode="numeric" placeholder="Número da nota" value="<?= htmlspecialchars($envioSf['nota_numero'] ?? '') ?>">
-                <input type="text" id="nota-chave" inputmode="numeric" maxlength="44" placeholder="Chave de acesso (44 dígitos)" value="<?= htmlspecialchars($envioSf['nota_chave'] ?? '') ?>">
-            </div>
-            <?php endif; ?>
             <button type="button" class="btn" id="btn-etiqueta" style="margin-top:10px;"><?= $envioSf['superfrete_etiqueta_url'] ? 'Reimprimir etiqueta' : 'Gerar etiqueta' ?></button>
             <p id="etiqueta-msg"></p>
         <?php endif; ?>
@@ -240,11 +233,6 @@ if (btnEtiqueta) {
     btnEtiqueta.addEventListener('click', async function () {
         btnEtiqueta.disabled = true;
         try {
-            const numero = document.getElementById('nota-numero');
-            if (numero) {
-                const nota = await post('acao=salvar_nota&nota_numero=' + encodeURIComponent(numero.value) + '&nota_chave=' + encodeURIComponent(document.getElementById('nota-chave').value));
-                if (!nota.success) { mostrar(false, nota.message); return; }
-            }
             const r = await post('acao=gerar');
             mostrar(r.success, r.message);
             if (r.success && r.url) { window.open(r.url, '_blank'); setTimeout(function () { window.location.reload(); }, 800); }
