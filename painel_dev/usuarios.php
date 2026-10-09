@@ -38,6 +38,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'resetar
             ->execute([':perfil' => $perfil, ':ativo' => $ativo, ':id' => $id_usuario]);
         $sucesso = 'Usuário atualizado.';
     }
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'excluir_usuario') {
+    $id_usuario = (int) ($_POST['id_usuario'] ?? 0);
+
+    // Exclusão de verdade (some do banco) -- só vale pra quem já está inativo;
+    // o "ativo = 0" no próprio DELETE garante isso mesmo se alguém forjar o POST.
+    try {
+        $stmtExcluir = $pdo->prepare('DELETE FROM usuarios WHERE id_usuario = :id AND ativo = 0');
+        $stmtExcluir->execute([':id' => $id_usuario]);
+        if ($stmtExcluir->rowCount() > 0) {
+            $sucesso = 'Usuário excluído definitivamente.';
+        } else {
+            $erro = 'Só dá pra excluir usuário inativo (ou ele já foi excluído).';
+        }
+    } catch (PDOException $e) {
+        if ($e->getCode() === '23000') {
+            // Tem vendas, caixas ou movimentos de crédito ligados a ele -- apagar
+            // levaria o histórico junto (ou o banco recusa), então fica só inativo.
+            $erro = 'Esse usuário tem histórico no sistema (vendas, caixas ou crédito) e não pode ser excluído sem quebrar esses registros. Deixe ele inativo.';
+        } else {
+            error_log('excluir_usuario: ' . $e->getMessage());
+            $erro = 'Não foi possível excluir o usuário.';
+        }
+    }
 }
 
 $usuarios = $pdo->query('SELECT id_usuario, nome, email, perfil, ativo FROM usuarios ORDER BY nome')->fetchAll();
@@ -80,6 +103,12 @@ $usuarios = $pdo->query('SELECT id_usuario, nome, email, perfil, ativo FROM usua
                 <td style="white-space:nowrap;">
                     <button type="button" class="btn-sm btn-outline btn-editar-usuario" data-id-usuario="<?= $u['id_usuario'] ?>" data-nome-usuario="<?= htmlspecialchars($u['nome']) ?>" data-perfil="<?= htmlspecialchars($u['perfil']) ?>" data-ativo="<?= $u['ativo'] ?>">Editar</button>
                     <button type="button" class="btn-sm btn-outline btn-resetar-senha" data-id-usuario="<?= $u['id_usuario'] ?>" data-nome-usuario="<?= htmlspecialchars($u['nome']) ?>">Resetar senha</button>
+                <?php if (!$u['ativo']): ?>
+                <button type="button" class="btn-sm btn-perigo btn-excluir-usuario" data-id-usuario="<?= $u['id_usuario'] ?>" data-nome-usuario="<?= htmlspecialchars($u['nome']) ?>">Excluir</button>
+                <?php endif; ?>
+                    <?php if (!$u['ativo']): ?>
+                    <button type="button" class="btn-sm btn-perigo btn-excluir-usuario" data-id-usuario="<?= $u['id_usuario'] ?>" data-nome-usuario="<?= htmlspecialchars($u['nome']) ?>">Excluir</button>
+                    <?php endif; ?>
                 </td>
             </tr>
             <?php endforeach; ?>
@@ -149,6 +178,22 @@ $usuarios = $pdo->query('SELECT id_usuario, nome, email, perfil, ativo FROM usua
         </div>
     </div>
 
+    <div class="modal-overlay" id="modal-excluir-usuario" hidden>
+        <div class="modal-card">
+            <h3>Excluir usuário</h3>
+            <p id="texto-excluir-usuario" style="color:var(--cor-texto-suave); font-size:0.9rem; margin-bottom:14px;"></p>
+            <p class="alert alert-erro">Isso apaga o usuário do banco de dados e não dá pra desfazer.</p>
+            <form method="post">
+                <input type="hidden" name="acao" value="excluir_usuario">
+                <input type="hidden" name="id_usuario" id="input-id-usuario-excluir">
+                <div class="modal-acoes">
+                    <button type="button" class="btn-outline" id="btn-cancelar-excluir">Cancelar</button>
+                    <button type="submit" class="btn-perigo">Excluir definitivamente</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const modalSenha = document.getElementById('modal-resetar-senha');
@@ -185,8 +230,20 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('btn-cancelar-editar').addEventListener('click', function () { modalEditar.hidden = true; });
     modalEditar.addEventListener('click', function (e) { if (e.target === modalEditar) { modalEditar.hidden = true; } });
 
+    const modalExcluir = document.getElementById('modal-excluir-usuario');
+    document.querySelectorAll('.btn-excluir-usuario').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            document.getElementById('texto-excluir-usuario').textContent = 'Excluir ' + btn.dataset.nomeUsuario + '?';
+            document.getElementById('input-id-usuario-excluir').value = btn.dataset.idUsuario;
+            modalExcluir.hidden = false;
+        });
+    });
+    document.getElementById('btn-cancelar-excluir').addEventListener('click', function () { modalExcluir.hidden = true; });
+    modalExcluir.addEventListener('click', function (e) { if (e.target === modalExcluir) { modalExcluir.hidden = true; } });
+
     document.addEventListener('keydown', function (e) {
         if (e.key !== 'Escape') { return; }
+        if (!modalExcluir.hidden) { modalExcluir.hidden = true; }
         if (!modalSenha.hidden) { modalSenha.hidden = true; }
         if (!modalEditar.hidden) { modalEditar.hidden = true; }
     });
