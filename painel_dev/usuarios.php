@@ -103,9 +103,6 @@ $usuarios = $pdo->query('SELECT id_usuario, nome, email, perfil, ativo FROM usua
                 <td style="white-space:nowrap;">
                     <button type="button" class="btn-sm btn-outline btn-editar-usuario" data-id-usuario="<?= $u['id_usuario'] ?>" data-nome-usuario="<?= htmlspecialchars($u['nome']) ?>" data-perfil="<?= htmlspecialchars($u['perfil']) ?>" data-ativo="<?= $u['ativo'] ?>">Editar</button>
                     <button type="button" class="btn-sm btn-outline btn-resetar-senha" data-id-usuario="<?= $u['id_usuario'] ?>" data-nome-usuario="<?= htmlspecialchars($u['nome']) ?>">Resetar senha</button>
-                <?php if (!$u['ativo']): ?>
-                <button type="button" class="btn-sm btn-perigo btn-excluir-usuario" data-id-usuario="<?= $u['id_usuario'] ?>" data-nome-usuario="<?= htmlspecialchars($u['nome']) ?>">Excluir</button>
-                <?php endif; ?>
                     <?php if (!$u['ativo']): ?>
                     <button type="button" class="btn-sm btn-perigo btn-excluir-usuario" data-id-usuario="<?= $u['id_usuario'] ?>" data-nome-usuario="<?= htmlspecialchars($u['nome']) ?>">Excluir</button>
                     <?php endif; ?>
@@ -130,6 +127,9 @@ $usuarios = $pdo->query('SELECT id_usuario, nome, email, perfil, ativo FROM usua
             <div class="celula-acoes">
                 <button type="button" class="btn-sm btn-outline btn-editar-usuario" data-id-usuario="<?= $u['id_usuario'] ?>" data-nome-usuario="<?= htmlspecialchars($u['nome']) ?>" data-perfil="<?= htmlspecialchars($u['perfil']) ?>" data-ativo="<?= $u['ativo'] ?>">Editar</button>
                 <button type="button" class="btn-sm btn-outline btn-resetar-senha" data-id-usuario="<?= $u['id_usuario'] ?>" data-nome-usuario="<?= htmlspecialchars($u['nome']) ?>">Resetar senha</button>
+                <?php if (!$u['ativo']): ?>
+                <button type="button" class="btn-sm btn-perigo btn-excluir-usuario" data-id-usuario="<?= $u['id_usuario'] ?>" data-nome-usuario="<?= htmlspecialchars($u['nome']) ?>">Excluir</button>
+                <?php endif; ?>
             </div>
         </div>
         <?php endforeach; ?>
