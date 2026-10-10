@@ -1,0 +1,5 @@
+.instalar-app { position: fixed; right: 14px; bottom: 16px; z-index: 70; display: flex; align-items: center; box-sizing: border-box; background: #111827; color: #fff; border: 1px solid var(--cor-primaria, #4f46e5); border-radius: 999px; box-shadow: 0 10px 30px -8px rgba(17, 24, 39, .45); max-width: calc(100vw - 28px); font-family: Manrope, system-ui, -apple-system, "Segoe UI", sans-serif; }
+.instalar-app .instalar-app-btn, .instalar-app .instalar-app-dica { width: auto; margin: 0; background: none; border: 0; border-radius: 0; box-shadow: none; color: #fff; font: inherit; font-size: .88rem; font-weight: 600; line-height: 1.3; padding: 11px 6px 11px 18px; cursor: pointer; text-align: left; }
+.instalar-app .instalar-app-dica { cursor: default; font-weight: 500; line-height: 1.35; padding: 10px 6px 10px 16px; max-width: 280px; }
+.instalar-app .instalar-app-fechar { width: auto; margin: 0; background: none; border: 0; color: #fff; opacity: .7; font-size: 1.3rem; line-height: 1; padding: 8px 14px 8px 6px; cursor: pointer; }
+.instalar-app .instalar-app-fechar:hover, .instalar-app .instalar-app-btn:hover { background: none; opacity: 1; }

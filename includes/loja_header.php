@@ -24,6 +24,7 @@ $versaoJs = @filemtime(__DIR__ . '/../assets/js/loja.js') ?: time();
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap">
 <link rel="stylesheet" href="/assets/css/loja.css?v=<?= $versaoCss ?>">
 <?php imprimirVariaveisTema($pdo); ?>
+<?php require_once __DIR__ . '/pwa.php'; pwaTags($pdo, 'loja'); ?>
 <header class="site-header">
     <div class="site-header-inner">
         <a href="/loja/index.php" class="site-logo">
