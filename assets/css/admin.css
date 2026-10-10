@@ -277,6 +277,11 @@ button:disabled, input[type="submit"]:disabled, .btn:disabled { opacity: 0.5; cu
 .btn-perigo { background: var(--cor-erro); }
 .btn-perigo:hover { background: color-mix(in srgb, var(--cor-erro) 85%, black); }
 
+/* "Contorno + perigo": botão vermelho vazado (sem isso o fundo vermelho de .btn-perigo
+   vencia o .btn-outline e ficava texto roxo em cima de vermelho). */
+.btn-outline.btn-perigo { background: transparent; color: var(--cor-erro); border: 1.5px solid var(--cor-erro); }
+.btn-outline.btn-perigo:hover { background: color-mix(in srgb, var(--cor-erro) 10%, transparent); }
+
 .btn-bloco { display: flex; width: 100%; }
 .btn-lg { padding: 14px 24px; font-size: 1.02rem; }
 .btn-sm { padding: 7px 14px; min-height: 34px; font-size: 0.85rem; }
