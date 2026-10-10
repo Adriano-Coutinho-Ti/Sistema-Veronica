@@ -3,10 +3,18 @@ require_once __DIR__ . '/conecta_bd.php';
 require_once __DIR__ . '/includes/auth.php';
 exigirLogin();
 
-$mpNaoConectado = false;
+// "Precisa de atenção": sem cron, as checagens de tempo (renovar o token do Mercado Pago, WhatsApp
+// conectado) rodam aqui, quando o administrador abre o Dashboard.
+$atencao = [];
+$mostrarAlertaAtencao = false;
 if (($_SESSION['perfil'] ?? '') === 'Admin') {
-    $configPagamento = $pdo->query('SELECT mp_access_token FROM config_pagamento WHERE id_config = 1')->fetch();
-    $mpNaoConectado = empty($configPagamento['mp_access_token']);
+    require_once __DIR__ . '/includes/atencao.php';
+    $atencao = atencaoDoSistema($pdo);
+    // O popup aparece uma vez por login; os avisos na página continuam enquanto o problema existir.
+    if ($atencao && empty($_SESSION['alerta_atencao_mostrado'])) {
+        $mostrarAlertaAtencao = true;
+        $_SESSION['alerta_atencao_mostrado'] = true;
+    }
 }
 
 $vendasHoje = $pdo->query(
@@ -71,11 +79,38 @@ $valoresFormas = array_map('floatval', array_column($formasPagamento, 'total'));
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Dashboard</title></head>
 <body>
 <?php require __DIR__ . '/includes/admin_header.php'; ?>
-    <?php if ($mpNaoConectado): ?>
-    <p class="alert alert-erro">
-        A conta do Mercado Pago não está conectada — a loja online e o PDV não conseguem receber pagamentos via Pix/cartão até conectar.
-        <a href="/integracoes/mercado_pago/conectar.php">Conectar agora</a>
+    <?php foreach ($atencao as $a): ?>
+    <p class="alert <?= $a['nivel'] === 'erro' ? 'alert-erro' : 'alert-info' ?>">
+        <strong><?= htmlspecialchars($a['titulo']) ?>.</strong> <?= htmlspecialchars($a['texto']) ?>
+        <a href="<?= htmlspecialchars($a['link']) ?>"><?= htmlspecialchars($a['rotulo']) ?></a>
     </p>
+    <?php endforeach; ?>
+
+    <?php if ($atencao): ?>
+    <div class="modal-overlay" id="modal-atencao" <?= $mostrarAlertaAtencao ? '' : 'hidden' ?>>
+        <div class="modal-card">
+            <h3>Precisa da sua atenção</h3>
+            <?php foreach ($atencao as $a): ?>
+            <div style="margin-bottom:14px;">
+                <p style="margin:0; font-weight:600;"><?= htmlspecialchars($a['titulo']) ?></p>
+                <p style="margin:4px 0 8px; color:var(--cor-texto-suave); font-size:0.9rem;"><?= htmlspecialchars($a['texto']) ?></p>
+                <a href="<?= htmlspecialchars($a['link']) ?>" class="btn-sm btn-outline"><?= htmlspecialchars($a['rotulo']) ?></a>
+            </div>
+            <?php endforeach; ?>
+            <div class="modal-acoes">
+                <button type="button" class="btn" id="btn-fechar-atencao">Entendi</button>
+            </div>
+        </div>
+    </div>
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const modal = document.getElementById('modal-atencao');
+        const fechar = function () { modal.hidden = true; };
+        document.getElementById('btn-fechar-atencao').addEventListener('click', fechar);
+        modal.addEventListener('click', function (e) { if (e.target === modal) { fechar(); } });
+        document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !modal.hidden) { fechar(); } });
+    });
+    </script>
     <?php endif; ?>
     <div class="page-title">
         <span class="icone-titulo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19h16M6 19V9l5-4 5 4v10M10 19v-5h4v5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
