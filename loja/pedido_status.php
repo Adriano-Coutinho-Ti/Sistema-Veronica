@@ -4,6 +4,7 @@ require_once __DIR__ . '/../includes/auth_cliente.php';
 require_once __DIR__ . '/../includes/pedidos.php';
 require_once __DIR__ . '/../includes/loja.php';
 require_once __DIR__ . '/../includes/superfrete.php';
+require_once __DIR__ . '/../includes/fiscal.php';
 exigirClienteLogado();
 
 $id_venda = (int) ($_GET['id_venda'] ?? 0);
@@ -36,6 +37,7 @@ $itens->execute([':id' => $id_venda]);
 $listaItens = $itens->fetchAll();
 
 $envioSf = superfreteAtivo($pdo) ? superfreteEnvioDaVenda($pdo, $id_venda) : null;
+$notasAutorizadas = array_filter(fiscalNotasDaVenda($pdo, $id_venda), fn($n) => $n['tipo'] === 'nfe' && $n['status'] === 'autorizada' && $n['tem_arquivo']);
 
 $rotulo = rotuloStatusPedido($venda['status'], $venda['status_entrega'], $venda['entrega_tipo']);
 $classePill = classePillStatusPedido($venda['status'], $venda['status_entrega']);
@@ -91,6 +93,10 @@ if (!empty($listaRelacionados)) {
     <?php if ($envioSf && $envioSf['servico_nome']): ?>
         <p style="margin-top:12px;"><strong>Entrega:</strong> <?= htmlspecialchars($envioSf['servico_nome']) ?><?= $envioSf['superfrete_rastreio'] ? ' — código de rastreio: <strong>' . htmlspecialchars($envioSf['superfrete_rastreio']) . '</strong>' : '' ?></p>
     <?php endif; ?>
+
+    <?php foreach ($notasAutorizadas as $nf): ?>
+        <p style="margin-top:12px;"><a href="/loja/nota.php?t=<?= htmlspecialchars($nf['token_publico']) ?>" target="_blank" rel="noopener" class="btn-outline">Baixar nota fiscal (PDF)</a></p>
+    <?php endforeach; ?>
 
     <?php if ($venda['status'] === 'Cancelado'): ?>
         <p class="alert alert-erro" style="margin-top:16px;">Item não liberado. Demora no pagamento. Se você já pagou, a loja entrará em contato pra resolver (reembolso ou reposição).</p>

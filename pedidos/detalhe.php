@@ -4,6 +4,7 @@ require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/pedidos.php';
 require_once __DIR__ . '/../includes/loja.php';
 require_once __DIR__ . '/../includes/superfrete.php';
+require_once __DIR__ . '/../includes/fiscal.php';
 exigirLogin();
 
 $id_venda = (int) ($_GET['id_venda'] ?? 0);
@@ -111,6 +112,24 @@ $nomeLoja = $pdo->query('SELECT nome_loja FROM config_loja WHERE id_config = 1')
             <p id="etiqueta-msg"></p>
         <?php endif; ?>
     <?php endif; ?>
+    </div>
+    <?php endif; ?>
+
+    <?php if (fiscalAtivo($pdo) && in_array($pedido['status'], ['Pago', 'Cancelado'], true)): $notasVenda = fiscalNotasDaVenda($pdo, $id_venda); ?>
+    <div class="card" style="margin-top:20px;">
+        <h3>Nota fiscal</h3>
+        <?php foreach ($notasVenda as $nf): [$rotNf, $classeNf] = fiscalSelo($nf); ?>
+        <p style="margin:6px 0;"><span class="status-pill<?= $classeNf ? ' ' . $classeNf : '' ?>"><?= htmlspecialchars($rotNf) ?></span>
+            <?php if ($nf['status'] === 'autorizada'): ?><a href="/notas_fiscais/arquivo.php?id=<?= (int) $nf['id_nota'] ?>" target="_blank" rel="noopener" class="btn-sm btn-outline">Abrir nota (A4)</a><?php endif; ?></p>
+        <?php endforeach; ?>
+        <?php if ($pedido['status'] === 'Pago' && !array_filter($notasVenda, fn($n) => in_array($n['status'], ['processando', 'autorizada'], true))): ?>
+        <a href="/notas_fiscais/emitir.php?id_venda=<?= (int) $id_venda ?>" class="btn">Emitir NF-e (nota A4)</a>
+        <?php elseif ($notasVenda): ?>
+        <a href="/notas_fiscais/emitir.php?id_venda=<?= (int) $id_venda ?>" class="btn-outline btn-sm">Detalhes / cancelar nota</a>
+        <?php endif; ?>
+        <?php if ($pedido['status'] === 'Cancelado' && array_filter($notasVenda, fn($n) => $n['status'] === 'autorizada')): ?>
+        <p class="alert alert-erro" style="margin-top:10px;">Este pedido foi cancelado mas ainda tem nota fiscal autorizada. Cancele a nota também.</p>
+        <?php endif; ?>
     </div>
     <?php endif; ?>
 
