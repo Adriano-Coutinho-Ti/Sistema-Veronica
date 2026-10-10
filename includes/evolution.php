@@ -61,11 +61,18 @@ function evolutionConfigGlobal(PDO $pdo): array
     return ['base' => $base, 'chave' => $chave];
 }
 
-/** @return array{instancia:string,qr:?string,codigo:?string} */
-function evolutionCriarInstancia(string $base, string $chave): array
+/**
+ * Cria a instância da loja. $preferido é o nome legível (ex.: o domínio do sistema); se já existir
+ * no servidor, tenta de novo com um sufixo curto. Sem $preferido usa um nome aleatório "loja-xxxxxxxx".
+ *
+ * @return array{instancia:string,qr:?string,codigo:?string}
+ */
+function evolutionCriarInstancia(string $base, string $chave, ?string $preferido = null): array
 {
     for ($tentativa = 0; $tentativa < 3; $tentativa++) {
-        $nome = 'loja-' . bin2hex(random_bytes(4));
+        $nome = $preferido
+            ? ($tentativa === 0 ? $preferido : substr($preferido, 0, 40) . '-' . bin2hex(random_bytes(2)))
+            : 'loja-' . bin2hex(random_bytes(4));
         $r = evolutionChamar($base, $chave, 'POST', '/instance/create', ['instanceName' => $nome, 'qrcode' => true, 'integration' => 'WHATSAPP-BAILEYS']);
         if ($r['http_code'] === 401) {
             throw new RuntimeException(EVOLUTION_MSG_CHAVE_GLOBAL);

@@ -16,6 +16,34 @@ const WHATSAPP_ACEITE_TEXTO = 'Esta conexão utiliza uma API para WhatsApp (de t
 // De quanto em quanto tempo (segundos) o sistema confere na Evolution se a loja ainda está conectada.
 const WHATSAPP_VERIFICAR_A_CADA_S = 300;
 
+/**
+ * Nome da instância da loja no servidor Evolution: o domínio do sistema (ex.: "brechodaveve-codernex-com-br"),
+ * que identifica a loja entre várias no mesmo servidor. Em localhost/IP cai no nome da loja.
+ */
+function whatsappNomeInstancia(PDO $pdo): string
+{
+    $host = strtolower(explode(':', dominioAtual())[0]);
+    $host = preg_replace('/^www\./', '', $host);
+    if ($host === 'localhost' || preg_match('/^[\d.]+$/', $host) === 1) {
+        $host = mb_strtolower((string) $pdo->query('SELECT nome_loja FROM config_loja WHERE id_config = 1')->fetchColumn());
+    }
+    // Tira acentos sem depender de iconv/intl (o resultado deles muda de servidor pra servidor).
+    $semAcento = strtr($host, [
+        'á' => 'a', 'à' => 'a', 'â' => 'a', 'ã' => 'a', 'ä' => 'a', 'é' => 'e', 'è' => 'e', 'ê' => 'e', 'ë' => 'e',
+        'í' => 'i', 'ì' => 'i', 'î' => 'i', 'ï' => 'i', 'ó' => 'o', 'ò' => 'o', 'ô' => 'o', 'õ' => 'o', 'ö' => 'o',
+        'ú' => 'u', 'ù' => 'u', 'û' => 'u', 'ü' => 'u', 'ç' => 'c', 'ñ' => 'n',
+    ]);
+    $slug = trim((string) preg_replace('/[^a-z0-9]+/', '-', mb_strtolower($semAcento)), '-');
+
+    return substr($slug !== '' ? $slug : 'loja', 0, 45);
+}
+
+/** Nome automático antigo ("loja-" + 8 hexadecimais), de antes de a instância ter nome legível. */
+function whatsappNomeInstanciaAntigo(string $nome): bool
+{
+    return preg_match('/^loja-[0-9a-f]{8}$/', $nome) === 1;
+}
+
 /** O dev habilitou o recurso de WhatsApp (e deixou o servidor Evolution preenchido)? */
 function whatsappModuloDevAtivo(PDO $pdo): bool
 {
@@ -128,8 +156,13 @@ function whatsappConexaoConectar(PDO $pdo): array
         if ($nome !== '' && !evolutionExiste($g['base'], $g['chave'], $nome)) {
             $nome = '';
         }
+        // Instância com o nome automático antigo e sem número conectado: apaga e recria com o nome legível.
+        if ($nome !== '' && whatsappNomeInstanciaAntigo($nome) && evolutionEstado($g['base'], $g['chave'], $nome) !== 'conectado') {
+            evolutionRemover($g['base'], $g['chave'], $nome);
+            $nome = '';
+        }
         if ($nome === '') {
-            $novo = evolutionCriarInstancia($g['base'], $g['chave']);
+            $novo = evolutionCriarInstancia($g['base'], $g['chave'], whatsappNomeInstancia($pdo));
             $nome = $novo['instancia'];
             $qr = $novo['qr'];
             $codigo = $novo['codigo'];
@@ -143,7 +176,7 @@ function whatsappConexaoConectar(PDO $pdo): array
             try {
                 $q = evolutionQr($g['base'], $g['chave'], $nome);
             } catch (EvolutionNaoEncontrada) {
-                $novo = evolutionCriarInstancia($g['base'], $g['chave']);
+                $novo = evolutionCriarInstancia($g['base'], $g['chave'], whatsappNomeInstancia($pdo));
                 $nome = $novo['instancia'];
                 $q = ['qr' => $novo['qr'], 'codigo' => $novo['codigo']];
                 $pdo->prepare('UPDATE whatsapp_conexao SET instancia = :i WHERE id = 1')->execute([':i' => $nome]);
