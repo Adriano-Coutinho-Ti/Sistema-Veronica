@@ -3,6 +3,7 @@ require_once __DIR__ . '/../conecta_bd.php';
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/loja.php';
 require_once __DIR__ . '/../includes/superfrete.php';
+require_once __DIR__ . '/../includes/fiscal.php';
 exigirLogin();
 
 $id_produto = (int) ($_GET['id'] ?? 0);
@@ -71,14 +72,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'atualiz
     $estoqueGerenciado = isset($_POST['estoque_gerenciado']) ? 1 : 0;
 
     [$pesoGramas, $caixaTamanho, $erroSf] = superfreteValidarProduto($pdo, $_POST);
+    $dadosFiscais = [];
+    $erroFiscal = null;
+    if (fiscalAtivo($pdo)) {
+        [$dadosFiscais, $erroFiscal] = fiscalLerDadosProduto($_POST);
+    }
 
     if ($nome === '' || $preco_base <= 0) {
         $erro = 'Nome e preço base são obrigatórios.';
     } elseif ($erroSf) {
         $erro = $erroSf;
+    } elseif ($erroFiscal) {
+        $erro = $erroFiscal;
     } else {
         $pdo->prepare('UPDATE produtos SET nome = :nome, descricao = :descricao, preco_base = :preco_base, ativo = :ativo, estoque_gerenciado = :eg, peso_gramas = :peso, caixa_tamanho = :caixa WHERE id_produto = :id')
             ->execute([':nome' => $nome, ':descricao' => $descricao, ':preco_base' => $preco_base, ':ativo' => $ativo, ':eg' => $estoqueGerenciado, ':peso' => $pesoGramas, ':caixa' => $caixaTamanho, ':id' => $id_produto]);
+        if ($dadosFiscais) {
+            fiscalSalvarDadosProduto($pdo, $id_produto, $dadosFiscais);
+        }
 
         header('Location: /produtos/editar.php?id=' . $id_produto . '&atualizado=1');
         exit;
@@ -334,6 +345,7 @@ $idsValoresEmUso = $stmtValoresEmUso->fetchAll(PDO::FETCH_COLUMN);
                 <label>Descrição<textarea name="descricao"><?= htmlspecialchars($produto['descricao'] ?? '') ?></textarea></label>
                 <label>Preço base (R$)<input type="text" name="preco_base" class="js-mascara-moeda" value="<?= number_format($produto['preco_base'], 2, ',', '.') ?>" required></label>
                 <?php superfreteCamposProduto($pdo, $produto['peso_gramas'] !== null ? (int) $produto['peso_gramas'] : null, $produto['caixa_tamanho'] !== null ? (int) $produto['caixa_tamanho'] : null); ?>
+                <?php fiscalCamposProduto($pdo, $produto); ?>
 
                 <button type="submit" class="btn-bloco">Salvar dados do produto</button>
             </form>

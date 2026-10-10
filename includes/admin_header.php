@@ -15,6 +15,8 @@ $versaoJsAdmin = @filemtime(__DIR__ . '/../assets/js/admin.js') ?: time();
 $nomeSistemaAtual = nomeDoSistema($pdo);
 require_once __DIR__ . '/whatsapp_conexao.php';
 $whatsappMenu = whatsappModuloDevAtivo($pdo);
+require_once __DIR__ . '/fiscal.php';
+$fiscalMenu = fiscalAtivo($pdo);
 $superfreteMenu = in_array($pdo->query('SELECT superfrete_modo FROM config_dev WHERE id_config = 1')->fetchColumn(), ['consulta', 'etiquetas'], true);
 ?>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -58,6 +60,7 @@ $superfreteMenu = in_array($pdo->query('SELECT superfrete_modo FROM config_dev W
                 </div>
             </div>
             <a href="/pedidos/lista.php">Pedidos</a>
+            <?php if ($fiscalMenu): ?><a href="/notas_fiscais/lista.php">Notas fiscais</a><?php endif; ?>
             <?php if (($_SESSION['perfil'] ?? '') === 'Admin'): ?>
             <div class="nav-grupo">
                 <button type="button" class="nav-grupo-trigger">Configurações</button>
@@ -69,6 +72,7 @@ $superfreteMenu = in_array($pdo->query('SELECT superfrete_modo FROM config_dev W
                     <a href="/integracoes/mercado_pago/conectar.php">Mercado Pago</a>
                     <?php if ($superfreteMenu): ?><a href="/config_sistema/superfrete.php">SuperFrete</a><?php endif; ?>
                     <?php if ($whatsappMenu): ?><a href="/config_sistema/whatsapp.php">WhatsApp</a><?php endif; ?>
+                    <a href="/config_sistema/nota_fiscal.php">Nota fiscal</a>
                 </div>
             </div>
             <?php endif; ?>

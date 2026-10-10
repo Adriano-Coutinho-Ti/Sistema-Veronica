@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../conecta_bd.php';
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/superfrete.php';
+require_once __DIR__ . '/../includes/fiscal.php';
 exigirLogin();
 
 $categorias = $pdo->query('SELECT id_categoria, nome FROM categorias ORDER BY nome')->fetchAll();
@@ -18,11 +19,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $combinacoes = json_decode($combinacoesJson, true) ?: [];
 
     [$pesoGramas, $caixaTamanho, $erroSf] = superfreteValidarProduto($pdo, $_POST);
+    $dadosFiscais = [];
+    $erroFiscal = null;
+    if (fiscalAtivo($pdo)) {
+        [$dadosFiscais, $erroFiscal] = fiscalLerDadosProduto($_POST);
+    }
 
     if ($nome === '' || $id_categoria <= 0 || $preco_base <= 0) {
         $erro = 'Preencha nome, categoria e um preço base válido.';
     } elseif ($erroSf) {
         $erro = $erroSf;
+    } elseif ($erroFiscal) {
+        $erro = $erroFiscal;
     } elseif (empty($combinacoes)) {
         $erro = 'É preciso informar estoque de ao menos uma combinação (ou deixar sem variação para usar o padrão).';
     } else {
@@ -43,6 +51,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ':caixa' => $caixaTamanho,
             ]);
             $id_produto = (int) $pdo->lastInsertId();
+            if ($dadosFiscais) {
+                fiscalSalvarDadosProduto($pdo, $id_produto, $dadosFiscais);
+            }
 
             foreach ($combinacoes as $combinacao) {
                 $precoCombinacao = isset($combinacao['preco']) && $combinacao['preco'] !== ''
@@ -116,6 +127,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </label>
             <label>Preço base (R$)<input type="text" name="preco_base" class="js-mascara-moeda" placeholder="0,00" required></label>
             <?php superfreteCamposProduto($pdo, null, null); ?>
+            <?php fiscalCamposProduto($pdo, null); ?>
 
             <h3 style="margin-top:28px;">Variações do produto</h3>
             <p style="color:var(--cor-texto-suave); font-size:0.9rem; margin-bottom:14px;">Escolha a categoria pra ver as variações disponíveis (opcional — sem marcar nenhuma, o produto usa a combinação Padrão).</p>

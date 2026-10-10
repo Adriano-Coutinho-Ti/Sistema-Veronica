@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../conecta_bd.php';
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/loja.php';
+require_once __DIR__ . '/../includes/fiscal.php';
 exigirLogin();
 
 $id_venda = (int) ($_GET['id_venda'] ?? 0);
@@ -91,6 +92,21 @@ $imprimirAutomatico = $ehVendaNova && (bool) $pdo->query('SELECT imprimir_automa
             <a href="/caixa/index.php" class="btn-outline btn-bloco" style="text-align:center;">Nova venda</a>
         </div>
     </div>
+
+    <?php if (fiscalAtivo($pdo) && ($venda['origem'] ?? 'pdv') === 'pdv'): $notasVenda = fiscalNotasDaVenda($pdo, $id_venda); ?>
+    <div class="card" style="max-width:520px; margin-top:16px;">
+        <h2>Nota fiscal</h2>
+        <?php foreach ($notasVenda as $nf): [$rotNf, $classeNf] = fiscalSelo($nf); ?>
+        <p style="margin:6px 0;"><span class="status-pill<?= $classeNf ? ' ' . $classeNf : '' ?>"><?= htmlspecialchars($rotNf) ?></span>
+            <?php if ($nf['status'] === 'autorizada'): ?><a href="/notas_fiscais/arquivo.php?id=<?= (int) $nf['id_nota'] ?>" target="_blank" rel="noopener" class="btn-sm btn-outline">Abrir / imprimir cupom</a><?php endif; ?></p>
+        <?php endforeach; ?>
+        <?php if (!array_filter($notasVenda, fn($n) => in_array($n['status'], ['processando', 'autorizada'], true))): ?>
+        <a href="/notas_fiscais/emitir.php?id_venda=<?= (int) $id_venda ?>" class="btn-bloco" style="text-align:center;">Emitir NFC-e (cupom fiscal)</a>
+        <?php else: ?>
+        <a href="/notas_fiscais/emitir.php?id_venda=<?= (int) $id_venda ?>" class="btn-outline btn-sm">Detalhes / cancelar nota</a>
+        <?php endif; ?>
+    </div>
+    <?php endif; ?>
 
     <div class="modal-overlay" id="modal-whatsapp" hidden>
         <div class="modal-card">
