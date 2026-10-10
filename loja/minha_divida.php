@@ -87,7 +87,7 @@ $erro = $_GET['erro'] ?? '';
                         <?php if ($mov['produto_foto']): ?>
                             <img src="/<?= htmlspecialchars(fotoComVersao($mov['produto_foto'])) ?>" alt="">
                         <?php else: ?>
-                            <img src="/assets/img/produto-indisponivel.svg" alt="Produto indisponível">
+                            <img src="/assets/produto-indisponivel.svg" alt="Produto indisponível">
                         <?php endif; ?>
                     </div>
                     <?php endif; ?>

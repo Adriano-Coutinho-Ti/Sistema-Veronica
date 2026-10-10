@@ -146,7 +146,7 @@ if (!empty($listaRelacionados)) {
                     <?php if ($it['foto']): ?>
                         <img src="/<?= htmlspecialchars(fotoComVersao($it['foto'])) ?>" alt="<?= htmlspecialchars($it['nome_produto']) ?>">
                     <?php else: ?>
-                        <img src="/assets/img/produto-indisponivel.svg" alt="Produto indisponível">
+                        <img src="/assets/produto-indisponivel.svg" alt="Produto indisponível">
                     <?php endif; ?>
                 </div>
                 <div class="info">

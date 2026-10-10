@@ -10,15 +10,35 @@
 $arquivoCredenciaisNovo = __DIR__ . '/config_credenciais.php';
 $arquivoCredenciaisAntigo = __DIR__ . '/../../brechodaveve_config_credenciais.php';
 
-if (file_exists($arquivoCredenciaisNovo)) {
-    require $arquivoCredenciaisNovo;
-    define('BANCO_CONFIGURADO', true);
-} elseif (file_exists($arquivoCredenciaisAntigo)) {
-    require $arquivoCredenciaisAntigo;
-    define('BANCO_CONFIGURADO', true);
-} else {
-    define('BANCO_CONFIGURADO', false);
+// Ordem: arquivo novo, arquivo antigo, e por último as variáveis de ambiente DB_HOST / DB_NAME /
+// DB_USER / DB_PASS (a forma indicada em hospedagem com contêiner, tipo Easypanel/Docker, onde um
+// arquivo montado em branco ou recriado a cada implantação apagava as credenciais). Um arquivo
+// vazio ou sem as variáveis do banco NÃO conta como configurado — cai pra próxima opção ou pro
+// assistente em vez de quebrar todas as páginas.
+$bancoConfigurado = false;
+foreach ([$arquivoCredenciaisNovo, $arquivoCredenciaisAntigo] as $arquivoCredenciais) {
+    if (file_exists($arquivoCredenciais)) {
+        require $arquivoCredenciais;
+        if (isset($host, $dbname, $username, $password)) {
+            $bancoConfigurado = true;
+            break;
+        }
+        unset($host, $dbname, $username, $password);
+    }
 }
+if (!$bancoConfigurado) {
+    $envHost = getenv('DB_HOST');
+    $envNome = getenv('DB_NAME');
+    $envUsuario = getenv('DB_USER');
+    if ($envHost !== false && $envHost !== '' && $envNome !== false && $envNome !== '' && $envUsuario !== false && $envUsuario !== '') {
+        $host = $envHost;
+        $dbname = $envNome;
+        $username = $envUsuario;
+        $password = getenv('DB_PASS') !== false ? getenv('DB_PASS') : '';
+        $bancoConfigurado = true;
+    }
+}
+define('BANCO_CONFIGURADO', $bancoConfigurado);
 
 // Notices/warnings/deprecations nunca devem ser impressos direto na resposta (isso já
 // corrompeu JSON de endpoint AJAX duas vezes neste projeto) — loga mas nunca exibe.
