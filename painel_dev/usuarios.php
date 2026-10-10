@@ -6,7 +6,28 @@ exigirDev();
 $erro = '';
 $sucesso = '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'resetar_senha') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'criar_usuario') {
+    $nomeNovo = trim($_POST['nome'] ?? '');
+    $emailNovo = mb_strtolower(trim($_POST['email'] ?? ''));
+    $senhaNova = $_POST['senha'] ?? '';
+    $perfilNovo = ($_POST['perfil'] ?? '') === 'Funcionario' ? 'Funcionario' : 'Admin';
+
+    if ($nomeNovo === '' || !filter_var($emailNovo, FILTER_VALIDATE_EMAIL)) {
+        $erro = 'Informe o nome e um e-mail válido.';
+    } elseif (strlen($senhaNova) < 6) {
+        $erro = 'A senha precisa ter pelo menos 6 caracteres.';
+    } else {
+        $existe = $pdo->prepare('SELECT 1 FROM usuarios WHERE email = :email');
+        $existe->execute([':email' => $emailNovo]);
+        if ($existe->fetchColumn()) {
+            $erro = 'Já existe um usuário com esse e-mail.';
+        } else {
+            $pdo->prepare('INSERT INTO usuarios (nome, email, senha_hash, perfil) VALUES (:nome, :email, :hash, :perfil)')
+                ->execute([':nome' => $nomeNovo, ':email' => $emailNovo, ':hash' => password_hash($senhaNova, PASSWORD_DEFAULT), ':perfil' => $perfilNovo]);
+            $sucesso = 'Usuário criado. Passe o e-mail e a senha provisória pro cliente — ele pode trocar a senha depois.';
+        }
+    }
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'resetar_senha') {
     $id_usuario = (int) ($_POST['id_usuario'] ?? 0);
     $novaSenha = $_POST['nova_senha'] ?? '';
 
@@ -79,6 +100,8 @@ $usuarios = $pdo->query('SELECT id_usuario, nome, email, perfil, ativo FROM usua
 
     <?php if ($erro): ?><p class="alert alert-erro"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
     <?php if ($sucesso): ?><p class="alert alert-sucesso"><?= htmlspecialchars($sucesso) ?></p><?php endif; ?>
+
+    <p><button type="button" class="btn" id="btn-novo-usuario">Novo usuário</button></p>
 
     <div class="alternador-visualizacao" data-chave="usuarios-dev" data-alvo-lista="visualizacao-lista" data-alvo-cards="visualizacao-cards">
         <button type="button" class="btn-sm btn-outline" data-modo="lista" title="Ver em lista">
@@ -178,6 +201,30 @@ $usuarios = $pdo->query('SELECT id_usuario, nome, email, perfil, ativo FROM usua
         </div>
     </div>
 
+    <div class="modal-overlay" id="modal-novo-usuario" <?= ($erro && ($_POST['acao'] ?? '') === 'criar_usuario') ? '' : 'hidden' ?>>
+        <div class="modal-card">
+            <h3>Novo usuário</h3>
+            <p style="color:var(--cor-texto-suave); font-size:0.9rem; margin-bottom:14px;">Use pra dar o primeiro acesso ao cliente. A senha é provisória: ele troca quando quiser.</p>
+            <?php if ($erro && ($_POST['acao'] ?? '') === 'criar_usuario'): ?><p class="alert alert-erro"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
+            <form method="post" autocomplete="off">
+                <input type="hidden" name="acao" value="criar_usuario">
+                <label>Nome<input type="text" name="nome" required value="<?= htmlspecialchars((string) ($_POST['nome'] ?? '')) ?>"></label>
+                <label>E-mail<input type="email" name="email" required value="<?= htmlspecialchars((string) ($_POST['email'] ?? '')) ?>"></label>
+                <label>Senha provisória<input type="text" name="senha" minlength="6" required autocomplete="off"></label>
+                <label>Perfil
+                    <select name="perfil">
+                        <option value="Admin" <?= ($_POST['perfil'] ?? 'Admin') === 'Admin' ? 'selected' : '' ?>>Admin</option>
+                        <option value="Funcionario" <?= ($_POST['perfil'] ?? '') === 'Funcionario' ? 'selected' : '' ?>>Funcionário</option>
+                    </select>
+                </label>
+                <div class="modal-acoes">
+                    <button type="button" class="btn-outline" id="btn-cancelar-novo">Cancelar</button>
+                    <button type="submit" class="btn">Criar usuário</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div class="modal-overlay" id="modal-excluir-usuario" hidden>
         <div class="modal-card">
             <h3>Excluir usuário</h3>
@@ -230,6 +277,11 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('btn-cancelar-editar').addEventListener('click', function () { modalEditar.hidden = true; });
     modalEditar.addEventListener('click', function (e) { if (e.target === modalEditar) { modalEditar.hidden = true; } });
 
+    const modalNovo = document.getElementById('modal-novo-usuario');
+    document.getElementById('btn-novo-usuario').addEventListener('click', function () { modalNovo.hidden = false; });
+    document.getElementById('btn-cancelar-novo').addEventListener('click', function () { modalNovo.hidden = true; });
+    modalNovo.addEventListener('click', function (e) { if (e.target === modalNovo) { modalNovo.hidden = true; } });
+
     const modalExcluir = document.getElementById('modal-excluir-usuario');
     document.querySelectorAll('.btn-excluir-usuario').forEach(function (btn) {
         btn.addEventListener('click', function () {
@@ -244,6 +296,7 @@ document.addEventListener('DOMContentLoaded', function () {
     document.addEventListener('keydown', function (e) {
         if (e.key !== 'Escape') { return; }
         if (!modalExcluir.hidden) { modalExcluir.hidden = true; }
+        if (!modalNovo.hidden) { modalNovo.hidden = true; }
         if (!modalSenha.hidden) { modalSenha.hidden = true; }
         if (!modalEditar.hidden) { modalEditar.hidden = true; }
     });
