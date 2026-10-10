@@ -32,30 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($nome_loja === '' || !in_array($tema, $temasValidos, true) || !$coresValidas) {
         $erro = 'Informe o nome da loja, um tema válido e cores em formato hexadecimal (#RRGGBB).';
     } else {
-        $logoArquivo = null;
-        if (!empty($_FILES['logo']['tmp_name']) && $_FILES['logo']['error'] === UPLOAD_ERR_OK) {
-            $info = getimagesize($_FILES['logo']['tmp_name']);
-            $mime = $info['mime'] ?? '';
-            $origem = match ($mime) {
-                'image/jpeg' => imagecreatefromjpeg($_FILES['logo']['tmp_name']),
-                'image/png' => imagecreatefrompng($_FILES['logo']['tmp_name']),
-                default => null,
-            };
-            // imagecreatefrom*() retorna false (não null) em falha de decodificação —
-            // checar os dois é necessário, checar só null deixa passar decode inválido.
-            if ($origem !== null && $origem !== false) {
-                $dir = __DIR__ . '/../assets/img/logo/';
-                if (!is_dir($dir)) {
-                    mkdir($dir, 0755, true);
-                }
-                imagepng($origem, $dir . 'logo.png', 9);
-                imagedestroy($origem);
-                $logoArquivo = 'assets/img/logo/logo.png';
-            } else {
-                $erro = 'Formato de logo inválido (use JPEG ou PNG).';
-            }
-        }
-
+        // A logo é enviada à parte, já recortada (config_sistema/ajax/upload_logo.php).
         if ($erro === '') {
             $campos = [
                 ':nome' => $nome_loja,
@@ -71,10 +48,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ];
             $sql = 'UPDATE config_loja SET nome_loja = :nome, tema = :tema, cor_primaria = :cp, cor_secundaria = :cs, cor_fundo = :cf, cor_texto = :ct,
                     whatsapp_loja = :wa, endereco_loja = :end, horario_atendimento = :hor, email_loja = :email';
-            if ($logoArquivo !== null) {
-                $sql .= ', logo_arquivo = :logo';
-                $campos[':logo'] = $logoArquivo;
-            }
             $sql .= ' WHERE id_config = 1';
             $pdo->prepare($sql)->execute($campos);
             header('Location: /config_sistema/aparencia.php?salvo=1');
@@ -104,10 +77,15 @@ $config = $pdo->query('SELECT * FROM config_loja WHERE id_config = 1')->fetch();
         <div class="card">
             <h2>Identidade visual</h2>
             <?php if (!empty($config['logo_arquivo'])): ?>
-                <img src="/<?= htmlspecialchars($config['logo_arquivo']) ?>?v=<?= time() ?>" width="150" alt="Logo atual" style="border-radius:var(--raio-sm); margin-bottom:16px; display:block;">
+                <img id="logo-previa" src="/<?= htmlspecialchars($config['logo_arquivo']) ?>" width="150" alt="Logo atual" onerror="this.style.display='none'" style="border-radius:var(--raio-sm); margin-bottom:16px; display:block;">
             <?php endif; ?>
             <label>Nome da loja<input type="text" name="nome_loja" value="<?= htmlspecialchars($config['nome_loja']) ?>" required></label>
-            <label>Logo (JPEG ou PNG)<input type="file" name="logo" accept="image/png,image/jpeg"></label>
+            <div style="margin-bottom:16px;">
+                <span style="display:block; margin-bottom:6px;">Logo (JPEG ou PNG)</span>
+                <button type="button" class="btn-outline btn-sm" id="btn-trocar-logo"><?= empty($config['logo_arquivo']) ? 'Escolher logo' : 'Trocar logo' ?></button>
+                <input type="file" id="input-logo" accept="image/png,image/jpeg,image/webp" style="display:none;">
+                <p id="msg-logo" class="alert" style="display:none; margin-top:10px;"></p>
+            </div>
             <label>Tema
                 <select name="tema" id="tema">
                     <option value="claro" <?= $config['tema'] === 'claro' ? 'selected' : '' ?>>Claro</option>
@@ -135,6 +113,24 @@ $config = $pdo->query('SELECT * FROM config_loja WHERE id_config = 1')->fetch();
 
     <button type="submit" class="btn-bloco" style="max-width:300px; margin-top:20px;">Salvar</button>
     </form>
+
+    <div class="modal-overlay" id="modal-recorte-logo" hidden>
+        <div class="modal-card">
+            <h3>Ajustar logo</h3>
+            <div style="display:flex; gap:8px; margin-bottom:10px;">
+                <button type="button" class="btn-sm btn-outline" id="btn-corte-quadrado">Quadrado</button>
+                <button type="button" class="btn-sm btn-outline" id="btn-corte-livre">Livre</button>
+            </div>
+            <div class="area-corte"><img id="imagem-recorte-logo" alt=""></div>
+            <div class="modal-acoes">
+                <button type="button" class="btn-outline" id="btn-cancelar-recorte-logo">Cancelar</button>
+                <button type="button" class="btn" id="btn-confirmar-recorte-logo">Cortar e enviar</button>
+            </div>
+        </div>
+    </div>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
 <script>
 document.getElementById('tema').addEventListener('change', function () {
     document.getElementById('cores-personalizadas').style.display = this.value === 'personalizado' ? '' : 'none';
@@ -142,6 +138,80 @@ document.getElementById('tema').addEventListener('change', function () {
 document.addEventListener('DOMContentLoaded', function () {
     ativarMascaraTelefoneComNoveAutomatico(document.getElementById('campo-whatsapp-loja'));
 });
+</script>
+<script>
+// Logo: escolhe o arquivo, recorta (quadrado ou livre) e envia já cortada — a mesma técnica das fotos de produto.
+(function () {
+    const input = document.getElementById('input-logo');
+    const modal = document.getElementById('modal-recorte-logo');
+    const imagem = document.getElementById('imagem-recorte-logo');
+    const msg = document.getElementById('msg-logo');
+    let cropper = null;
+
+    function aviso(texto, ok) {
+        msg.textContent = texto;
+        msg.className = 'alert ' + (ok ? 'alert-sucesso' : 'alert-erro');
+        msg.style.display = '';
+    }
+    function fechar() {
+        modal.hidden = true;
+        if (cropper) { cropper.destroy(); cropper = null; }
+        input.value = '';
+    }
+
+    document.getElementById('btn-trocar-logo').addEventListener('click', function () { input.click(); });
+
+    input.addEventListener('change', function () {
+        const arquivo = input.files && input.files[0];
+        if (!arquivo) { return; }
+        const leitor = new FileReader();
+        leitor.onload = function (e) {
+            imagem.src = e.target.result;
+            modal.hidden = false;
+            if (cropper) { cropper.destroy(); }
+            cropper = new Cropper(imagem, { aspectRatio: 1, viewMode: 1, autoCropArea: 1, background: false });
+        };
+        leitor.readAsDataURL(arquivo);
+    });
+
+    document.getElementById('btn-corte-quadrado').addEventListener('click', function () { if (cropper) { cropper.setAspectRatio(1); } });
+    document.getElementById('btn-corte-livre').addEventListener('click', function () { if (cropper) { cropper.setAspectRatio(NaN); } });
+    document.getElementById('btn-cancelar-recorte-logo').addEventListener('click', fechar);
+    modal.addEventListener('click', function (e) { if (e.target === modal) { fechar(); } });
+
+    document.getElementById('btn-confirmar-recorte-logo').addEventListener('click', function () {
+        if (!cropper) { return; }
+        const botao = this;
+        botao.disabled = true;
+        cropper.getCroppedCanvas({ maxWidth: 600, maxHeight: 600 }).toBlob(function (blob) {
+            const dados = new FormData();
+            dados.append('logo', blob, 'logo.png');
+            fetch('/config_sistema/ajax/upload_logo.php', { method: 'POST', body: dados })
+                .then(function (r) { return r.json(); })
+                .then(function (d) {
+                    if (d.success) {
+                        let previa = document.getElementById('logo-previa');
+                        if (!previa) {
+                            previa = document.createElement('img');
+                            previa.id = 'logo-previa';
+                            previa.width = 150;
+                            previa.alt = 'Logo atual';
+                            previa.style.cssText = 'border-radius:var(--raio-sm); margin-bottom:16px; display:block;';
+                            const card = input.closest('.card');
+                            card.insertBefore(previa, card.querySelector('label'));
+                        }
+                        previa.style.display = 'block';
+                        previa.src = d.url;
+                        aviso('Logo atualizada.', true);
+                    } else {
+                        aviso(d.message || 'Não foi possível enviar a logo.', false);
+                    }
+                })
+                .catch(function () { aviso('Erro de conexão. Tente novamente.', false); })
+                .finally(function () { botao.disabled = false; fechar(); });
+        }, 'image/png');
+    });
+})();
 </script>
 </main>
 </body>

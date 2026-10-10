@@ -29,7 +29,7 @@ $versaoJs = @filemtime(__DIR__ . '/../assets/js/loja.js') ?: time();
     <div class="site-header-inner">
         <a href="/loja/index.php" class="site-logo">
             <?php if (!empty($configLoja['logo_arquivo'])): ?>
-                <img src="/<?= htmlspecialchars($configLoja['logo_arquivo']) ?>" alt="<?= htmlspecialchars($configLoja['nome_loja']) ?>">
+                <img src="/<?= htmlspecialchars($configLoja['logo_arquivo']) ?>" alt="<?= htmlspecialchars($configLoja['nome_loja']) ?>" onerror="this.remove()">
             <?php endif; ?>
             <?= htmlspecialchars($configLoja['nome_loja']) ?>
         </a>
