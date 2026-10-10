@@ -13,6 +13,8 @@ require_once __DIR__ . '/config_dev.php';
 $versaoCssAdmin = @filemtime(__DIR__ . '/../assets/css/admin.css') ?: time();
 $versaoJsAdmin = @filemtime(__DIR__ . '/../assets/js/admin.js') ?: time();
 $nomeSistemaAtual = nomeDoSistema($pdo);
+require_once __DIR__ . '/whatsapp_conexao.php';
+$whatsappMenu = whatsappModuloDevAtivo($pdo);
 $superfreteMenu = in_array($pdo->query('SELECT superfrete_modo FROM config_dev WHERE id_config = 1')->fetchColumn(), ['consulta', 'etiquetas'], true);
 ?>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -66,6 +68,7 @@ $superfreteMenu = in_array($pdo->query('SELECT superfrete_modo FROM config_dev W
                     <a href="/config_sistema/pdv.php">PDV</a>
                     <a href="/integracoes/mercado_pago/conectar.php">Mercado Pago</a>
                     <?php if ($superfreteMenu): ?><a href="/config_sistema/superfrete.php">SuperFrete</a><?php endif; ?>
+                    <?php if ($whatsappMenu): ?><a href="/config_sistema/whatsapp.php">WhatsApp</a><?php endif; ?>
                 </div>
             </div>
             <?php endif; ?>

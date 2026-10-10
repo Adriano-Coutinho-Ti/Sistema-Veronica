@@ -7,7 +7,7 @@ exigirClienteLogado();
 liberarReservasExpiradas($pdo);
 
 $id_cliente = (int) $_SESSION['id_cliente'];
-$whatsappLoginHabilitado = (bool) $pdo->query('SELECT whatsapp_verificacao_ativo FROM config_dev WHERE id_config = 1')->fetchColumn();
+$whatsappLoginHabilitado = whatsappAtivo($pdo);
 $emailVerificado = clienteEmailVerificado($pdo, $id_cliente);
 $whatsappVerificado = $whatsappLoginHabilitado && clienteWhatsappVerificado($pdo, $id_cliente);
 $verificado = $emailVerificado || $whatsappVerificado;

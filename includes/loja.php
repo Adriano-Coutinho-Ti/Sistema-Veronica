@@ -2,6 +2,7 @@
 // definirEntregaDaVenda() usa recalcularTotalVenda(), definida em caixa.php.
 require_once __DIR__ . '/caixa.php';
 require_once __DIR__ . '/email_smtp.php';
+require_once __DIR__ . '/whatsapp_conexao.php';
 
 /**
  * Libera reservas de carrinho da loja online que passaram do prazo — devolve
@@ -259,7 +260,7 @@ function clienteVerificado(PDO $pdo, int $id_cliente): bool
         return true;
     }
 
-    $whatsappHabilitado = (bool) $pdo->query('SELECT whatsapp_verificacao_ativo FROM config_dev WHERE id_config = 1')->fetchColumn();
+    $whatsappHabilitado = whatsappAtivo($pdo);
     return $whatsappHabilitado && clienteWhatsappVerificado($pdo, $id_cliente);
 }
 
@@ -339,7 +340,7 @@ function enviarEmailCodigoVerificacao(PDO $pdo, string $email, string $nome, str
 /**
  * Gera um código de 6 dígitos (válido por 30min) pro WhatsApp, salva no
  * cliente e manda via enviarCodigoWhatsapp(). Só faz sentido chamar isso
- * com a verificação por WhatsApp ativada (config_dev.whatsapp_verificacao_ativo)
+ * com a verificação por WhatsApp ativa (whatsappAtivo(): dev habilitou e a loja conectou o número)
  * -- quem chama já checa isso antes.
  */
 function dispararVerificacaoWhatsapp(PDO $pdo, int $id_cliente, string $whatsapp, string $nome): array
@@ -439,10 +440,13 @@ function reenviarCodigoVerificacaoWhatsapp(PDO $pdo, int $id_cliente, string $wh
 function enviarCodigoWhatsapp(PDO $pdo, int $id_cliente, string $whatsapp, string $nome, string $codigo): array
 {
     $config = $pdo->query(
-        'SELECT n8n_webhook_url, evolution_base_url, evolution_api_key, evolution_instancia FROM config_dev WHERE id_config = 1'
+        'SELECT n8n_webhook_url, evolution_base_url, evolution_api_key FROM config_dev WHERE id_config = 1'
     )->fetch();
 
-    if (!$config || empty($config['n8n_webhook_url'])) {
+    // A mensagem sai pelo número que o lojista conectou (instância da loja); sem número conectado não há envio.
+    $instancia = whatsappInstanciaAtiva($pdo);
+
+    if (!$config || empty($config['n8n_webhook_url']) || $instancia === null) {
         return ['success' => false, 'message' => 'Verificação por WhatsApp não configurada.'];
     }
 
@@ -457,7 +461,7 @@ function enviarCodigoWhatsapp(PDO $pdo, int $id_cliente, string $whatsapp, strin
         'evolution' => [
             'base_url' => $config['evolution_base_url'],
             'api_key' => $config['evolution_api_key'],
-            'instancia' => $config['evolution_instancia'],
+            'instancia' => $instancia,
         ],
         'telefone' => $whatsapp,
         'codigo' => $codigo,

@@ -135,20 +135,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'atualiz
 } elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'atualizar_whatsapp') {
     $whatsappAtivo = isset($_POST['whatsapp_verificacao_ativo']) ? 1 : 0;
     $webhookUrl = trim($_POST['n8n_webhook_url'] ?? '');
+    $baseUrlEvo = trim($_POST['evolution_base_url'] ?? '');
+    $chaveEvo = trim($_POST['evolution_api_key'] ?? '');
 
-    if ($whatsappAtivo && $webhookUrl === '') {
-        $erro = 'Preencha a URL do webhook do n8n antes de ativar.';
+    if ($whatsappAtivo && ($webhookUrl === '' || $baseUrlEvo === '' || $chaveEvo === '')) {
+        $erro = 'Preencha a URL base e a chave da Evolution e a URL do webhook do n8n antes de ativar.';
     } else {
+        require_once __DIR__ . '/../includes/whatsapp_conexao.php';
+        $estavaAtivo = (int) $pdo->query('SELECT whatsapp_verificacao_ativo FROM config_dev WHERE id_config = 1')->fetchColumn() === 1;
+        $avisoRemocao = null;
+        if ($estavaAtivo && !$whatsappAtivo) {
+            // Desligar o recurso apaga a conexão da loja (a instância no servidor Evolution e o aceite dos termos).
+            $avisoRemocao = whatsappConexaoRemover($pdo);
+        }
         $pdo->prepare(
-            'UPDATE config_dev SET whatsapp_verificacao_ativo = :ativo, evolution_base_url = :url, evolution_api_key = :key, evolution_instancia = :inst, n8n_webhook_url = :webhook WHERE id_config = 1'
+            'UPDATE config_dev SET whatsapp_verificacao_ativo = :ativo, evolution_base_url = :url, evolution_api_key = :key, n8n_webhook_url = :webhook WHERE id_config = 1'
         )->execute([
             ':ativo' => $whatsappAtivo,
-            ':url' => trim($_POST['evolution_base_url'] ?? '') ?: null,
-            ':key' => trim($_POST['evolution_api_key'] ?? '') ?: null,
-            ':inst' => trim($_POST['evolution_instancia'] ?? '') ?: null,
+            ':url' => $baseUrlEvo ?: null,
+            ':key' => $chaveEvo ?: null,
             ':webhook' => $webhookUrl ?: null,
         ]);
-        $sucesso = 'Configuração de WhatsApp atualizada.';
+        $sucesso = 'Configuração de WhatsApp atualizada.' . ($avisoRemocao ? ' Atenção: ' . $avisoRemocao : '');
     }
 } elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'atualizar_superfrete') {
     $modoSf = in_array($_POST['superfrete_modo'] ?? '', ['consulta', 'etiquetas'], true) ? $_POST['superfrete_modo'] : 'desativado';
@@ -478,7 +486,7 @@ $vinculosAtuais = $pdo->query('SELECT numero_caixa, terminal_id FROM caixa_termi
                 <h3 style="margin:0;">WhatsApp (Evolution API + n8n)</h3>
                 <button type="button" class="btn-texto btn-sm btn-fechar-config">Fechar</button>
             </div>
-            <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:0; margin-bottom:16px;">Deixa o cliente validar (e entrar) pelo número de WhatsApp, além do e-mail. Desativado, o cliente só usa e-mail — nada muda pra ele. Nosso sistema manda o código de verificação num único POST pro webhook do n8n, levando junto as credenciais da Evolution API preenchidas abaixo — o workflow do n8n (baixe o modelo pronto e importe no seu n8n) é genérico e usa o que chega em cada chamada, nunca tem credencial fixa dentro dele.</p>
+            <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:0; margin-bottom:16px;">Deixa o cliente validar (e entrar) pelo número de WhatsApp, além do e-mail. O lojista conecta o próprio número lendo um QR code em Configurações → WhatsApp (e pode trocar quando quiser); enquanto não houver número conectado, ou com isto desativado, o cliente só usa e-mail — nada muda pra ele. Nosso sistema manda o código de verificação num único POST pro webhook do n8n, levando junto os dados da Evolution API preenchidos abaixo e a conexão da loja — o workflow do n8n (baixe o modelo pronto e importe no seu n8n) é genérico e usa o que chega em cada chamada, nunca tem credencial fixa dentro dele.</p>
             <p style="margin-top:-6px; margin-bottom:16px;"><button type="button" class="btn-outline btn-sm" id="btn-ajuda-whatsapp">Onde eu acho essas informações?</button></p>
             <?php if ($erro && ($_POST['acao'] ?? '') === 'atualizar_whatsapp'): ?><p class="alert alert-erro"><?= htmlspecialchars($erro) ?></p><?php endif; ?>
             <form method="post">
@@ -488,8 +496,8 @@ $vinculosAtuais = $pdo->query('SELECT numero_caixa, terminal_id FROM caixa_termi
                     Ativar login/validação por WhatsApp
                 </label>
                 <label style="margin-top:12px;">URL base da Evolution API<input type="text" name="evolution_base_url" value="<?= htmlspecialchars($config['evolution_base_url'] ?? '') ?>" placeholder="https://sua-evolution-api.com"></label>
-                <label>API Key<input type="text" name="evolution_api_key" value="<?= htmlspecialchars($config['evolution_api_key'] ?? '') ?>" placeholder="Chave da instância na Evolution API"></label>
-                <label>Nome da instância<input type="text" name="evolution_instancia" value="<?= htmlspecialchars($config['evolution_instancia'] ?? '') ?>" placeholder="Ex: sualoja"></label>
+                <label>API Key global<input type="text" name="evolution_api_key" value="<?= htmlspecialchars($config['evolution_api_key'] ?? '') ?>" placeholder="Chave GLOBAL do servidor (AUTHENTICATION_API_KEY)"></label>
+                <p style="color:var(--cor-texto-suave); font-size:0.8rem; margin-top:-8px;">Precisa ser a chave global do servidor, a mesma que se digita para entrar no Manager da Evolution — é ela que cria a conexão de cada loja. Desativar o recurso apaga a conexão da loja.</p>
                 <label>URL do webhook do n8n<input type="text" name="n8n_webhook_url" value="<?= htmlspecialchars($config['n8n_webhook_url'] ?? '') ?>" placeholder="https://seu-n8n.com/webhook/xxxxx"></label>
                 <button type="submit" class="btn-bloco">Salvar WhatsApp</button>
             </form>
@@ -589,8 +597,8 @@ $vinculosAtuais = $pdo->query('SELECT numero_caixa, terminal_id FROM caixa_termi
             <p style="font-weight:600; margin-bottom:4px;">2. API Key</p>
             <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:0; margin-bottom:14px;">Definida na hora que a Evolution API foi instalada/configurada (variável <code>AUTHENTICATION_API_KEY</code>). Se contratou um provedor, ele te entrega essa chave; se instalou você mesmo, é a senha que você escolheu na configuração.</p>
 
-            <p style="font-weight:600; margin-bottom:4px;">3. Nome da instância</p>
-            <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:0; margin-bottom:14px;">Depois que a Evolution API está no ar, você cria uma "instância" (a conexão com um número de WhatsApp específico) pelo painel dela — geralmente em <code>/manager</code>, no mesmo endereço da URL base — escaneando o QR Code com o WhatsApp Business do número que vai mandar os códigos. O nome que você der a essa conexão é o que entra aqui.</p>
+            <p style="font-weight:600; margin-bottom:4px;">3. Conexão do número (feita pelo lojista)</p>
+            <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:0; margin-bottom:14px;">Você não cria instância nenhuma: o lojista entra em Configurações → WhatsApp, lê o QR code com o celular da loja e o sistema cria a conexão sozinho. Ele pode desconectar e trocar de número quando quiser.</p>
 
             <p style="font-weight:600; margin-bottom:4px;">4. URL do webhook do n8n</p>
             <p style="color:var(--cor-texto-suave); font-size:0.85rem; margin-top:0; margin-bottom:0;">Importe o arquivo baixado acima no seu n8n → ative o workflow (o botão "Active" no topo) → clique no node "Webhook" → copie a <strong>Production URL</strong> (não a de teste) → cole aqui.</p>

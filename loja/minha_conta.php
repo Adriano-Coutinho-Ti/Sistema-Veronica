@@ -5,7 +5,7 @@ require_once __DIR__ . '/../includes/loja.php';
 exigirClienteLogado();
 
 $id_cliente = (int) $_SESSION['id_cliente'];
-$whatsappLoginHabilitado = (bool) $pdo->query('SELECT whatsapp_verificacao_ativo FROM config_dev WHERE id_config = 1')->fetchColumn();
+$whatsappLoginHabilitado = whatsappAtivo($pdo);
 $erroPerfil = '';
 $erroSenha = '';
 $sucessoPerfil = false;
