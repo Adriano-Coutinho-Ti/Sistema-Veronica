@@ -102,6 +102,8 @@ if ($id_venda) {
                 <div class="foto">
                     <?php if ($item['foto']): ?>
                         <img src="/<?= htmlspecialchars(fotoComVersao($item['foto'])) ?>" alt="<?= htmlspecialchars($item['nome_produto']) ?>">
+                    <?php else: ?>
+                        <img src="/assets/produto-indisponivel.svg" alt="Produto sem foto">
                     <?php endif; ?>
                 </div>
                 <div class="info">

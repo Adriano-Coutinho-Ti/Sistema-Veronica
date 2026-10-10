@@ -211,6 +211,8 @@ function montarLinkPagina(int $p, int $categoria, string $busca): string
                         </div>
                         <?php elseif (count($fotos) === 1): ?>
                             <img src="/<?= htmlspecialchars(fotoComVersao($fotos[0])) ?>" alt="<?= htmlspecialchars($p['nome']) ?>">
+                        <?php else: ?>
+                            <img src="/assets/produto-indisponivel.svg" alt="Produto sem foto">
                         <?php endif; ?>
                     </div>
                     <div class="nome"><?= htmlspecialchars($p['nome']) ?></div>
@@ -260,6 +262,8 @@ function montarLinkPagina(int $p, int $categoria, string $busca): string
             mediaHtml = '<div class="carousel" data-carousel data-carousel-auto="2000"><div class="carousel-track">' + imgs + '</div><div class="carousel-dots">' + dots + '</div></div>';
         } else if (produto.fotos.length === 1) {
             mediaHtml = '<img src="/' + escaparHtml(produto.fotos[0]) + '" alt="' + escaparHtml(produto.nome) + '">';
+        } else {
+            mediaHtml = '<img src="/assets/produto-indisponivel.svg" alt="Produto sem foto">';
         }
 
         const a = document.createElement('a');

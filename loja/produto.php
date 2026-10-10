@@ -65,6 +65,8 @@ if (!$produto) {
                     <div class="card-media">
                         <?php if (!empty($fotosSp)): ?>
                             <img src="/<?= htmlspecialchars(fotoComVersao($fotosSp[0])) ?>" alt="<?= htmlspecialchars($sp['nome']) ?>">
+                        <?php else: ?>
+                            <img src="/assets/produto-indisponivel.svg" alt="Produto sem foto">
                         <?php endif; ?>
                     </div>
                     <div class="nome"><?= htmlspecialchars($sp['nome']) ?></div>
@@ -205,7 +207,9 @@ if (!empty($listaRelacionados)) {
         <img src="/<?= htmlspecialchars(fotoComVersao($listaFotos[0])) ?>" alt="<?= htmlspecialchars($produto['nome']) ?>" style="width:100%; height:100%; object-fit:cover;">
     </div>
     <?php else: ?>
-    <div class="produto-carousel"></div>
+    <div class="produto-carousel">
+        <img src="/assets/produto-indisponivel.svg" alt="Produto sem foto" style="width:100%; height:100%; object-fit:cover;">
+    </div>
     <?php endif; ?>
 
     <div>
@@ -298,6 +302,8 @@ if (!empty($listaRelacionados)) {
                 <div class="card-media">
                     <?php if (!empty($fotosRp)): ?>
                         <img src="/<?= htmlspecialchars(fotoComVersao($fotosRp[0])) ?>" alt="<?= htmlspecialchars($rp['nome']) ?>">
+                    <?php else: ?>
+                        <img src="/assets/produto-indisponivel.svg" alt="Produto sem foto">
                     <?php endif; ?>
                 </div>
                 <div class="nome"><?= htmlspecialchars($rp['nome']) ?></div>
