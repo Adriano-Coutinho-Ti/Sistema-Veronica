@@ -19,7 +19,7 @@ if (!$cliente || $cliente['excluido_em'] !== null) {
 }
 
 $ehAdmin = ($_SESSION['perfil'] ?? '') === 'Admin';
-$whatsappAtivo = (bool) $pdo->query('SELECT whatsapp_verificacao_ativo FROM config_dev WHERE id_config = 1')->fetchColumn();
+$whatsappAtivo = whatsappAtivo($pdo);
 
 $erro = '';
 $sucesso = '';

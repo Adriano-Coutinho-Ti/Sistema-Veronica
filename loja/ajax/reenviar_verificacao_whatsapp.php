@@ -7,7 +7,7 @@ header('Content-Type: application/json');
 
 $id_cliente = (int) $_SESSION['id_cliente'];
 
-$whatsappHabilitado = (bool) $pdo->query('SELECT whatsapp_verificacao_ativo FROM config_dev WHERE id_config = 1')->fetchColumn();
+$whatsappHabilitado = whatsappAtivo($pdo);
 if (!$whatsappHabilitado) {
     echo json_encode(['success' => false, 'message' => 'Verificação por WhatsApp não está disponível.']);
     exit;

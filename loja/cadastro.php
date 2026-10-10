@@ -20,7 +20,7 @@ function nomeCompleto(string $nome): bool
     return count(array_filter(preg_split('/\s+/', trim($nome)))) >= 2;
 }
 
-$whatsappLoginHabilitado = (bool) $pdo->query('SELECT whatsapp_verificacao_ativo FROM config_dev WHERE id_config = 1')->fetchColumn();
+$whatsappLoginHabilitado = whatsappAtivo($pdo);
 
 $erro = '';
 $etapa = 'email';

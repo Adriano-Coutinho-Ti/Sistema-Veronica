@@ -25,7 +25,7 @@ if ($statusFiltro === 'verificados') {
 }
 
 const CLIENTES_POR_PAGINA = 20;
-$whatsappAtivo = (bool) $pdo->query('SELECT whatsapp_verificacao_ativo FROM config_dev WHERE id_config = 1')->fetchColumn();
+$whatsappAtivo = whatsappAtivo($pdo);
 $totalNaLixeira = (int) $pdo->query('SELECT COUNT(*) FROM clientes WHERE excluido_em IS NOT NULL')->fetchColumn();
 $pagina = max(1, (int) ($_GET['pagina'] ?? 1));
 
