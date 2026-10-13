@@ -1,8 +1,8 @@
-# Sistema de Loja — CoderNex
+# Sistema DevClub
 
 Sistema completo para uma loja física e online: **painel administrativo**, **PDV (caixa)**, **loja online** com pagamento, **linha de crédito** para clientes e integrações opcionais (WhatsApp, frete, nota fiscal). Feito em **PHP + MySQL**, sem framework, para ser fácil de ler, instalar e adaptar.
 
-> Material de apoio do **DevClub**. O sistema é entregue com nome neutro ("Sua Loja - CoderNex"); o nome, a logo e as cores da loja são configurados dentro do próprio sistema.
+> Material de apoio do **DevClub**. O nome do sistema, o nome da loja, a logo e as cores são configurados dentro do próprio sistema, então cada aluno entrega o seu com a identidade que quiser.
 
 ---
 
@@ -900,4 +900,4 @@ Estes arquivos e pastas são **criados pelo uso do sistema**, não vêm no GitHu
 ---
 
 ## Créditos
-Desenvolvido por **CoderNex**, para os alunos do **DevClub**.
+Sistema DevClub, material para os alunos do **DevClub**.
