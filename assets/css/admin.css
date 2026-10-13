@@ -572,6 +572,15 @@ td a { font-weight: 600; }
     background: var(--cor-fundo-alt);
 }
 
+/* Lista de produtos: colunas compactas, e só o nome (3ª coluna) pode quebrar de linha.
+   Sem isso, ao lado do menu de filtros a tabela fica espremida: nome em 4 linhas e
+   preço partido ("R$" em cima, valor embaixo). Se ainda assim não couber, a tabela rola. */
+.tabela-produtos { min-width: 680px; }
+.tabela-produtos th, .tabela-produtos td { padding: 10px 8px; }
+.tabela-produtos td { white-space: nowrap; }
+.tabela-produtos td:nth-child(3) { white-space: normal; min-width: 140px; }
+.tabela-produtos .foto-produto-mini { width: 48px; height: 48px; min-width: 48px; max-width: 48px; }
+
 /* Ações lado a lado numa célula de tabela (ex: "editar" + "excluir") */
 .celula-acoes { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .celula-acoes form { display: inline-flex; margin: 0; }

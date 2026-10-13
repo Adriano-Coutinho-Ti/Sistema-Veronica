@@ -139,7 +139,7 @@ function montarLinkFiltroProdutos(int $pagina, int $categoria, string $status, s
                 <p>Nenhum produto encontrado.</p>
             <?php else: ?>
             <div class="tabela-wrap">
-            <table>
+            <table class="tabela-produtos">
                 <tr><th></th><th>Código</th><th>Nome</th><th>Categoria</th><th>Preço</th><th>Estoque</th><th>Status</th><th></th><th></th></tr>
                 <?php foreach ($produtos as $p): ?>
                 <?php
