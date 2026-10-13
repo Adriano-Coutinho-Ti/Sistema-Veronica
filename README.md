@@ -65,7 +65,8 @@ notas_fiscais/     Emissão e lista de notas fiscais
 painel_dev/        Painel do desenvolvedor e assistente de instalação
 pedidos/           Pedidos da loja online
 produtos/          Produtos, categorias e variações
-sql/               Scripts do banco de dados
+SysVeronica.sql    Banco de dados completo (é o arquivo que você importa na instalação)
+sql/               Scripts de atualização do banco (usados só quando o sistema é atualizado)
 usuarios/          Usuários da loja
 conecta_bd.php     Conexão com o banco
 ```
@@ -225,12 +226,12 @@ Guarde estas informações. Elas serão usadas na Parte 9 e na Parte 10:
 
 Na Parte 3 você criou o banco **vazio**. Agora vamos colocar dentro dele todas as tabelas do sistema (produtos, clientes, vendas, pedidos...). Isso é uma **importação**: você escolhe um arquivo `.sql` que já vem pronto no projeto e o phpMyAdmin faz o resto.
 
-> **Onde está o arquivo do banco?** Ele se chama **`Banco.sql`** e vem junto com o projeto, na pasta **`sql/`**. Você vai precisar dele no seu computador, então se ainda não baixou o projeto, faça a **Parte 5, passo 1**, e volte aqui.
+> **Onde está o arquivo do banco?** Ele se chama **`SysVeronica.sql`** e vem junto com o projeto, na **pasta raiz** (a primeira pasta do projeto, junto do `index.php`, e **não** dentro da pasta `sql/`). Você vai precisar dele no seu computador, então se ainda não baixou o projeto, faça a **Parte 5, passo 1**, e volte aqui.
 
 1. Abra o **phpMyAdmin** do serviço `sysveronica` (Easypanel → projeto `sys-devclub` → serviço `sysveronica` → **Abrir** no phpMyAdmin).
 2. Na lista da **esquerda**, clique no banco **`SysVeronica`**. Ele precisa ficar **selecionado** (destacado). É importante: o arquivo será importado dentro do banco que estiver selecionado.
 3. No menu do alto, clique na aba **Importar**.
-4. Em **Arquivo a importar**, clique em **Escolher arquivo** e selecione o arquivo **`Banco.sql`**, da pasta `sql/` do projeto.
+4. Em **Arquivo a importar**, clique em **Escolher arquivo** e selecione o arquivo **`SysVeronica.sql`**, que está na pasta raiz do projeto.
 5. **Não mexa** nas outras opções. Deixe tudo como está.
 6. Role até o final da página e clique no botão **Importar**.
 
@@ -798,7 +799,7 @@ O domínio é o endereço do seu sistema (por exemplo, `minhaloja.com.br`). Os d
 **Importar as tabelas do sistema**
 
 5. Abra o **phpMyAdmin** da hospedagem (há um botão ou link para ele no gerenciador de banco de dados).
-6. Selecione o banco que você criou, clique na aba **Importar**, escolha o arquivo **`Banco.sql`** (da pasta `sql/` do projeto) e clique em **Importar**. É o mesmo processo da **Parte 4**.
+6. Selecione o banco que você criou, clique na aba **Importar**, escolha o arquivo **`SysVeronica.sql`** (da pasta raiz do projeto) e clique em **Importar**. É o mesmo processo da **Parte 4**.
 
 **Como saber se deu certo:** uma faixa verde confirma a importação, e as tabelas do sistema aparecem na lista do banco.
 
@@ -810,6 +811,8 @@ A partir daqui o processo é **o mesmo da VPS**, usando o seu domínio:
 2. **Parte 11** — preparar o acesso do lojista.
 3. **Parte 12** — configurar nome do sistema, rodapé, Mercado Pago, e-mail e WhatsApp.
 4. **Parte 13** — entregar o sistema ao lojista e testar.
+
+> **Mercado Pago, e-mail, WhatsApp e n8n são iguais nos dois caminhos.** Eles não dependem de onde o sistema está instalado: a configuração da Parte 12 (aplicativo no Mercado Pago, SMTP, Evolution API e workflow do n8n) é **exatamente a mesma** na VPS e na hospedagem comum. Só muda o endereço do seu sistema nos campos do Mercado Pago (Redirect URI e URL de webhook), que deve ser o do seu domínio. A Evolution API e o n8n continuam onde você os instalou; o sistema só conversa com eles pela internet.
 
 > **Use HTTPS.** O Mercado Pago só envia os avisos de pagamento para endereços `https://`, e o aplicativo instalável (PWA) também exige. Ative o **certificado SSL** do seu domínio no painel da hospedagem e use sempre o endereço com `https://`.
 
